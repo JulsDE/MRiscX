@@ -1,0 +1,186 @@
+import MRiscX.AbstractSyntax.Map
+import MRiscX.AbstractSyntax.Instr
+import MRiscX.Parser.AssemblySyntax
+import Lean
+open Nat
+open Lean Lean.Elab
+/-
+Purpose of this file:
+This file establishes the syntax of the MRiscX assembly language, encompassing the definition
+of instructions, labels, registers, memory and machine states. Given that the instructionsMap,
+labels, registers, and memory are represented as maps, it may be beneficial to review the contents
+of the file Maps.lean beforehand.
+
+
+Next we define some Datatypes for the map keys.
+This is because it makes it easier to understand which
+map is being processed.
+Firstly a register, which will hold a value
+-/
+
+abbrev Register := UInt64
+
+
+instance: Coe Register UInt64 where
+ coe c := (c:UInt64)
+
+
+/-
+Next, the memory address. This address will point to a certain
+address in the memory which holds some value
+-/
+abbrev MemoryAddress := UInt64
+
+/-
+The InstructionIndex is a serial number which points
+to a instruction in the stack
+-/
+abbrev InstructionIndex := UInt64
+
+abbrev ProgramCounter := UInt64
+
+/-
+Now, the foundations of the machine states are defined.
+First, a total map which holds the instructions of a program
+tied to a unsigned 64-bit integers as InstructionIndex. The default value of this map
+is the instruction IPanic.
+
+IM ::= {uint64_1 ↦ instr_1, uint64_2 ↦ instr_2, ..., uint64_n ↦ instr_n}
+/ default:  Instr.IPanic
+-/
+def InstructionMap := TMap InstructionIndex Instr
+deriving Repr, Inhabited
+
+instance : ToString InstructionMap where
+  toString (instrMap : InstructionMap) := reprStr instrMap
+
+def EmptyInstructionMap : InstructionMap := TMap.empty Instr.Panic
+
+/-
+Next, we define the partial map LabelMap, which holds all the Labels as key and links these
+to an unsigned 64-bit integers.
+
+LM ::= {l_1 ↦ uint64_1, l_2 ↦ uint64_2, ..., l_n ↦ uint64_n}
+-/
+def LabelMap := PMap String UInt64
+deriving Repr, Inhabited
+
+instance : ToString LabelMap where
+  toString (labelMap : LabelMap) := reprStr labelMap
+
+
+namespace LabelMap
+
+  def addLabel (l : LabelMap) (label : String) (line : UInt64) :=
+    l.put label line
+
+end LabelMap
+
+def EmptyLabels : LabelMap := PMap.empty
+
+/-
+For storing labels in environment
+
+structure LabelMapEnv where
+  name : String
+  labelMap : LabelMap
+  mriscxSyn : TSyntax `mriscx_syntax
+
+instance : ToString LabelMapEnv where
+  toString (labelMap : LabelMapEnv) := s!"labelMap := {labelMap.labelMap}, name := {labelMap.name}"
+
+abbrev LabelMapEnvState := NameMap LabelMapEnv
+
+abbrev LabelMapEnvExtension := SimplePersistentEnvExtension LabelMapEnv LabelMapEnvState
+
+
+def LabelMapEnvState.addEntry (nm: NameMap LabelMapEnv) (lm : LabelMapEnv) : NameMap LabelMapEnv :=
+  nm.insert (lm.name.toName) lm
+
+
+initialize labelMapEnvExtension : LabelMapEnvExtension ←
+  registerSimplePersistentEnvExtension {
+    addImportedFn := mkStateFromImportedEntries LabelMapEnvState.addEntry {}
+    addEntryFn    := LabelMapEnvState.addEntry
+  }
+
+
+def getLabelMapEnv (env : Environment) : NameMap LabelMapEnv := labelMapEnvExtension.getState env
+
+def addLabelMapEnv (env : Environment) (labelMap : LabelMapEnv) : Except String Environment := do
+  if let some labelMapEntry := (getLabelMapEnv env).find? labelMap.name.toName then
+    if labelMapEntry.name == labelMap.name then
+      throw s!"Name already exists"
+    return env
+  else
+    return labelMapEnvExtension.addEntry env labelMap
+-/
+
+
+
+/-
+The two newly defined structures can now be combined into a single structure,
+which we refer to as `Code`. Additionally, a default instance of Code is created,
+containing an empty `InstructionMap` and an empty `LabelMap`.
+-/
+structure Code where
+  instructionMap: InstructionMap
+  labels: LabelMap
+
+
+def DefaultCode : Code := { instructionMap := EmptyInstructionMap, labels := EmptyLabels }
+
+/-
+A few functions which help with operating with the `Code` structure.
+-/
+namespace Code
+  def setCMap (m : Code) (c : InstructionMap) : Code :=
+    { m with instructionMap := c}
+
+  def setLabels (m : Code) (l : LabelMap) : Code :=
+    { m with labels := l}
+
+  def addMultipleLabels (m : Code) (l : List (String × UInt64)) : Code :=
+  match l with
+  | [] => m
+  | h :: t => addMultipleLabels {m with labels := p(h.1 ↦ h.2 ; m.labels)} t
+
+  def addCMap (m : Code) (id : InstructionIndex) (v : Instr) : Code :=
+    {m with instructionMap := (id ↦ v ; m.instructionMap)}
+
+  def addLabels (m : Code) (id : String) (v : UInt64) : Code :=
+    {m with labels := p(id ↦ v ; m.labels)}
+
+  def addMaps (m : Code) (id_c : InstructionIndex) (v_c : Instr) (id_l : String)
+      (v_l : UInt64) : Code :=
+    {m with instructionMap := (id_c ↦ v_c ; m.instructionMap), labels :=
+    p(id_l ↦ v_l ; m.labels)}
+
+  def setMaps (m : Code) (c : InstructionMap) (l : LabelMap) :=
+    {m with instructionMap := c, labels := l}
+
+  def getLabel (m : Code) (l : String): Option UInt64 := m.labels.get l
+
+  def getInstrAt (m : Code) (l : UInt64): Instr := m.instructionMap.get l
+end Code
+
+
+
+
+/-
+Definiton of the registers
+R ::= {r_1 ↦ w_1, … , r_k ↦ w_k}
+-/
+def Registers := TMap Register UInt64
+  deriving Repr
+
+def EmptyRegisters : Registers := TMap.empty 0
+
+/-
+Definiton of the registers
+M ::= {m_1 ↦ w_1, … , m_k ↦ w_k}
+-/
+def Memory := TMap MemoryAddress UInt64
+  deriving Repr
+
+def EmptyMemory : Memory := TMap.empty 0

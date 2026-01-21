@@ -1,0 +1,14 @@
+name = "MRiscX"
+version = "0.1.0"
+defaultTargets = ["mriscx"]
+
+[[lean_lib]]
+name = "MRiscX"
+
+[[lean_exe]]
+name = "mriscx"
+root = "Main"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
