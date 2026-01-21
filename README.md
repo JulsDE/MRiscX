@@ -1,13 +1,13 @@
 # MRiscX
 
-This project aims to provide a low-threshold introduction to the world of formal methods.
+MRiscX aims to provide a low-threshold introduction to the world of formal methods.
 To this end, an environment has been developed that allows RISC-V assembly code to be verified in 
 Lean using Hoare logic.
 
 ## Installation
 
-This project requires mathlib. If mathlib is not present, it will be installed to your project 
-automatically after adding this as a dependeny. 
+The project is dependent on mathlib. If mathlib is not present, it will be installed to your project 
+automatically after adding this project as a dependeny. 
 
 Add this project to your lakefile.toml like this 
 
@@ -22,13 +22,11 @@ Then, execute
 ```bash
 lake update 
 ```
-in your project. After this finished successfully, restart the `Lean Language Server`.
-Then, 
+in your project. When finished successfully, restart the `Lean Language Server`  and import
 ```lean4
 import MRiscX.Basic
 ``` 
-into a `.lean` file, `Restart File` and start using the library. 
-
+into a `.lean` file. After a final `Restart File` you can start using the library. 
 
 
 ## Proving your own code
@@ -38,7 +36,9 @@ To perform a proof of correctness, you can create a new file, import
 ```lean4
 import MRiscX.Basic
 ```
+
 and start by defining the hoare triple.
+
 In general, a hoare triple in MRiscX looks like this: 
 ```lean4
 example (r₁ r₂ r₃ v₁ v₂ : UInt64)
@@ -64,13 +64,18 @@ example:
     ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄
   := by
 ```
-Note that it is possible, to use labelnames as indicator where the programcounter should start / finish.
+As you can see, it is possible to use labelnames as indicator where the programcounter should 
+start / finish.
 
-For more examples, have a look into files inside the [example folder](MRiscX/Examples), especially the [`Examples.lean`](MRiscX/Examples/Examples.lean).
+For more examples and explanations, have a look into files inside the 
+[example folder](MRiscX/Examples), especially the file 
+[`Examples.lean`](MRiscX/Examples/Examples.lean) might be helpful.
 
-**_NOTE:_** In the current version, it is necessary to put the preconditions and postconditions in parentheses, with the exception of `¬⸨terminated⸩`, in order to successfully apply the specification. 
+ **_NOTE:_** In the current version, it is necessary to put the preconditions and postconditions in parentheses, with the exception of `¬⸨terminated⸩` (e.G. 
+⦃**(** x[0] = ∧ x[1] = 1 **)** ∧ ¬⸨terminated⸩⦄), in order to successfully apply the 
+specification. 
 
-**A detailed documentation of this project is currently WIP and will be available as 
+>**A detailed documentation of this project is currently WIP and will be available as 
 soon as possible.**
 
 ## Structure of the project
@@ -142,5 +147,6 @@ soon as possible.**
 
 
 ## Known issues
-At the current version, it is nessecary to put the pre-, and postcondition in parantheses except 
-the `¬⸨terminated⸩` to successfully apply the specification. 
+In the current version, it is necessary to put the preconditions and postconditions in parentheses, with the exception of `¬⸨terminated⸩` (e.G. 
+⦃**(** x[0] = ∧ x[1] = 1 **)** ∧ ¬⸨terminated⸩⦄), in order to successfully apply the 
+specification. 

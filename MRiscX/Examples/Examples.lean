@@ -33,7 +33,6 @@ example (r₁ r₂ r₃ v₁ v₂ : UInt64)
 /-
 An example of the first block of the otp implementation from `OtpProof.lean`.
 We can use either actual numbers or variables as registers or values.
-
 -/
 example (p k c l : UInt64) :
     mriscx
@@ -82,9 +81,17 @@ example (p k c l : UInt64) :
     This postcondition asserts, that the registers have the correct values and addresses loaded
     after executing the program. Also, the machine state still is in a legal state since no
     illegal instruction was executed and we did not visit any line, which holds no instruction.
+
+    In the current version, it is necessary to put the preconditions and postconditions in
+    parentheses, with the exception of `¬⸨terminated⸩` (e.G.
+    ⦃**(** x[0] = ∧ x[1] = 1 **)** ∧ ¬⸨terminated⸩⦄), in order to successfully apply the
+    specification.
     -/
     ⦃(x[0] = p ∧ x[1] = k ∧ x[2] = c ∧ x[3] = l) ∧ ¬⸨terminated⸩⦄
   := by
+  /- Too peel off the last instruction in order to be able to inspect that individually, we
+    apply s_apply_seq''', a custom tactic which applies the rule `S-SEQ` and automatically
+    solves some trivial goals. -/
   sapply_s_seq''' P := ⦃¬⸨terminated⸩⦄ ,
                   R := ⦃(x[0] = p ∧ x[1] = k ∧ x[2] = c) ∧ ¬⸨terminated⸩⦄,
                   L_W := {3},
@@ -103,12 +110,22 @@ example (p k c l : UInt64) :
                       L_W' := {2},
                       L_B := ({n:UInt64| n ≠ 1}),
                       L_B' := ({n:UInt64| n ≠ 2})
+      /- At this point, every instruction was isolated. Now we just have to show
+        the correctness of each single instruction.
+        We can do this, by applying the specification of the instruction respectively.
+        For this, the tactic apply_spec can be used. This custom tactic applies the
+        specification and handles the generated goals.
+        To apply the specification, we have to provide some values.
+          l := The line the programcounter currently points to.
+          r := The register which is being modified.
+          v := The value we want to load into the register.
+        The parameters differ to each specification.1 -/
       . apply_spec specification_LoadAddress (l := 0) (r := 0) (v := p)
       . apply_spec specification_LoadAddress (l := 1) (r := 1) (v := k)
     . apply_spec specification_LoadAddress (l := 2) (r := 2) (v := c)
   . apply_spec specification_LoadImmediate (l := 3) (r := 3) (v := l)
 
-
+/- A function to avoid repetition while writing the hoare-triples -/
 def pairwiseDistinct (r₁ r₂ r₃ r₄ : UInt64) :=
   r₁ ≠ r₂
   ∧ r₁ ≠ r₃
@@ -189,7 +206,7 @@ example:
                   L_B := ({n:UInt64| n > 2} ∪ {0}),
                   L_B' := ({n:UInt64| n ≠ 3})
     /-
-    apply s_seq with automatically solve set equality
+    apply s_seq without automatically solve set equality
     -/
   . sapply_s_seq''  R := ⦃(x[0] = 2 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
                     L_W := {1},
