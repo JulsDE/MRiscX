@@ -7,7 +7,7 @@ Lean using Hoare logic.
 ## Installation
 
 The project is dependent on mathlib. If mathlib is not present, it will be installed to your project 
-automatically after adding this project as a dependeny. 
+automatically after adding this project as a dependency. 
 
 Add this project to your lakefile.toml like this 
 
@@ -37,9 +37,9 @@ To perform a proof of correctness, you can create a new file, import
 import MRiscX.Basic
 ```
 
-and start by defining the hoare triple.
+and start by defining the Hoare triple.
 
-In general, a hoare triple in MRiscX looks like this: 
+In general, a Hoare triple in MRiscX looks like this: 
 ```lean4
 example (r₁ r₂ r₃ v₁ v₂ : UInt64)
         (P Q : Prop) (l : UInt64)
@@ -90,7 +90,7 @@ soon as possible.**
   Contains all the abstract syntax objects the assembly language essentially bases on 
 
 - `MRiscX/Delab`
-  Contains the files responsible for delaboration of assembly language and hoare triple
+  Contains the files responsible for delaboration of assembly language and Hoare triple
 
 - `MRiscX/Elab`
   Contains the files handling the elaboration and some specific expr processing  
@@ -99,7 +99,7 @@ soon as possible.**
   Contains some Utility functions like theorems about sets or UInt64 used several times
 
 - `MRiscX/Hoare`
-  Contains all the files about the hoare logic and hoare triples
+  Contains all the files about the Hoare logic and Hoare triples
 
   - `MRiscX/Hoare/HoareAssignmentElab.lean`
     Contains the function 
@@ -112,7 +112,7 @@ soon as possible.**
     Formalization of Hoare rules and their associated proofs.
 
 - `MRiscX/Parser/`
-  Contains the syntax definitions of the assembly language and hoare triples 
+  Contains the syntax definitions of the assembly language and Hoare triples 
 
 - `MRiscX/Semantics/`
   Contains files about the semantics of the assembly language 
@@ -128,17 +128,18 @@ soon as possible.**
 
   - `MRiscX/Tactics/SplitLastSeq.lean` 
     Contains the logic behind the tactic `auto seq`, which tries to 
-    "peel off" the last instruction with appying `S-SEQ` and calculating all the missing values.
+    "peel off" the last instruction with applying `S-SEQ` and calculating all the missing values.
   
   - `MRiscX/Tactics/ProofAutomationTacitcs.lean` 
-    Contains 
+    Contains various proof tactics to automate the process of verifying the formal correctness of 
+    a program
   
 
 - `MRiscX/Examples/`
   Contains some working examples
 
   - `MRiscX/Examples/Examples.lean`
-    Contains many small examples of hoare-triples which are verifyable on correctness pretty easily.
+    Contains many small examples of Hoare-triples which are verifiable on correctness pretty easily.
 
   - `MRiscX/Examples/OtpProof.lean`
     Contains a complete proof of correctness of an implementation of the One-Time-Pad. Individual steps are outsourced to 

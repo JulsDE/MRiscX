@@ -6,7 +6,6 @@ open Lean Elab
 This file contains a logic to replace the labelname with the actual pc index
 within a hoare triple
 -/
-
 partial def replaceLabels (stx : Term) (labels : LabelMap) : TermElabM Syntax := do
   withFreshMacroScope do
     let (newStx, _) ← (go stx).run labels
@@ -14,6 +13,7 @@ partial def replaceLabels (stx : Term) (labels : LabelMap) : TermElabM Syntax :=
 where
   /-
   Auxiliary function for expanding the `labels[ident]`.
+  Similar to `expandCDot?`
 
   Otherwise, we just return `stx`.
   -/

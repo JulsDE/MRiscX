@@ -82,7 +82,8 @@ In contrast, $L_B$ contains those lines to which the program counter must not re
 
 /-
 With the background to verify the correctness of the interpreter, we need a way to
-provide a proof of correctness for a single instruction
+provide a proof of correctness for a single instruction. These functions can be
+used for defining the specifications of each instruction.
 -/
 
 def weak_one (s s' : MState) (L_w L_b : Set UInt64) : Prop :=
