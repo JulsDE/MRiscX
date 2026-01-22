@@ -29,7 +29,7 @@ import MRiscX.Basic
 into a `.lean` file. After a final `Restart File` you can start using the library. 
 
 
-## Proving your own code
+## Verify your own code
 
 
 To perform a proof of correctness, you can create a new file, import
@@ -47,6 +47,7 @@ example (r₁ r₂ r₃ v₁ v₂ : UInt64)
         (mriscx_code : Code) :
   mriscx_code
   ⦃P⦄ l ↦ ⟨L_W | L_B⟩ ⦃Q⦄
+  := by sorry
 ```
 
 
@@ -62,7 +63,7 @@ example:
     ⦃¬⸨terminated⸩ ∧ x[4] = 123⦄
     "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
     ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄
-  := by
+  := by sorry
 ```
 As you can see, it is possible to use labelnames as indicator where the programcounter should 
 start / finish.
