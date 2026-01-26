@@ -1,5 +1,5 @@
 name = "MRiscX"
-version = "0.1.0"
+version = "0.1.0-v4.28.0-rc1"
 defaultTargets = ["mriscx"]
 
 [[lean_lib]]
