@@ -429,7 +429,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
       .
         ext a
         simp
-
+        grind only
       . simp
       . exact h_code'
       . exact h_pc
@@ -442,6 +442,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
             exact h_I
     . ext a
       simp
+      grind
 
     . simp
     . exact s_code
