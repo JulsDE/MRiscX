@@ -189,7 +189,7 @@ partial def termToLabelMap (t: TSyntax `term) : LabelMap :=
 
 
 def createLabelInstructionArray (instructionMap:SyntaxInstrMap) (labelMap:LabelMap) :
-    Array (String × Array (TSyntax `mriscx_Instr)) := Id.run do
+    Option (Array (String × Array (TSyntax `mriscx_Instr))) := Id.run do
   let labels := labelMap.getKeys
 
   if labels.length == 1 then do
@@ -219,7 +219,7 @@ def createLabelInstructionArray (instructionMap:SyntaxInstrMap) (labelMap:LabelM
           cur_Instrs := cur_Instrs.push (instructionMap.get (id j.toUInt64))
         result := result.push (label_entry, cur_Instrs)
 
-      | _, _ => unreachable!
+      | _, _ => return none
 
     | none =>
       let cur_index := labelMap.get label_entry
@@ -231,9 +231,9 @@ def createLabelInstructionArray (instructionMap:SyntaxInstrMap) (labelMap:LabelM
         for j in [cur.toNat : last.toNat + 1 : 1] do
           cur_Instrs := cur_Instrs.push (instructionMap.get (id j.toUInt64))
         result := result.push (label_entry, cur_Instrs)
-      | _ , _ => unreachable!
+      | _ , _ => return none
 
-  return result
+  return some result
 
 
 
@@ -243,7 +243,11 @@ def CodeUnexpander : Unexpander
 
     let labels := termToLabelMap l
     let instructionMap := (←termToInstrMap i)
-    let syntaxArray := createLabelInstructionArray instructionMap labels
+    let syntaxArray? := createLabelInstructionArray instructionMap labels
+
+    let syntaxArray := ← match syntaxArray? with
+                      | some a => return a
+                      | none => throw Unit.unit
 
     if syntaxArray.size > 0 then
       let mut syntaxes := #[]
