@@ -88,7 +88,7 @@ def mkAssertionAtN
       let e ← getExpr
       if e.isLambda then
         if e.bindingBody!.getAppFn.isLambda then
-          withBindingBody' stName pure fun st => do
+          withBindingBody' stName pure fun _ => do
             withAppFn <|(withAnnotatedBody (Lean.PrettyPrinter.Delaborator.delab))
         else
           withAnnotatedBody delab
@@ -97,7 +97,7 @@ def mkAssertionAtN
 
     let stateSyn? : Option Term ← withNaryArg n <| do
       if hasNestedLambdaBody (←getExpr) then
-        some <$> withBindingBody' stName pure (fun st =>
+        some <$> withBindingBody' stName pure (fun _ =>
           withNaryArg 0 delab)
       else
         return none
@@ -120,7 +120,7 @@ def hoareTripleDelab : Delab :=
     let stName ← Core.mkFreshUserName `st
 
     let withAnnotatedBody (d : Delab) : Delab :=
-      withBindingBody' stName pure fun st => do
+      withBindingBody' stName pure fun _ => do
         let e := annotateStateFns (← getExpr)
         withTheReader SubExpr (fun s => { s with expr := e }) d
 
@@ -167,7 +167,7 @@ def isOnlyStateIdent (s : TSyntax `term) : Bool :=
 
 @[app_unexpander MState.incPc]
 def IncPcUnexpander : Unexpander
-  | `(MState.incPc $s) => do
+  | `($_ $s) => do
     if isOnlyStateIdent s then
       `(hoare_assignment_chain | pc++)
     else
@@ -177,7 +177,7 @@ def IncPcUnexpander : Unexpander
 
 @[app_unexpander MState.addRegister]
 def AddRegUnexpander : Unexpander
-  | `(MState.addRegister $s $rTerm:term $vTerm:term) => do
+  | `($_ $s $rTerm:term $vTerm:term) => do
     let r ← numOrIdentToSyntax rTerm
     if isOnlyStateIdent s then
       `(hoare_assignment_chain | x[$r] ← $vTerm)
@@ -187,7 +187,7 @@ def AddRegUnexpander : Unexpander
 
 @[app_unexpander MState.addMemory]
 def AddMemUnexpander : Unexpander
-  | `(MState.addMemory $s $rTerm:term $vTerm:term) => do
+  | `($_ $s $rTerm:term $vTerm:term) => do
     if isOnlyStateIdent s then
       `(hoare_assignment_chain | mem[$rTerm] ← $vTerm)
     else

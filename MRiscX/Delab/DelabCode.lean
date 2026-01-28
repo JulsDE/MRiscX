@@ -239,7 +239,7 @@ def createLabelInstructionArray (instructionMap:SyntaxInstrMap) (labelMap:LabelM
 
 @[app_unexpander Code.mk]
 def CodeUnexpander : Unexpander
-  | `(Code.mk $i $l) => do
+  | `($_ $i $l) => do
 
     let labels := termToLabelMap l
     let instructionMap := (←termToInstrMap i)

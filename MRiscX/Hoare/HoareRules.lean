@@ -184,7 +184,43 @@ theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64
   /-
   already shown in S_SEQ'
   -/
-  sorry
+  intros P R Q c l L_w L_b L_w' L_b' TInter TEmpty TInter' T
+  unfold hoare_triple_up
+  intros HFirst HSecond def_L_b'' _ h_empty' s HCode HPc pre
+  specialize HFirst TInter TEmpty s HCode HPc pre
+  rcases HFirst with ⟨s', ⟨HFirstWeak, HFirstPost, HFirstPc⟩⟩
+  unfold weak at HFirstWeak
+  specialize HFirstWeak HCode
+  rcases HFirstWeak with ⟨m, ⟨HFW1, HFW2, HFW3, HFW4⟩⟩
+  have HCode' : s'.code = c := by
+    rw [<- HCode, <- HFW2]
+    simp
+  specialize HSecond s'.pc HFW3 TInter' h_empty' s' HCode' rfl HFirstPost
+  unfold weak at HSecond
+  rcases HSecond with ⟨s'', ⟨HSecondWeak, HSecondPost, HSecondPc⟩⟩
+  specialize HSecondWeak HCode'
+  rcases HSecondWeak with ⟨m', ⟨_, HSW2, HSW3, HSW4⟩⟩
+  exists s''
+  constructor <;> try assumption
+  . unfold weak
+    intros HCode
+    exists (m + m')
+    constructor <;> try assumption
+    . exact Nat.add_gt_zero _ _ HFW1
+    . constructor <;> try assumption
+      . rw [<- HFW2] at HSW2
+        simp at HSW2
+        exact HSW2
+      . constructor <;> try assumption
+        . intros m'' Hm''
+          rw [def_L_b'']
+          apply MState.run_n_plus_m_intersect' <;> assumption
+  . constructor <;> try assumption
+    .
+      rw [def_L_b'']
+      simp
+      intros _
+      exact HSecondPc
 
 
 theorem PRE_STR : ∀(c : Code) (P1 P2 Q : Assertion) (L_w L_b : Set UInt64) (l : UInt64),
