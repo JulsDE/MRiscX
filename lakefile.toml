@@ -1,13 +1,10 @@
 name = "MRiscX"
 version = "0.1.0-v4.28.0-rc1"
-defaultTargets = ["mriscx"]
+defaultTargets = ["MRiscX"]
 
 [[lean_lib]]
 name = "MRiscX"
-
-[[lean_exe]]
-name = "mriscx"
-root = "Main"
+globs = ["MRiscX.*"]
 
 [[require]]
 name = "mathlib"
