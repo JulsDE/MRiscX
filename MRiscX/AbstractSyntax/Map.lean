@@ -8,8 +8,8 @@ These maps are converted from
   journal={Webpage: http://www. cis. upenn. edu/bcpierce/sf/current/index. html},
 -/
 
-/-
-Firstly, we define a total map as recursive type with a key type α and value of type β.
+/--
+Total map as recursive type with a key type α and value of type β.
 The empty map takes a default value d of type β.
 -/
 inductive TMap (α : Type) (β : Type) where
@@ -30,10 +30,15 @@ implemented.
 -/
 namespace TMap
 
+  /--
+    Let k ∈ α and v, d ∈ β.
+    The function TMap.get(k) returns either the value v assigned to k or d as the default value if no assignment to k.
+  -/
   def get {α : Type} [BEq α] [LawfulBEq α] {β : Type} (map : TMap α β) (k : α):=
     match map with
     | TMap.empty d => d
     | TMap.put k' v t => if k == k' then v else TMap.get t k
+
 
   def getKeysAux {α : Type} {β : Type} [BEq α] [LawfulBEq α] (map : TMap α β) (list : List α)
       : List α :=
@@ -41,6 +46,9 @@ namespace TMap
     | TMap.empty _ => list
     | TMap.put k _ t => t.getKeysAux (k :: list)
 
+  /--
+    Get all keys of a map as a list
+  -/
   def getKeys {α : Type} {β : Type} [BEq α] [LawfulBEq α] (map : TMap α β) : List α :=
     (map.getKeysAux [])
 
@@ -55,17 +63,21 @@ namespace TMap
     | TMap.empty _ => list
     | TMap.put _ v t => t.getValuesAux (v :: list)
 
-    def getValues {α : Type} {β : Type} [BEq α] [LawfulBEq α] (map : TMap α β) : List β :=
+  /--
+    Get all values of a map as a list
+  -/
+  def getValues {α : Type} {β : Type} [BEq α] [LawfulBEq α] (map : TMap α β) : List β :=
     (map.getValuesAux [])
 
 end TMap
 
+
 notation:60 "(" k " ↦ "v" ; "m")" => TMap.put k v m
 
 
-/-
-Next, a partial map as recursive type with a key type α and value of type β is defined.
-This map does not required a default value d of type β because an option will be returned.
+/--
+Partial map as recursive type with a key type α and value of type β is defined.
+Returns an option.
 -/
 inductive PMap (α : Type) (β : Type) where
   | empty : PMap α β
@@ -78,6 +90,12 @@ This function differs from the TMap.get by returning corresponding value as opti
 If the key is not found in the map, return none.
 -/
 namespace PMap
+  /--
+    Let k ∈ α and v ∈ β, then PMap.get(k) returns some v
+      (v wrapped inside an option object),
+    when k is assigned to some v.
+    Return none, else.
+  -/
   def get {α : Type} {β : Type}[BEq α](map : PMap α β) (k : α) :=
     match map with
     | PMap.empty => none
@@ -96,31 +114,33 @@ end PMap
 
 notation:60 "p("k" ↦ "v" ; "m")" => PMap.put k v m
 
-/-
-Next are some theorems which are handy for proving statements about the contents of a map.
-This theorem states, when a given map [m] which contains the key [i] with the value [v] as last
-entry, the TMap.get function returns the corresponding value [v] to key [i].
+/--
+This theorem states, when a given map [t] which contains the key [k]
+with the value [v] as last entry, the function `TMap.get` returns the
+corresponding value [v].
 -/
-theorem t_update_eq : forall (α : Type)(β : Type) [BEq α] [LawfulBEq α] (m : TMap α β) (i : α)
-    (v : β),
-    (i ↦ v ; m).get i = v := by
-  intros α β m i v ct
+theorem t_update_eq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
+    (t : TMap α β) (k : α) (v : β),
+  (k ↦ v ; t).get k = v
+  := by
+  intros α β t k v ct
   unfold TMap.get
   simp
 
 /-
-If we update a total map [m] at a key [i] and then look up a different key
-[j] in the resulting total map, we get the same result that [m] would have
-given.
+If a total map [t] is updated with some k ∈ α and v ∈ β (k ↦ v; t),
+and we search for some key [k'] with k ≠ k', we get the same result
+as when we would just search [t] for [k'].
 -/
-theorem t_update_neq : forall (α : Type) (β : Type)  [BEq α] [LawfulBEq α] (m : TMap α β) (i j : α)
-    (v : β),
-    i ≠ j -> (i ↦ v ; m).get j = m.get j := by
-  intros α β HBEq HLawfulBEq m i j v HNeq
+theorem t_update_neq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
+    (t : TMap α β) (k k' : α) (v : β),
+  k ≠ k' → (k ↦ v ; t).get k' = t.get k'
+  := by
+  intros α β HBEq HLawfulBEq t k k' v HNeq
   simp at HNeq
   unfold TMap.get
-  cases m ; simp
-  . cases HEq: (j==i); simp at HEq
+  cases t ; simp
+  . cases HEq: (k' == k); simp at HEq
     . simp
       unfold TMap.get
       rfl
@@ -129,7 +149,7 @@ theorem t_update_neq : forall (α : Type) (β : Type)  [BEq α] [LawfulBEq α] (
       exfalso
       apply HNeq
       rfl
-  . cases HEq: (j==i); simp at HEq
+  . cases HEq: (k' == k); simp at HEq
     . rfl
     . simp at HEq
       rw[HEq] at HNeq
@@ -137,26 +157,33 @@ theorem t_update_neq : forall (α : Type) (β : Type)  [BEq α] [LawfulBEq α] (
       apply HNeq
       rfl
 
-/-
-The same statements like t_update_eq and t_update_neq but for partial maps
+/--
+This theorem states, when a given map [p] which contains the key [k]
+with the value [v] as last entry, the function `PMap.get` returns the
+corresponding value [v].
 -/
-theorem p_update_eq : forall (α : Type) (β : Type)  [BEq α] [LawfulBEq α] (m : PMap α β) (i : α)
-    (v : β),
-    p(i ↦ v ; m).get i = v := by
-  intros α β m i v ct
+theorem p_update_eq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
+    (p : PMap α β) (k : α) (v : β),
+  p(k ↦ v ; p).get k = v
+  := by
+  intros α β p k v ct
   unfold PMap.get
   simp
 
-
-theorem p_update_neq : forall (α : Type) (β : Type)  [BEq α] [LawfulBEq α] (m : PMap α β) (i j : α)
-    (v : β),
-    i != j -> p(i ↦ v ; m).get j = m.get j := by
-  intros α β HBEq HLawfulBEq m i j v HNeq
-  unfold bne at HNeq
+/-
+If a partial map [p] is updated with some k ∈ α and v ∈ β (k ↦ v; p),
+and we search for some key [k'] with k ≠ k', we get the same result
+as when we would just search [t] for [k'].
+-/
+theorem p_update_neq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
+    (p : PMap α β) (k k' : α) (v : β),
+  k ≠ k' → p(k ↦ v ; p).get k' = p.get k'
+  := by
+  intros α β HBEq HLawfulBEq p k k' v HNeq
   simp at HNeq
   unfold PMap.get
-  cases m ; simp
-  . cases HEq: (j==i); simp at HEq
+  cases p ; simp
+  . cases HEq: (k' == k); simp at HEq
     . simp
       unfold PMap.get
       rfl
@@ -165,7 +192,7 @@ theorem p_update_neq : forall (α : Type) (β : Type)  [BEq α] [LawfulBEq α] (
       exfalso
       apply HNeq
       rfl
-  . cases HEq: (j==i); simp at HEq
+  . cases HEq: (k' == k); simp at HEq
     . rfl
     . simp at HEq
       rw[HEq] at HNeq

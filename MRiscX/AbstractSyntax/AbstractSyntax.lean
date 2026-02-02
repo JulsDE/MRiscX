@@ -4,7 +4,7 @@ import MRiscX.Parser.AssemblySyntax
 import Lean
 open Nat
 open Lean Lean.Elab
-/-
+/--
 Purpose of this file:
 This file establishes the syntax of the MRiscX assembly language, encompassing the definition
 of instructions, labels, registers, memory and machine states. Given that the instructionsMap,
@@ -25,13 +25,13 @@ instance: Coe Register UInt64 where
  coe c := (c:UInt64)
 
 
-/-
+/--
 Next, the memory address. This address will point to a certain
 address in the memory which holds some value
 -/
 abbrev MemoryAddress := UInt64
 
-/-
+/--
 The InstructionIndex is a serial number which points
 to a instruction in the stack
 -/
@@ -39,7 +39,7 @@ abbrev InstructionIndex := UInt64
 
 abbrev ProgramCounter := UInt64
 
-/-
+/--
 Now, the foundations of the machine states are defined.
 First, a total map which holds the instructions of a program
 tied to a unsigned 64-bit integers as InstructionIndex. The default value of this map
