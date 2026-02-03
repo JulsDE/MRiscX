@@ -4,6 +4,10 @@ MRiscX aims to provide a low-threshold introduction to the world of formal metho
 To this end, an environment has been developed that allows RISC-V assembly code to be verified in 
 Lean using Hoare logic.
 
+Please keep in mind, this project is still in development and far from finished. 
+For any problems and issues you encounter while using this library, I 
+would be happy if you report them!
+
 ## Installation
 
 The project is dependent on mathlib. If mathlib is not present, it will be installed to your project 
@@ -43,9 +47,17 @@ In general, a Hoare triple in MRiscX looks like this:
 ```lean4
 example (r₁ r₂ r₃ v₁ v₂ : UInt64)
         (P Q : Prop) (l : UInt64)
-        (L_W L_B : Set UInt64)
-        (mriscx_code : Code) :
-  mriscx_code
+        (L_W L_B : Set UInt64):
+  mriscx
+    main:
+          li x r₁, v₂
+          li x r₂, v₂
+          xor x r₃, x r₁, x r₂
+          j _store
+
+    _some_label:
+          addi x r₁, x 0, 42
+  end
   ⦃P⦄ l ↦ ⟨L_W | L_B⟩ ⦃Q⦄
   := by sorry
 ```
