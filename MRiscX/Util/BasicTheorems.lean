@@ -229,3 +229,25 @@ theorem UInt64.add_right_ne_of_lt : ∀ (n i l : UInt64),
   apply UInt64.lt_asymm
   assumption
   exact h_iLtl
+
+
+
+instance : Preorder UInt64 where
+  le := (· ≤ ·)
+  lt := (· < ·)
+  le_refl := by simp
+  le_trans := by apply UInt64.le_trans
+  lt_iff_le_not_ge := by
+    intros a b
+    constructor
+    . intros h
+      simp
+      constructor
+      . apply UInt64.le_of_lt h
+      . exact h
+    . simp
+
+
+instance : WellFoundedLT UInt64 where
+  wf := by
+    simpa using (measure (fun x : UInt64 => x.toNat)).wf

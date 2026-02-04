@@ -20,11 +20,18 @@ mriscx_code represents some risc-v like assembly, which can be written
 -/
 example (r₁ r₂ r₃ v₁ v₂ : UInt64)
         (P Q : Prop) (l : UInt64)
-        (L_W L_B : Set UInt64)
-        (mriscx_code : Code) :
-  mriscx_code
-  ⦃P⦄ l ↦ ⟨L_W | L_B⟩ ⦃Q⦄
+        (L_W L_B : Set UInt64):
+  mriscx
+    main:
+          li x r₁, v₂
+          li x r₂, v₂
+          xor x r₃, x r₁, x r₂
+          j _store
 
+    _some_label:
+          addi x r₁, x 0, 42
+  end
+  ⦃P⦄ l ↦ ⟨L_W | L_B⟩ ⦃Q⦄
   := by sorry
 
 
@@ -279,6 +286,7 @@ example:
   . apply_spec specification_LoadAddress (r := 2) (l := 2) (v := 291)
 
 
+#check ⦃x[2] = 12⦄
 
 
 example:
@@ -296,7 +304,7 @@ example:
     x[2] = x[0] ^^^ x[1] ∧ x[3] = 0x321 ∧ mem[x[3]] = x[2]) ∧
     ¬⸨terminated⸩⦄
 := by
-sapply_s_seq'''
+  sapply_s_seq'''
                 -- P := P ,
                 R := ⦃(x[0] = 6 ∧ x[1] = 123
                       ∧ x[2] = x[0] ^^^ x[1]
@@ -306,33 +314,33 @@ sapply_s_seq'''
                 L_W' := {5},
                 L_B := ({n:UInt64| n > 4} ∪ {0}),
                 L_B' := ({n:UInt64| n ≠ 5})
-. sapply_s_seq'''
-                  -- P := P ,
-                  R := ⦃(x[0] = 6 ∧ x[1] = 123
-                        ∧ x[2] = x[0] ^^^ x[1])
-                        ∧ ¬⸨terminated⸩⦄,
-                  L_W := {3},
-                  L_W' := {4},
-                  L_B := ({n:UInt64| n > 3} ∪ {0}),
-                  L_B' := ({n:UInt64| n ≠ 4})
   . sapply_s_seq'''
-                    -- P := P,
-                    R := ⦃(x[0] = 6
-                          ∧ x[1] = 123)
+                    -- P := P ,
+                    R := ⦃(x[0] = 6 ∧ x[1] = 123
+                          ∧ x[2] = x[0] ^^^ x[1])
                           ∧ ¬⸨terminated⸩⦄,
-                    L_W := {2},
-                    L_W' := {3},
-                    L_B := ({n:UInt64| n > 2} ∪ {0}),
-                    L_B' := ({n:UInt64| n ≠ 3})
+                    L_W := {3},
+                    L_W' := {4},
+                    L_B := ({n:UInt64| n > 3} ∪ {0}),
+                    L_B' := ({n:UInt64| n ≠ 4})
     . sapply_s_seq'''
                       -- P := P,
-                      R := ⦃(x[0] = 6) ∧ ¬⸨terminated⸩⦄,
-                      L_W := {1},
-                      L_W' := {2},
-                      L_B := ({n:UInt64| n ≠ 1}),
-                      L_B' := ({n:UInt64| n ≠ 2})
-      . apply_spec specification_LoadImmediate (l := 0) (r := 0) (v := 6)
-      . apply_spec specification_LoadImmediate (l := 1) (r := 1) (v := 123)
-    . apply_spec specification_XOR (l := 2) (d := 2) (r1 := 0) (r2 := 1)
-  . apply_spec specification_LoadAddress (l := 3) (r := 3) (v := 0x321)
-. apply_spec specification_StoreWordImmediate (l := 4) (r := 2) (d := 3)
+                      R := ⦃(x[0] = 6
+                            ∧ x[1] = 123)
+                            ∧ ¬⸨terminated⸩⦄,
+                      L_W := {2},
+                      L_W' := {3},
+                      L_B := ({n:UInt64| n > 2} ∪ {0}),
+                      L_B' := ({n:UInt64| n ≠ 3})
+      . sapply_s_seq'''
+                        -- P := P,
+                        R := ⦃(x[0] = 6) ∧ ¬⸨terminated⸩⦄,
+                        L_W := {1},
+                        L_W' := {2},
+                        L_B := ({n:UInt64| n ≠ 1}),
+                        L_B' := ({n:UInt64| n ≠ 2})
+        . apply_spec specification_LoadImmediate (l := 0) (r := 0) (v := 6)
+        . apply_spec specification_LoadImmediate (l := 1) (r := 1) (v := 123)
+      . apply_spec specification_XOR (l := 2) (d := 2) (r1 := 0) (r2 := 1)
+    . apply_spec specification_LoadAddress (l := 3) (r := 3) (v := 0x321)
+  . apply_spec specification_StoreWordImmediate (l := 4) (r := 2) (d := 3)

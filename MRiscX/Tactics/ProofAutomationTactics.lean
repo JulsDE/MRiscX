@@ -2,7 +2,7 @@ import Lean
 
 import Lean.Elab.Tactic
 import MRiscX.AbstractSyntax.Map
-import MRiscX.Semantics.Theory
+import MRiscX.Semantics.MsTheory
 import MRiscX.Util.BasicTheorems
 import MRiscX.Tactics.SplitLastSeq
 
@@ -234,6 +234,32 @@ This is mostly for visual effects. -/
   evalTactic (← `(tactic | . simp ))
   evalTactic (← `(tactic | . simp ))
   evalTactic (← `(tactic | . simp ))
+
+
+
+elab "sapply_s_seq_plain"  &"P" &" := " P:term &", "
+                        &"R" &" := "  R:term &", "
+                        &"L_W" &" := "  L_w:term &", "
+                        &"L_W'" &" := "  L_w':term &", "
+                        &"L_B" &" := "  L_b:term &", "
+                        &"L_B'" &" := "  L_b':term
+      : tactic => do
+  evalTactic (← `(tactic | apply $(mkIdent `S_SEQ) (P := $P) (R := $R) (L_w := $L_w)
+                            (L_w' := $L_w') (L_b := $L_b) (L_b' := $L_b') <;> try assumption <;> try simp_set_eq))
+
+
+elab "sapply_s_seq_plain"  &"R" &" := "  R:term &", "
+                        &"L_W" &" := "  L_w:term &", "
+                        &"L_W'" &" := "  L_w':term &", "
+                        &"L_B" &" := "  L_b:term &", "
+                        &"L_B'" &" := "  L_b':term
+      : tactic => do
+  evalTactic (← `(tactic | sapply_s_seq_plain P := _ ,
+                                           R := $R,
+                                           L_W := $L_w,
+                                           L_W' := $L_w',
+                                           L_B := $L_b,
+                                           L_B' := $L_b'))
 
 
 -- TODO make this more robust

@@ -28,7 +28,7 @@ def parseMriscxNumOrIdentToTerm (s : Syntax) : TermElabM Term := do
         else
           throwError "Expected type UInt64 for identifier"
       else
-        throwError "Identifier not found in context"
+        throwError s!"Identifier {a} not found in context"
   | _ => throwError "Unexpected syntax"
 
 def parseTermToMriscxNumOrIdent (s : TSyntax `term) : TSyntax `mriscx_num_or_ident :=
@@ -63,7 +63,7 @@ def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
         else
           throwError "Expected type UInt64 for identifier"
       else
-        throwError "Identifier not found in context"
+        throwError s!"Identifier {a} not found in context"
   | _ => throwError "Unexpected syntax"
 
 /-

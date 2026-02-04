@@ -1,4 +1,4 @@
-import MRiscX.Semantics.Theory
+import MRiscX.Semantics.MsTheory
 import MRiscX.Tactics.ProofAutomationTactics
 import MRiscX.Elab.HoareElaborator
 import MRiscX.Elab.CodeElaborator

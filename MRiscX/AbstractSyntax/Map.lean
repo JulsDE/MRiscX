@@ -127,7 +127,7 @@ theorem t_update_eq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
   unfold TMap.get
   simp
 
-/-
+/--
 If a total map [t] is updated with some k ∈ α and v ∈ β (k ↦ v; t),
 and we search for some key [k'] with k ≠ k', we get the same result
 as when we would just search [t] for [k'].
@@ -170,7 +170,7 @@ theorem p_update_eq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
   unfold PMap.get
   simp
 
-/-
+/--
 If a partial map [p] is updated with some k ∈ α and v ∈ β (k ↦ v; p),
 and we search for some key [k'] with k ≠ k', we get the same result
 as when we would just search [t] for [k'].

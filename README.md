@@ -133,7 +133,7 @@ soon as possible.**
   - `MRiscX/Semantics/Run.lean`
     Contains the `MState.runOneStep` and `MState.runNSteps` functions.
 
-  - `MRiscX/Semantics/Theory.lean`
+  - `MRiscX/Semantics/MsTheory.lean`
     Contains basic theorems about properties of machine states.
 
 - `MRiscX/Tactics/`

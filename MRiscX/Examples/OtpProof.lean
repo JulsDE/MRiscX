@@ -17,28 +17,6 @@ def I_pre (p k c l : UInt64) :=
 
 
 
-instance : Preorder UInt64 where
-  le := (· ≤ ·)
-  lt := (· < ·)
-  le_refl := by simp
-  le_trans := by apply UInt64.le_trans
-  lt_iff_le_not_ge := by
-    intros a b
-    constructor
-    . intros h
-      simp
-      constructor
-      . apply UInt64.le_of_lt h
-      . exact h
-    . simp
-
-
-instance : WellFoundedLT UInt64 where
-  wf := by
-    simpa using (measure (fun x : UInt64 => x.toNat)).wf
-
-
-
 theorem proof_otp : ∀ (p k c l: UInt64),
   mriscx
     main: la x 0, p
@@ -162,7 +140,9 @@ theorem proof_otp : ∀ (p k c l: UInt64),
             ∧ x[7] = x[5] ^^^ x[6]
             ∧ x[3] < x
             ∧ I_pre p k c l) ∧ ¬⸨terminated⸩ = true ⦄)
-        (L_w := {13}) (L_w' := {4} ∪ {14}) (L_b := {n : UInt64 | n ≤ 4} ∪ {n | n > 13})
+        (L_w := {13})
+        (L_w' := {4} ∪ {14})
+        (L_b := {n : UInt64 | n ≤ 4} ∪ {n | n > 13})
         (L_b' :=  {n:UInt64 | n ≠ 4} \ {14})
         (l := 4)
       simp;

@@ -1,6 +1,6 @@
 import MRiscX.Elab.HoareElaborator
 import MRiscX.Delab.DelabCode
-import MRiscX.Semantics.Theory
+import MRiscX.Semantics.MsTheory
 import MRiscX.Util.BasicTheorems
 
 /-
