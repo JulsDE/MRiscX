@@ -35,7 +35,45 @@ In order to proof the code with the new hoare notation presented in the paper, w
 adjustments.
 First of all, we are going to define the weak function from the paper
 -/
+/--
+The weak relation from Lundberg et al (2020).
 
+Let $`\textbf{nxt}: \Sigma \rightarrow \Sigma` be a partial function with $`\textbf{nxt}^n` as
+the $`n`-th iteration. This function describes the execution of one single state.
+Also, let $`\textbf{lbl}: \Sigma \rightarrow \Lambda` be a function which evaluates the instruction
+which is to executed next.
+Think of $`\textbf{lbl}` as a PC of a machine state.
+
+Now, the $`\mathsf{weak}`-relation can be defined as:
+
+*Definition 1* ($`\mathsf{weak}`-relation).
+
+
+$$`
+\begin{split}
+  \mathsf{weak}(s, L, s') = \exists n, n > 0 \wedge
+  \mathbf{nxt}^n (s) = s' \wedge \mathbf{lbl}(s') \in L \wedge \\
+  \forall n': 0 < n' < n, \mathbf{lbl}(\mathbf{nxt}^{n'}(s)) \notin L \qquad \qquad
+\end{split}
+`
+
+
+The $`\mathsf{weak}`-relation {tech}[definition 1] has two states,
+$`s` and $`s'`, and a set of lines, $`L`, as arguments.
+The $`\mathsf{weak}` relation now states the following:
+
+If $`n` steps are taken from state $`s`, state $`s'` is reached.
+The PC of $`s'` points to a row that is an element of $`L`. Here, $`n` must be greater than 0.
+Furthermore, there is no number $`n'` with $`0 < n' < n`
+such that after $n'$ steps from state $`s`, state $`s'` is reached, whose PC also points to a
+line in $`L`.
+The $`\mathsf{weak}`-relation is deterministic and partial,
+since a program that starts in $`s` may never reach a state in $`L`.
+It also guarantees that no intermediate state between $`s` and $`s'` has a $`\textbf{lbl}` from $`L`.
+
+With the help of this relation, unambiguous statements can be made about the flow of the program.
+
+-/
 def weak (s s' : MState) (L_w L_b : Set UInt64) (c : Code) : Prop :=
   s.code = c →
   ∃ (n:Nat), n > 0 ∧ s.runNSteps n = s' ∧ (s'.pc) ∈ L_w ∧
