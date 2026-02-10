@@ -38,31 +38,33 @@ First of all, we are going to define the weak function from the paper
 /--
 The weak relation from `Lundberg et al. (2020)`.
 
-Let *nxt*: Σ → Σ be a partial function with *nxt*^n as
-the `n`-th iteration. This function describes the execution of one single state.
-Also, let *lbl*: Σ → Λ be a function which evaluates the instruction
-which is to executed next.
-Think of **lbl** as a PC of a machine state.
+The **nxt** function is represented by `MState.runOneStep`, the
+function **nxt^n** by `MState.runNSteps` and **lbl** by the
+field `ProgramCounter`.
+Withing MRiscX, the `weak` relation is defined as:
 
-Now, the *weak*-relation is defined as:
+```
   s.code = c →
-  ∃ (n:Nat), n > 0 ∧ s.runNSteps n = s' ∧ (s'.pc) ∈ L_w ∧
-  ∀ (n':Nat), 0 < n' ∧ n' < n →
-  (s.runNSteps n').pc ∉ (L_w ∪ L_b)
 
+  ∃ (n:Nat), n > 0 ∧ s.runNSteps n = s' ∧ (s'.pc) ∈ L_w ∧
+
+  ∀ (n':Nat), 0 < n' ∧ n' < n →
+
+  (s.runNSteps n').pc ∉ (L_w ∪ L_b)
+```
 
 The weak-relation takes two `MState`'s,
 `s` and `s'`, and a set of lines, `L`, as arguments.
 The *weak*-relation now states the following:
 
-If $`n` steps are taken from state $`s`, state $`s'` is reached.
-The PC of $`s'` points to a row that is an element of $`L`. Here, $`n` must be greater than 0.
-Furthermore, there is no number $`n'` with $`0 < n' < n`
-such that after $n'$ steps from state $`s`, state $`s'` is reached, whose PC also points to a
-line in $`L`.
-The $`\mathsf{weak}`-relation is deterministic and partial,
-since a program that starts in $`s` may never reach a state in $`L`.
-It also guarantees that no intermediate state between $`s` and $`s'` has a $`\textbf{lbl}` from $`L`.
+If `n` steps are taken from state `s`, state `s'` is reached.
+The PC of `s'` points to a row that is an element of `L`. Here, `n` must be greater than 0.
+Furthermore, there is no `n'` ∈ ℕ with `0 < n' < n`
+such that after $n'$ steps from state `s`, state `s'` is reached, whose PC also points to a
+line in `L`.
+The `weak`-relation is deterministic and partial,
+since a program that starts in `s` may never reach a state in `L`.
+It also guarantees that no intermediate state between `s` and `s'` has a `pc` from `L`.
 
 With the help of this relation, unambiguous statements can be made about the flow of the program.
 
