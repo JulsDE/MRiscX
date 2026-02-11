@@ -30,31 +30,52 @@ This can be used to perform a structured proof later.
 abbrev Assertion : Type := MState → Prop
 
 
-/-
-In order to proof the code with the new hoare notation presented in the paper, we need a few
-adjustments.
-First of all, we are going to define the weak function from the paper
--/
 
+/--
+The `weak` relation, inspired by Lundberg et al. (2020),
+is defined over two `MState`s, `s` and `s'`.
+Unlike earlier formulations that take a single set of lines `L`,
+this relation is parameterized by two sets of lines, `L_w` and `L_b`.
+
+This design has the advantage that the condition `s'.pc ∈ L_w` is already guaranteed
+by the relation itself. Since we assume `L_w ∩ L_b = ∅`, it immediately follows that
+`s'.pc ∉ L_b` must also hold. Consequently, the explicit postcondition `s'.pc ∈ L_b` in
+the *Judgment of* `L_as` could be omitted. However, this simplification has not yet been
+applied in the current version.
+
+The `weak` relation is defined as follows:
+
+State `s'` is reached from state `s` after exactly `n` steps, where `n > 0`, and the program
+counter of `s'` points to a line in `L_w`. Moreover, there exists no `n' ∈ ℕ` with `0 < n' < n`
+such that the state reached after `n'` steps from `s` also has its program counter in `L_w`.
+In other words, `s'` is the **first** state along the execution path whose program counter lies
+in `L_w`.
+
+The `weak` relation is deterministic and partial: a program starting in `s` may never reach a
+state whose program counter lies in `L_w`. Additionally, the relation guarantees that no
+intermediate state between `s` and `s'` has a program counter in `L_w`.
+
+With the help of this relation, unambiguous statements can be made about the flow of the program.
+
+-/
 def weak (s s' : MState) (L_w L_b : Set UInt64) (c : Code) : Prop :=
   s.code = c →
   ∃ (n:Nat), n > 0 ∧ s.runNSteps n = s' ∧ (s'.pc) ∈ L_w ∧
   ∀ (n':Nat), 0 < n' ∧ n' < n →
   (s.runNSteps n').pc ∉ (L_w ∪ L_b)
 
-/-
-The weak function has two states, s and s′, and a set of lines, L, as arguments.
-This function now states the following:
-If n steps are taken from state s, state s′ is reached. The PC of s′ points to a row that is an element
-of L. Here, n must be greater than 0. Furthermore, there is no number n′ with 0 < n′ < n such that after
-n′ steps from state s, state s′ is reached, whose PC also points to a row in L.
-The weak function is deterministic and partial, since a program that starts in s may never reach
-a state in L. It also guarantees that no intermediate state between s and s′ has an lbl from L.
-With the help of this function, clear statements can be made about the flow of the program.
 
-With the weak function at hand, we can define the judgement of \mathcal{L}_{AS}.
+/--
+Inspired by the `judgement of L_{as}` in the paper Lundberg et al. (2020).
+
+Suppose, that `L_w ∩ L_b = ∅` and `L_w ≠ ∅` hold, then the `hoare_triple_up` means:
+
+For all states `s` in which both `P(s)` and `I(s)` are satisfied and whose
+program counter points to `l`,
+there exists a successor state `s'` for which both the relation
+`weak(s, L_w ∪ L_b, s')` and `Q(s')`, `I(s')` and `s'.pc ∉ L_w`
+are satisfied.
 -/
-
 def hoare_triple_up (P Q : Assertion) (l : UInt64) (L_w L_b : Set UInt64)
   (c : Code)
 :=
@@ -65,30 +86,12 @@ def hoare_triple_up (P Q : Assertion) (l : UInt64) (L_w L_b : Set UInt64)
   P s →
   ∃ (s' : MState), (weak s s' L_w L_b c) ∧ Q s' ∧ s'.pc ∉ L_b
 
-/-
-This definition means as much as:
 
-For all states $s$ in which both $P(s)$ and $I(s)$ are satisfied and whose program counter points to $l$,
-there exists a successor state $s'$ for which both the function
-$\mathbf{weak}(s, L_W \cup L_B, s')$ and $Q(s')$, $I(s')$, and $\mathbf{lbl}(s') \notin L_W$
-are satisfied.
-The set of lines $L$ used in weak was defined as the union of the disjoint sets $L_W$ and $L_B$.
-From the statement of the $\mathsf{Weak}$ function, $\mathbf{lbl}(s') \in L$, and the statement on
-$\mathsf{evaluation\ of\ \mathcal{L}_\text{{AS}}}$, $\mathbf{lbl}(s') \notin L_B$, it follows
-that $L_W$ comprises exactly those lines to which the program counter of $s'$ may point after execution.
-In contrast, $L_B$ contains those lines to which the program counter must not refer either during or after execution.
+/--
+Essentially the same as the `hoare_triple_up`, but instead of inspecting a whole code segment,
+this relation only focusses on the instruction which is executed next. This can be used to
+reason about single instructions in order to define their specification.
 -/
-
-
-/-
-With the background to verify the correctness of the interpreter, we need a way to
-provide a proof of correctness for a single instruction. These functions can be
-used for defining the specifications of each instruction.
--/
-
-def weak_one (s s' : MState) (L_w L_b : Set UInt64) : Prop :=
-  s.runNSteps 1 = s' ∧ s'.pc ∈ L_w ∧ s'.pc ∉ L_b
-
 def hoare_triple_up_1 (P Q : Assertion) (l:UInt64) (L_w L_b : Set UInt64) (i : Instr)
 :=
   L_w ∩ L_b = ∅ →

@@ -29,13 +29,18 @@ namespace MState
         ms.incPc
 
 
-/-
+  /--
   This function evaluates the given machine state to a new one.
-  Generally, if the `terminated` of the [State] is `false` and the instruction
-  is legal and evaluateable, a new [State] is
+  Tt represents the **nxt** function from the paper
+  `LUNDBERG, Didrik, et al. Hoare-style logic for unstructured programs.
+  In: International Conference on Software Engineering and Formal Methods.
+  Cham: Springer International Publishing, 2020. S. 193-213.`
+
+  Generally, if the `terminated` of the `State` is `false` and the instruction
+  is legal and evaluateable, a new `State` is
   returned holding the next instructions and the updated storage.
-  When the instruction is not legal (e.g. jmp s, there is no label [s]),
-  [terminated] is set to [true].
+  When the instruction is not legal (e.g. jmp s, there is no label `s`),
+  `terminated` is set to `true`.
   -/
   def runOneStep (ms:MState) : MState :=
     if ms.terminated then ms
@@ -87,8 +92,12 @@ namespace MState
       | Instr.Panic => ms.setTerminated true
       -- | _ => ms.setTerminated true
 
-  /-
-  Runs `runOneStep` [n] times
+  /--
+  Runs `runOneStep` `n` times.
+  It represents the function **nxt^n** from
+  `LUNDBERG, Didrik, et al. Hoare-style logic for unstructured programs.
+  In: International Conference on Software Engineering and Formal Methods.
+  Cham: Springer International Publishing, 2020. S. 193-213.`
   -/
   def runNSteps (ms:MState) (n:Nat) : MState :=
     match n with
