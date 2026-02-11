@@ -32,7 +32,7 @@ abbrev Assertion : Type := MState → Prop
 
 
 /--
-The `weak` relation, inspired by Lundberg et al. (2020),
+This **weak** relation, inspired by Lundberg et al. (2020),
 is defined over two `MState`s, `s` and `s'`.
 Unlike earlier formulations that take a single set of lines `L`,
 this relation is parameterized by two sets of lines, `L_w` and `L_b`.
@@ -43,15 +43,15 @@ by the relation itself. Since we assume `L_w ∩ L_b = ∅`, it immediately foll
 the *Judgment of* `L_as` could be omitted. However, this simplification has not yet been
 applied in the current version.
 
-The `weak` relation is defined as follows:
+This relation is defined as follows:
 
 State `s'` is reached from state `s` after exactly `n` steps, where `n > 0`, and the program
 counter of `s'` points to a line in `L_w`. Moreover, there exists no `n' ∈ ℕ` with `0 < n' < n`
-such that the state reached after `n'` steps from `s` also has its program counter in `L_w`.
+such that the state reached after `n'` steps from `s` has its program counter in `L_w ∪ L_b`.
 In other words, `s'` is the **first** state along the execution path whose program counter lies
 in `L_w`.
 
-The `weak` relation is deterministic and partial: a program starting in `s` may never reach a
+The **weak** relation is deterministic and partial: a program starting in `s` may never reach a
 state whose program counter lies in `L_w`. Additionally, the relation guarantees that no
 intermediate state between `s` and `s'` has a program counter in `L_w`.
 
