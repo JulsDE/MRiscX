@@ -6,7 +6,9 @@ inductive Instr : Type where
     Load an address into a register
 
     Syntax:
+
     `la x dst, m`
+
     where `(dst m : UInt64)`.
 
     Note: Numbers of type UInt64 can be written as hexadecimal
@@ -17,7 +19,9 @@ inductive Instr : Type where
     Load an immediate value into a register
 
     Syntax:
+
     `li x dst, m`
+
     where `(dst m : UInt64)`.
   -/
   | LoadImmediate     : UInt64 → UInt64 → Instr
@@ -25,7 +29,9 @@ inductive Instr : Type where
     Copy the contents of an a register into another register
 
     Syntax:
+
     `mv x dst, x reg`
+
     where `(dst reg : UInt64)`.
   -/
   | CopyRegister      : UInt64 → UInt64 → Instr
@@ -33,7 +39,9 @@ inductive Instr : Type where
     Add an immediate value and a register, store the result into a register
 
     Syntax:
+
     `addi x dst, x reg, m`
+
     where `(dst reg m : UInt64)`.
   -/
   | AddImmediate      : UInt64 → UInt64 → UInt64 → Instr
@@ -41,7 +49,9 @@ inductive Instr : Type where
     Increment the content of a register by one
 
     Syntax:
+
     `inc x dst`
+
     where `(dst : UInt64)`.
   -/
   | Increment         : UInt64 → Instr
@@ -49,7 +59,9 @@ inductive Instr : Type where
     Add the contents of two registers and store the value into a register
 
     Syntax:
+
     `add x dst, x reg1, x reg2`
+
     where `(dst reg1 reg2 : UInt64)`.
   -/
   | AddRegister       : UInt64 → UInt64 → UInt64 → Instr
@@ -58,7 +70,9 @@ inductive Instr : Type where
     third register
 
     Syntax:
+
     `subi x dst, x reg, n`
+
     where `(dst reg n : UInt64)`.
   -/
   | SubImmediate      : UInt64 → UInt64 → UInt64 → Instr
@@ -66,7 +80,9 @@ inductive Instr : Type where
     Decrement the content of a register by one
 
     Syntax:
+
     `dec x dst`
+
     where `(dst : UInt64)`.
   -/
   | Decrement         : UInt64 → Instr
@@ -75,7 +91,9 @@ inductive Instr : Type where
     store the result into a third register
 
     Syntax:
+
     `sub x dst, x reg1, x reg2`
+
     where `(dst reg1 reg2 : UInt64)`.
   -/
   | SubRegister       : UInt64 → UInt64 → UInt64 → Instr
@@ -84,7 +102,9 @@ inductive Instr : Type where
     register, store the result into a register
 
     Syntax:
+
     `xor x dst, x reg, n`
+
     where `(dst reg n : UInt64)`.
   -/
   | XorImmediate      : UInt64 → UInt64 → UInt64 → Instr
@@ -93,7 +113,9 @@ inductive Instr : Type where
     store the result into a third register
 
     Syntax:
+
     `xor x dst, x reg1, x reg2`
+
     where `(dst reg1 reg2 : UInt64)`.
   -/
   | XOR               : UInt64 → UInt64 → UInt64 → Instr
@@ -102,7 +124,9 @@ inductive Instr : Type where
     immedtiate value into a register
 
     Syntax:
+
     `lw x dst, mem_addr`
+
     where `(dst mem_addr : UInt64)`.
   -/
   | LoadWordImmediate : UInt64 → UInt64 → Instr
@@ -111,7 +135,9 @@ inductive Instr : Type where
     into a register
 
     Syntax:
+
     `lw x dst, x reg_with_mem_addr`
+
     where `(dst reg_with_mem_addr : UInt64)`.
   -/
   | LoadWordReg       : UInt64 → UInt64 → Instr
@@ -120,7 +146,9 @@ inductive Instr : Type where
     stored in a register
 
     Syntax:
+
     `sw x reg_with_value, x reg_with_mem_addr`
+
     where `(reg_with_value reg_with_mem_addr : UInt64)`.
   -/
   | StoreWord         : UInt64 → UInt64 → Instr
@@ -128,7 +156,9 @@ inductive Instr : Type where
     Jump to a given labelname.
 
     Syntax:
+
     `j label`
+
     where `(label : ident)`.
 
     Note: Due to the elaboration, the actual syntax does not require a `String`
@@ -142,7 +172,9 @@ inductive Instr : Type where
     equal
 
     Syntax:
+
     `beq x reg1, x reg2, label`
+
     where `(reg1 reg2 : UInt64) (label : ident)`.
   -/
   | JumpEq            : UInt64 → UInt64 → String → Instr
@@ -151,7 +183,9 @@ inductive Instr : Type where
     not equal
 
     Syntax:
+
     `bne x reg1, x reg2, label`
+
     where `(reg1 reg2 : UInt64) (label : ident)`.
   -/
   | JumpNeq           : UInt64 → UInt64 → String → Instr
@@ -160,7 +194,9 @@ inductive Instr : Type where
     is greater than the content of the other register provided.
 
     Syntax:
+
     `bgt x reg1, x reg2, label`
+
     where `(reg1 reg2 : UInt64) (label : ident)`.
   -/
   | JumpGt            : UInt64 → UInt64 → String → Instr
@@ -169,7 +205,9 @@ inductive Instr : Type where
     is less or equal the content of the other register provided.
 
     Syntax:
+
     `ble x reg1, x reg2, label`
+
     where `(reg1 reg2 : UInt64) (label : ident)`.
   -/
   | JumpLe            : UInt64 → UInt64 → String → Instr
@@ -178,7 +216,9 @@ inductive Instr : Type where
     is equal to zero.
 
     Syntax:
+
     `beqz x reg, label`
+
     where `(reg : UInt64) (label : ident)`.
   -/
   | JumpEqZero        : UInt64 → String → Instr
@@ -187,7 +227,9 @@ inductive Instr : Type where
     is greater than the content of the other register provided.
 
     Syntax:
+
     `bnez x reg, label`
+
     where `(reg : UInt64) (label : ident)`.
   -/
   | JumpNeqZero       : UInt64 → String → Instr
@@ -198,12 +240,13 @@ inductive Instr : Type where
   deriving Repr, BEq, Inhabited
 
 
-/-
+/--
 ToString for delaboration
 -/
 instance : ToString Instr where
   toString
     | Instr.LoadAddress dst addr =>
+      -- For calculate the amount of zeros after `0x`to cut them off the string
       let hex := addr.toBitVec.zeroExtend (Nat.log2 addr.toNat + 1)
       s!"la x{dst}, {hex}"
     | Instr.LoadImmediate dst i => s!"li x{dst}, {i}"
@@ -217,6 +260,7 @@ instance : ToString Instr where
     | Instr.XorImmediate dst reg i => s!"xori x{dst}, x{reg}, {i}"
     | Instr.XOR dst reg1 reg2 => s!"xor x{dst}, x{reg1}, x{reg2}"
     | Instr.LoadWordImmediate dst addr =>
+      -- For calculate the amount of zeros after `0x`to cut them off the string
       let hex := addr.toBitVec.zeroExtend (Nat.log2 addr.toNat + 1)
       s!"lw x{dst}, {hex}"
     | Instr.LoadWordReg dst addr => s!"lw x{dst}, x{addr}"
