@@ -99,19 +99,19 @@ example (p k c l : UInt64) :
   /- Too peel off the last instruction in order to be able to inspect that individually, we
     apply s_apply_seq''', a custom tactic which applies the rule `S-SEQ` and automatically
     solves some trivial goals. -/
-  sapply_s_seq''' P := ⦃¬⸨terminated⸩⦄ ,
+  sapply_s_seq P := ⦃¬⸨terminated⸩⦄ ,
                   R := ⦃(x[0] = p ∧ x[1] = k ∧ x[2] = c) ∧ ¬⸨terminated⸩⦄,
                   L_W := {3},
                   L_W' := {4},
                   L_B := ({n:UInt64| n > 3} ∪ {0}),
                   L_B' := ({n:UInt64| n ≠ 4})
-  . sapply_s_seq''' P := ⦃¬⸨terminated⸩⦄,
+  . sapply_s_seq P := ⦃¬⸨terminated⸩⦄,
                     R := ⦃(x[0] = p ∧ x[1] = k) ∧ ¬⸨terminated⸩⦄,
                     L_W := {2},
                     L_W' := {3},
                     L_B := ({n:UInt64| n > 2} ∪ {0}),
                     L_B' := ({n:UInt64| n ≠ 3})
-    . sapply_s_seq''' -- P := ⦃¬⸨terminated⸩⦄ → can be omitted
+    . sapply_s_seq -- P := ⦃¬⸨terminated⸩⦄ → can be omitted
                       R := ⦃(x[0] = p) ∧ ¬⸨terminated⸩⦄,
                       L_W := {1},
                       L_W' := {2},
@@ -160,7 +160,7 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
     ⦃((x[r₁] = p ∧ x[r₂] = k ∧ x[r₃] = c ∧ x[r₄] = l))
       ∧ ¬⸨terminated⸩⦄
   := by
-  sapply_s_seq'''
+  sapply_s_seq
                   R := ⦃(x[r₁] = p ∧ x[r₂] = k ∧ x[r₃] = c
                         ∧ pairwiseDistinct r₁ r₂ r₃ r₄)
                         ∧ ¬⸨terminated⸩⦄,
@@ -168,7 +168,7 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
                   L_W' := {4},
                   L_B := ({n:UInt64| n > 3} ∪ {0}),
                   L_B' := ({n:UInt64| n ≠ 4})
-  . sapply_s_seq'''
+  . sapply_s_seq
                     R := ⦃(x[r₁] = p ∧ x[r₂] = k
                           ∧ pairwiseDistinct r₁ r₂ r₃ r₄)
                           ∧ ¬⸨terminated⸩⦄,
@@ -176,7 +176,7 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
                     L_W' := {3},
                     L_B := ({n:UInt64| n > 2} ∪ {0}),
                     L_B' := ({n:UInt64| n ≠ 3})
-    . sapply_s_seq'''
+    . sapply_s_seq
                       R := ⦃(x[r₁] = p
                             ∧ pairwiseDistinct r₁ r₂ r₃ r₄)
                             ∧ ¬⸨terminated⸩⦄,
@@ -206,7 +206,7 @@ example:
   /-
   apply s_seq with automatically solve set equality
   -/
-  sapply_s_seq'''  P := _ ,
+  sapply_s_seq  P := _ ,
                   R := ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
                   L_W := {2},
                   L_W' := {3},
@@ -247,14 +247,14 @@ example:
   := by
   -- Identifier needs to be unfolded
   unfold code
-  sapply_s_seq'''
+  sapply_s_seq
                   R := ⦃(x[0] = 2 ∧ x[1] = 0 ) ∧ ¬⸨terminated⸩⦄,
                   L_W := {2},
                   L_W' := {3},
                   L_B := ({n:UInt64| n > 2} ∪ {0}),
                   L_B' := ({n:UInt64| n ≠ 3})
 
-  . sapply_s_seq'''
+  . sapply_s_seq
                     R := ⦃(x[0] = 2) ∧ ¬⸨terminated⸩⦄,
                     L_W := {1},
                     L_W' := {2},
@@ -304,7 +304,7 @@ example:
     x[2] = x[0] ^^^ x[1] ∧ x[3] = 0x321 ∧ mem[x[3]] = x[2]) ∧
     ¬⸨terminated⸩⦄
 := by
-  sapply_s_seq'''
+  sapply_s_seq
                 -- P := P ,
                 R := ⦃(x[0] = 6 ∧ x[1] = 123
                       ∧ x[2] = x[0] ^^^ x[1]
@@ -314,7 +314,7 @@ example:
                 L_W' := {5},
                 L_B := ({n:UInt64| n > 4} ∪ {0}),
                 L_B' := ({n:UInt64| n ≠ 5})
-  . sapply_s_seq'''
+  . sapply_s_seq
                     -- P := P ,
                     R := ⦃(x[0] = 6 ∧ x[1] = 123
                           ∧ x[2] = x[0] ^^^ x[1])
@@ -323,7 +323,7 @@ example:
                     L_W' := {4},
                     L_B := ({n:UInt64| n > 3} ∪ {0}),
                     L_B' := ({n:UInt64| n ≠ 4})
-    . sapply_s_seq'''
+    . sapply_s_seq
                       -- P := P,
                       R := ⦃(x[0] = 6
                             ∧ x[1] = 123)
@@ -332,7 +332,7 @@ example:
                       L_W' := {3},
                       L_B := ({n:UInt64| n > 2} ∪ {0}),
                       L_B' := ({n:UInt64| n ≠ 3})
-      . sapply_s_seq'''
+      . sapply_s_seq
                         -- P := P,
                         R := ⦃(x[0] = 6) ∧ ¬⸨terminated⸩⦄,
                         L_W := {1},

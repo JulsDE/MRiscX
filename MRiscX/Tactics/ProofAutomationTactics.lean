@@ -169,7 +169,12 @@ elab "simp_jump_spec" : tactic => do
 /-
 Proof automation for hoare-triples
 -/
-/- apply S_SEQ to peel off the last instruction -/
+/--
+Apply `S_SEQ` to 'peel' off the last instruction.
+Also, try to solve all goals which are created during the process
+except for the two goals, which involve the actual Hoare-triples which
+will be generated.
+-/
 elab &"auto" &"seq" : tactic => do
   evalTactic (← `(tactic | peel_last_instr <;> try assumption))
   evalTactic (← `(tactic | . simp ))
@@ -178,10 +183,58 @@ elab &"auto" &"seq" : tactic => do
   evalTactic (← `(tactic | . simp ))
   evalTactic (← `(tactic | apply_to_last_goal simp_set_eq))
 
-/- apply S_SEQ' with an automatic `try assumption` on every goal that is generated -/
-macro "sapply_s_seq" P:term ", " R:term ", " L_w:term ", " L_w':term : tactic => do
-  `(tactic | apply $(mkIdent `S_SEQ') (P := $P) (R := $R)
-    (L_w := $L_w) (L_w' := $L_w') <;> try assumption)
+
+-- TODO make this more robust
+/--
+Apply the Hoare rule `S_SEQ` in order to split the current Hoare triple into two.
+To do so, the names and values must be provided explicitly, each
+separated by a colon.
+
+The order is:
+
+1. `P`
+2. `R`
+3. `L_W`
+4. `L_W'`
+5. `L_B`
+6. `L_B'`
+
+Also, try to automatically solve most of the "side goals" that are generated
+during the process. These side goals are generally statements about the provided
+sets (e.g., $`L_W ≠ ∅`), which are trivial in most cases.
+-/
+elab "sapply_s_seq" &"P" &" := " P:term &", "
+                    &"R" &" := "  R:term &", "
+                    &"L_W" &" := "  L_w:term &", "
+                    &"L_W'" &" := "  L_w':term &", "
+                    &"L_B" &" := "  L_b:term &", "
+                    &"L_B'" &" := "  L_b':term
+      : tactic => do
+  evalTactic (← `(tactic | apply $(mkIdent `S_SEQ) (P := $P) (R := $R) (L_w := $L_w)
+                            (L_w' := $L_w') (L_b := $L_b) (L_b' := $L_b') <;> try assumption <;> try simp_set_eq))
+  evalTactic (← `(tactic | . simp ))
+  evalTactic (← `(tactic | . simp ))
+  evalTactic (← `(tactic | . simp ))
+  evalTactic (← `(tactic | . simp ))
+  evalTactic (← `(tactic | apply_to_last_goal simp_set_eq ))
+
+/--
+The same as the other `sapply_s_seq` tactic, but without having to provide
+`P`.
+-/
+elab "sapply_s_seq" &"R" &" := "  R:term &", "
+                    &"L_W" &" := "  L_w:term &", "
+                    &"L_W'" &" := "  L_w':term &", "
+                    &"L_B" &" := "  L_b:term &", "
+                    &"L_B'" &" := "  L_b':term
+      : tactic => do
+  evalTactic (← `(tactic | sapply_s_seq P := _ ,
+                                           R := $R,
+                                           L_W := $L_w,
+                                           L_W' := $L_w',
+                                           L_B := $L_b,
+                                           L_B' := $L_b'))
+
 
 /- apply S_SEQ with an automatic `try assumption` on every goal that is generated -/
 macro "sapply_s_seq'" P:term ", " R:term ", " L_w:term ", " L_w':term : tactic => do
@@ -189,9 +242,16 @@ macro "sapply_s_seq'" P:term ", " R:term ", " L_w:term ", " L_w':term : tactic =
     (L_w := $L_w) (L_w' := $L_w') <;> try assumption)
 
 
-/- apply S_SEQ without the requirement to provide P and simp some trivial goals that are generated-/
-elab "sapply_s_seq''" R:term &", " L_w:term &", " L_w':term &", "
-    L_b:term &", " L_b':term : tactic => do
+/--
+Also, try to automatically solve the most "side goals", which are generated
+during the process. Those side goals generally are goals about the set provided
+(e.g. $`L_W ≠ ∅`), which are trivial is most cases.
+-/
+elab "sapply_s_seq''" R:term &", "
+                      L_w:term &", "
+                      L_w':term &", "
+                      L_b:term &", "
+                      L_b':term : tactic => do
   evalTactic (← `(tactic | apply $(mkIdent `S_SEQ) (P := _) (R := $R) (L_w := $L_w)
                             (L_w' := $L_w') (L_b := $L_b) (L_b' := $L_b') <;> try assumption))
   evalTactic (← `(tactic | . simp ))
@@ -200,8 +260,19 @@ elab "sapply_s_seq''" R:term &", " L_w:term &", " L_w':term &", "
   evalTactic (← `(tactic | . simp ))
 
 -- TODO make this more robust
-/- apply S_SEQ without providing P but explicitly provide the names of the parameters.
-This is mostly for visual effects. -/
+/--
+Apply `S_SEQ` without explicitly providing the names of the parameters.
+The order is:
+1. `R`
+2. `L_W`
+3. `L_W'`
+4. `L_B`
+5. `L_B'`
+
+Also, try to automatically solve the most "side goals", which are generated
+during the process. Those side goals generally are goals about the set provided
+(e.g. $`L_W ≠ ∅`), which are trivial is most cases.
+-/
 elab "sapply_s_seq''"
                       -- &"P" &" := " P:term &", "
                       &"R" &" := "  R:term &", "
@@ -218,8 +289,20 @@ elab "sapply_s_seq''"
   evalTactic (← `(tactic | . simp ))
 
 
-/- apply S_SEQ with P and explicitly provide the names of the parameters.
-This is mostly for visual effects. -/
+/--
+Apply `S_SEQ` with explicitly providing the names and values of the parameters.
+The order is:
+1. `P`
+2. `R`
+3. `L_W`
+4. `L_W'`
+5. `L_B`
+6. `L_B'`
+
+Also, try to automatically solve the most "side goals", which are generated
+during the process. Those side goals generally are goals about the set provided
+(e.g. $`L_W ≠ ∅`), which are trivial is most cases.
+-/
   elab "sapply_s_seq''"
                       &"P" &" := " P:term &", "
                       &"R" &" := "  R:term &", "
@@ -236,7 +319,16 @@ This is mostly for visual effects. -/
   evalTactic (← `(tactic | . simp ))
 
 
-
+/--
+Apply `S_SEQ` without explicitly providing the names of the parameters.
+The order is:
+1. `P`
+2. `R`
+3. `L_W`
+4. `L_W'`
+5. `L_B`
+6. `L_B'`
+-/
 elab "sapply_s_seq_plain"  &"P" &" := " P:term &", "
                         &"R" &" := "  R:term &", "
                         &"L_W" &" := "  L_w:term &", "
@@ -263,9 +355,10 @@ elab "sapply_s_seq_plain"  &"R" &" := "  R:term &", "
 
 
 -- TODO make this more robust
-/- apply S_SEQ with P and explicitly provide the names of the parameters.
-Also, apply simp_set_eq to the last goal to further automate the proving process
-and to avoid having to prove the set equality. -/
+/--
+Like `sapply_s_seq''`, but also apply a tactic to automatically solve the
+set equality which should be able to show $`L_{B''} = L_B ∩ L_{B'}`.
+-/
 elab "sapply_s_seq'''"  &"P" &" := " P:term &", "
                         &"R" &" := "  R:term &", "
                         &"L_W" &" := "  L_w:term &", "
@@ -281,9 +374,18 @@ elab "sapply_s_seq'''"  &"P" &" := " P:term &", "
   evalTactic (← `(tactic | . simp ))
   evalTactic (← `(tactic | apply_to_last_goal simp_set_eq ))
 
-/- apply S_SEQ without providing P and explicitly provide the names of the parameters.
-Also, apply simp_set_eq to the last goal to further automate the proving process
-and to avoid having to prove the set equality. -/
+/--
+Apply S_SEQ with explicitly providing the names of the parameters.
+The order is:
+1. `R`
+2. `L_W`
+3. `L_W'`
+4. `L_B`
+5. `L_B'`
+
+Also, apply a tactic to automatically solve set equality which should be
+able to show $`L_{B''} = L_B ∩ L_{B'}`.
+-/
 elab "sapply_s_seq'''"  &"R" &" := "  R:term &", "
                         &"L_W" &" := "  L_w:term &", "
                         &"L_W'" &" := "  L_w':term &", "
@@ -390,7 +492,18 @@ elab "apply_spec_for_second" spec:term : tactic => do
   evalTactic (← `(tactic | try repeat (simp [t_update_neq, t_update_eq])))
 
 
-/- apply specification on any goal after applying S_SEQ -/
+/--
+Apply a given specification and try to get rid of all proof goals which
+are create during the process.
+
+To be able to apply a specification, $`L_B` **must** contain every line
+except the one that is being executed. For example, if you want to
+apply the specification for the `Instr.LoadImmediate`, which is on line $`l`,
+and you have some `(P Q : Prop)`, then the Hoare-triple needs to look like this:
+
+`⦃P⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l + 1}⟩ ⦃Q⦄`
+
+-/
 elab "apply_spec" spec:term : tactic => do
   evalTactic (← `(tactic | first
                           | apply_spec_default $spec

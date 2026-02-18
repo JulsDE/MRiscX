@@ -19,6 +19,10 @@ These statements must be valid in order for the conditions for applying the assu
 TODO: prove of S_LOOP
 -/
 
+/--
+Allows to weaken the Hoare triple by removing a set
+$`L` from $`L_B`
+-/
 theorem BL_SUBSET: ∀ (code : Code) (P Q : Assertion) (l: UInt64) (L_w L_b L : Set UInt64),
   L_w ∩ L_b = ∅ → -- TODO This or L ⊄ L_w
   code
@@ -42,7 +46,10 @@ theorem BL_SUBSET: ∀ (code : Code) (P Q : Assertion) (l: UInt64) (L_w L_b L : 
       · exact L_b_sub
       · exact H3
 
-
+/--
+Allows to weaken the Hoare triple
+by moving a set $`L` it to $`L_W` without restrictions.
+-/
 theorem BL_TO_WL: ∀ (code : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : Set UInt64),
   L ⊆ L_b →
   L_w ∩ L_b = ∅ → -- TODO This or L ⊄ L_w
@@ -67,7 +74,11 @@ theorem BL_TO_WL: ∀ (code : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : 
 
 
 
-
+/--
+This rule can be used to transfer the set $`L` from $`L_W` to $`L_B`.
+However, this requires that the postcondition $`Q` does not cause the PC
+to point to a line from $`L`.
+-/
 theorem WL_TO_BL: ∀ (c : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : Set UInt64),
   L ⊂ L_w →
   (∀ (s:MState), Q s → s.pc ∉ L) →
@@ -115,6 +126,10 @@ theorem WL_TO_BL: ∀ (c : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : Set
 
 
 
+/--
+Enables the merge of two Hoare-triples into one, given that the postcondition
+of the first triple is equal to the precondition of the second triple.
+-/
 theorem S_SEQ': ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b' : Set UInt64),
   L_w ∩ L_b = ∅ →
   L_w ≠ ∅ →
@@ -165,8 +180,12 @@ theorem S_SEQ': ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b
 
 
 
--- This is an additional rule for simplicity reasons. It lets you apply this
--- with any form of L_b but asks for L_b'' = L_b ∩ L_b'
+/--
+Equal to `S_SEQ'`, but was defined for simplicity reasons.
+`S_SEQ'` requires $`L_{B''}` to be in the form of $`L_B ∩ L_{B'}`.
+This rule lets you apply S_SEQ with any form of $`L_{B''}` but asks for
+a proof of $`L_{B''} = L_B ∩ L_{B'}`
+-/
 theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b' : Set UInt64),
   L_w ∩ L_b = ∅ →
   L_w ≠ ∅ →
@@ -223,8 +242,13 @@ theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64
       exact HSecondPc
 
 
+/--
+Allows to strenghten the precondition of a given Hoare-triple
+-/
 theorem PRE_STR : ∀(c : Code) (P1 P2 Q : Assertion) (L_w L_b : Set UInt64) (l : UInt64),
-  (∀ (s : MState), s.code = c → (s.pc = l ∧ P2 s) → P1 s) →
+  (∀ (s : MState),
+  s.code = c →
+  (s.pc = l ∧ P2 s) → P1 s) →
   c
   ⦃P1⦄ l ↦ ⟨L_w | L_b⟩ ⦃Q⦄ →
   c
@@ -239,8 +263,13 @@ theorem PRE_STR : ∀(c : Code) (P1 P2 Q : Assertion) (L_w L_b : Set UInt64) (l 
     . constructor <;> try assumption
 
 
+/--
+Allows to weaken the postcondition of a given Hoare-triple
+-/
 theorem POST_WEAK : ∀(c : Code) (P Q1 Q2 : Assertion) (L_w L_b : Set UInt64) (l : UInt64),
-  (∀ (s : MState), s.code = c → (s.pc ∈ L_w ∧ Q1 s) → Q2 s) →
+  (∀ (s : MState),
+  s.code = c →
+  (s.pc ∈ L_w ∧ Q1 s) → Q2 s) →
   c
   ⦃P⦄ l ↦ ⟨L_w | L_b⟩ ⦃Q1⦄ →
   c
@@ -280,6 +309,10 @@ macro "∼" a:ident : term =>
   `(Assertion.Not $a)
 
 
+/--
+In this rule, a condition $`B` is evaluated and, depending on whether it is fulfilled or not,
+either the command chain $`S_1` or $`S_2`$ is executed.
+-/
 theorem S_COND: ∀ (c : Code) (P C Q : Assertion) (l : UInt64)
   (L_w L_b : Set UInt64),
   c
@@ -306,7 +339,17 @@ theorem S_COND: ∀ (c : Code) (P C Q : Assertion) (l : UInt64)
 
 
 -- No formal proof. For informal proof contact me
-theorem S_LOOP' {α : Type} [Preorder α] [LT α] [WellFoundedLT α] :
+/--
+A rule to verify the formal correctness of a loop.
+Requires:
+
+* A Condition $`C`
+* An Invariant $`I`
+* A Variant $`V`
+
+For more information, see the (documentation)[TODO insert link]
+-/
+theorem S_LOOP {α : Type} [Preorder α] [LT α] [WellFoundedLT α] :
     ∀ (Q C I : Assertion) (c : Code) (l : UInt64)
     (L_w L_b : Set UInt64) (V :MState → α),
   l ∉ L_w →

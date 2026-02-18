@@ -103,7 +103,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
     intros h_inter h_empty s s_code h_pc pre
 
 
-    apply S_LOOP'
+    apply S_LOOP
       (C := ⦃x[3] > 0⦄)
       (I := ⦃((∀(i : UInt64), i < l - x[3] -> mem[c + i] = mem[p + i] ^^^ mem[k + i])
               ∧ x[0] = (p + (l - x[3]))
