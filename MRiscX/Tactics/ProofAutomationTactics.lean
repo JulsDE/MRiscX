@@ -201,7 +201,7 @@ The order is:
 
 Also, try to automatically solve most of the "side goals" that are generated
 during the process. These side goals are generally statements about the provided
-sets (e.g., $`L_W ≠ ∅`), which are trivial in most cases.
+sets (e.g., `L_W ≠ ∅`), which are trivial in most cases.
 -/
 elab "sapply_s_seq" &"P" &" := " P:term &", "
                     &"R" &" := "  R:term &", "
@@ -245,7 +245,7 @@ macro "sapply_s_seq'" P:term ", " R:term ", " L_w:term ", " L_w':term : tactic =
 /--
 Also, try to automatically solve the most "side goals", which are generated
 during the process. Those side goals generally are goals about the set provided
-(e.g. $`L_W ≠ ∅`), which are trivial is most cases.
+(e.g. `L_W ≠ ∅`), which are trivial is most cases.
 -/
 elab "sapply_s_seq''" R:term &", "
                       L_w:term &", "
@@ -271,7 +271,7 @@ The order is:
 
 Also, try to automatically solve the most "side goals", which are generated
 during the process. Those side goals generally are goals about the set provided
-(e.g. $`L_W ≠ ∅`), which are trivial is most cases.
+(e.g. `L_W ≠ ∅`), which are trivial is most cases.
 -/
 elab "sapply_s_seq''"
                       -- &"P" &" := " P:term &", "
@@ -301,7 +301,7 @@ The order is:
 
 Also, try to automatically solve the most "side goals", which are generated
 during the process. Those side goals generally are goals about the set provided
-(e.g. $`L_W ≠ ∅`), which are trivial is most cases.
+(e.g. `L_W ≠ ∅`), which are trivial is most cases.
 -/
   elab "sapply_s_seq''"
                       &"P" &" := " P:term &", "
@@ -357,7 +357,7 @@ elab "sapply_s_seq_plain"  &"R" &" := "  R:term &", "
 -- TODO make this more robust
 /--
 Like `sapply_s_seq''`, but also apply a tactic to automatically solve the
-set equality which should be able to show $`L_{B''} = L_B ∩ L_{B'}`.
+set equality which should be able to show `L_{B''} = L_B ∩ L_{B'}`.
 -/
 elab "sapply_s_seq'''"  &"P" &" := " P:term &", "
                         &"R" &" := "  R:term &", "
@@ -384,7 +384,7 @@ The order is:
 5. `L_B'`
 
 Also, apply a tactic to automatically solve set equality which should be
-able to show $`L_{B''} = L_B ∩ L_{B'}`.
+able to show `L_{B''} = L_B ∩ L_{B'}`.
 -/
 elab "sapply_s_seq'''"  &"R" &" := "  R:term &", "
                         &"L_W" &" := "  L_w:term &", "
@@ -496,9 +496,9 @@ elab "apply_spec_for_second" spec:term : tactic => do
 Apply a given specification and try to get rid of all proof goals which
 are create during the process.
 
-To be able to apply a specification, $`L_B` **must** contain every line
+To be able to apply a specification, `L_B` **must** contain every line
 except the one that is being executed. For example, if you want to
-apply the specification for the `Instr.LoadImmediate`, which is on line $`l`,
+apply the specification for the `Instr.LoadImmediate`, which is on line `l`,
 and you have some `(P Q : Prop)`, then the Hoare-triple needs to look like this:
 
 `⦃P⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l + 1}⟩ ⦃Q⦄`
