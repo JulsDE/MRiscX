@@ -143,7 +143,7 @@ def hoareTripleDelab : Delab :=
     match termToIdent? cSyn with
     | none => pure ()
     | some c => return ←hoare_termToTerm (←`(hoare_term | $c:ident
-          ⦃$preSyn⦄ $lSyn ↦ ⟨$L_wSyn | $L_bSyn⟩ ⦃$postSyn⦄))
+        ⦃$preSyn⦄ $lSyn ↦ ⟨$L_wSyn | $L_bSyn⟩ ⦃$postSyn⦄))
 
     match extractStringFromTerm? cSyn with
     | none => pure ()
