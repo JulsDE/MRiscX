@@ -503,6 +503,7 @@ and you have some `(P Q : Prop)`, then the Hoare-triple needs to look like this:
 
 `⦃P⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l + 1}⟩ ⦃Q⦄`
 
+TODO: Avoid having to provide pc, registers and values in application of specification
 -/
 elab "apply_spec" spec:term : tactic => do
   evalTactic (← `(tactic | first

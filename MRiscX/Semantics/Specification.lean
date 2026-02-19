@@ -62,6 +62,15 @@ theorem specification_LoadAddress (P: Assertion) (l r v : UInt64):
       rw [h_pc] at pre
       exact pre
 
+/--
+Specification for `Instr.LoadImmediate`.
+
+For certifying the instruction, the `rule of assignment` (P ⟦x[r] ← v; pc++⟧) is used.
+The hoare triples state that if you start in a state where the precondition P holds,
+and you execute the instruction, the precondition P will still
+hold after the execution. The precondition is applied after simulating the
+effects of the instruction.
+-/
 theorem specification_LoadImmediate (P: Assertion) (l r v : UInt64):
   hoare
     ⟪li x r, v;⟫
