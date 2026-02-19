@@ -202,6 +202,8 @@ The order is:
 Also, try to automatically solve most of the "side goals" that are generated
 during the process. These side goals are generally statements about the provided
 sets (e.g., `L_W ≠ ∅`), which are trivial in most cases.
+
+The same tactic can be used without providing `P`
 -/
 elab "sapply_s_seq" &"P" &" := " P:term &", "
                     &"R" &" := "  R:term &", "
@@ -243,9 +245,7 @@ macro "sapply_s_seq'" P:term ", " R:term ", " L_w:term ", " L_w':term : tactic =
 
 
 /--
-Also, try to automatically solve the most "side goals", which are generated
-during the process. Those side goals generally are goals about the set provided
-(e.g. `L_W ≠ ∅`), which are trivial is most cases.
+Like `sapply_s_seq`, but without solving the sidegoal `L_b = L_b' ∩ L_b''`.
 -/
 elab "sapply_s_seq''" R:term &", "
                       L_w:term &", "
