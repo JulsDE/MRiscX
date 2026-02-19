@@ -124,8 +124,11 @@ theorem proof_otp : ∀ (p k c l: UInt64),
       rintro x h_inter h_empty s' h_code' h_pc ⟨h_condition, ⟨h_terminated, h_I⟩, h_var⟩
 
       -- cut after dec
-      apply S_SEQ (P := ⦃(x[3] > 0 ∧ (∀ (i:UInt64), i < l - x[3] → mem[c + i] = mem[p + i] ^^^ mem[k + i])
-                        ∧ x[0] = (p + (l - x[3])) ∧ x[1] = (k + (l - x[3])) ∧ x[2] = (c + (l - x[3]))
+      apply S_SEQ (P := ⦃(x[3] > 0 ∧ (∀ (i:UInt64),
+                          i < l - x[3] → mem[c + i] = mem[p + i] ^^^ mem[k + i])
+                        ∧ x[0] = (p + (l - x[3]))
+                        ∧ x[1] = (k + (l - x[3]))
+                        ∧ x[2] = (c + (l - x[3]))
                         ∧ x[3] ≤ l
                         ∧ x[3] = x
                         ∧ I_pre p k c l) ∧ ¬⸨terminated⸩ = true⦄)

@@ -4,10 +4,13 @@ Syntax for hoare terms
 -/
 declare_syntax_cat hoare_term
 
-syntax mriscx_syntax withPosition(linebreak ppDedent(ppLine))
- "⦃" term "⦄ " term " ↦ " "⟨" term " | " term "⟩" "⦃" term "⦄" : hoare_term
-syntax ident withPosition(linebreak ppDedent(ppLine))
- "⦃" term "⦄ " term " ↦ " "⟨" term " | " term "⟩" "⦃" term "⦄" : hoare_term
+syntax mriscx_syntax withPosition(linebreak ppDedent(
+    "⦃" term "⦄ " term " ↦ " "⟨" term " | " term "⟩" "⦃" term "⦄"
+  )) : hoare_term
+
+syntax ident withPosition(linebreak ppDedent(
+    "⦃" term "⦄ " term " ↦ " "⟨" term " | " term "⟩" "⦃" term "⦄"
+  )) : hoare_term
 
 syntax "⦃" term "⦄" : term
 

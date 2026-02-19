@@ -175,7 +175,7 @@ Also, try to solve all goals which are created during the process
 except for the two goals, which involve the actual Hoare-triples which
 will be generated.
 -/
-elab &"auto" &"seq" : tactic => do
+elab &"auto_seq" : tactic => do
   evalTactic (← `(tactic | peel_last_instr <;> try assumption))
   evalTactic (← `(tactic | . simp ))
   evalTactic (← `(tactic | . simp ))
@@ -229,11 +229,11 @@ elab "sapply_s_seq" &"R" &" := "  R:term &", "
                     &"L_B'" &" := "  L_b':term
       : tactic => do
   evalTactic (← `(tactic | sapply_s_seq P := _ ,
-                                           R := $R,
-                                           L_W := $L_w,
-                                           L_W' := $L_w',
-                                           L_B := $L_b,
-                                           L_B' := $L_b'))
+                                        R := $R,
+                                        L_W := $L_w,
+                                        L_W' := $L_w',
+                                        L_B := $L_b,
+                                        L_B' := $L_b'))
 
 
 /- apply S_SEQ with an automatic `try assumption` on every goal that is generated -/

@@ -150,7 +150,7 @@ def hoareTripleDelab : Delab :=
     | some c => return ←hoare_termToTerm (←`(hoare_term | $c:ident
         ⦃$preSyn⦄ $lSyn ↦ ⟨$L_wSyn | $L_bSyn⟩ ⦃$postSyn⦄))
 
-    logInfo s!"A problem occured while delaborating {cSyn} was not of Expr Type ident
+    logInfo s!"A problem occurred while delaborating {cSyn} was not of Expr Type ident
     or mriscx_syntax but it has type {cSyn.raw.getKind}, falling back to delab without code"
 
     hoare_termToTerm (←`(hoare_term | $(mkIdent `c?):ident

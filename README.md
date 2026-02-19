@@ -140,7 +140,7 @@ soon as possible.**
     Contains all the custom tactics.
 
   - `MRiscX/Tactics/SplitLastSeq.lean` 
-    Contains the logic behind the tactic `auto seq`, which tries to 
+    Contains the logic behind the tactic `auto_seq`, which tries to 
     "peel off" the last instruction with applying `S-SEQ` and calculating all the missing values.
   
   - `MRiscX/Tactics/ProofAutomationTacitcs.lean` 
