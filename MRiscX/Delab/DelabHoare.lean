@@ -29,7 +29,7 @@ def extractStringFromTerm? (t : Term) : Option (TSyntax `ident) :=
   if let some s := t.raw.isStrLit? then some (mkIdent (Name.mkSimple s)) else none
 
 def termToMriscx_syntax? (t : Term) : Option (TSyntax `mriscx_syntax) :=
-  if t.raw.getKind == `mriscx_syntaxMriscx___End
+  if t.raw.getKind == `mriscx_syntaxMriscx__End
    then some ⟨t.raw⟩
   else none
 
