@@ -1,5 +1,5 @@
 name = "MRiscX"
-version = "0.1.0-v4.28.0-rc1"
+version = "0.1.0-v4.28.0"
 defaultTargets = ["MRiscX"]
 
 [[lean_lib]]
@@ -9,4 +9,4 @@ globs = ["MRiscX.*"]
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "v4.28.0-rc1"
+rev = "v4.28.0"
