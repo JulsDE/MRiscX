@@ -11,6 +11,13 @@ The Syntax of the hoare triples is as close as possible to the notation from
 the paper of lundberg et al.. Some exceptions had to be made since "[]" are already
 widely known as lists.
 -/
+
+macro  a₁:term " ∧∧ " a₂:term : term => do
+  `(Assertion.And $a₁ $a₂)
+
+macro "∼" a:ident : term =>
+  `(Assertion.Not $a)
+
 partial def processHoareTerm (stx : Term) : TermElabM Syntax := do
   withFreshMacroScope do
     let mut newStx ← (go stx)

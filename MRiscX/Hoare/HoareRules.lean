@@ -21,7 +21,7 @@ TODO: prove of S_LOOP
 
 /--
 Allows to weaken the Hoare triple by removing a set
-$`L` from $`L_B`
+`L` from `L_B`
 -/
 theorem BL_SUBSET: ∀ (code : Code) (P Q : Assertion) (l: UInt64) (L_w L_b L : Set UInt64),
   L_w ∩ L_b = ∅ → -- TODO This or L ⊄ L_w
@@ -48,7 +48,7 @@ theorem BL_SUBSET: ∀ (code : Code) (P Q : Assertion) (l: UInt64) (L_w L_b L : 
 
 /--
 Allows to weaken the Hoare triple
-by moving a set $`L` it to $`L_W` without restrictions.
+by moving a set `L` it to `L_W` without restrictions.
 -/
 theorem BL_TO_WL: ∀ (code : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : Set UInt64),
   L ⊆ L_b →
@@ -75,9 +75,9 @@ theorem BL_TO_WL: ∀ (code : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : 
 
 
 /--
-This rule can be used to transfer the set $`L` from $`L_W` to $`L_B`.
-However, this requires that the postcondition $`Q` does not cause the PC
-to point to a line from $`L`.
+This rule can be used to transfer the set `L` from `L_W` to `L_B`.
+However, this requires that the postcondition `Q` does not cause the PC
+to point to a line from `L`.
 -/
 theorem WL_TO_BL: ∀ (c : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : Set UInt64),
   L ⊂ L_w →
@@ -182,9 +182,9 @@ theorem S_SEQ': ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b
 
 /--
 Equal to `S_SEQ'`, but was defined for simplicity reasons.
-`S_SEQ'` requires $`L_{B''}` to be in the form of $`L_B ∩ L_{B'}`.
-This rule lets you apply S_SEQ with any form of $`L_{B''}` but asks for
-a proof of $`L_{B''} = L_B ∩ L_{B'}`
+`S_SEQ'` requires `L_{B''}` to be in the form of `L_B ∩ L_{B'}`.
+This rule lets you apply S_SEQ with any form of `L_{B''}` but asks for
+a proof of `L_{B''} = L_B ∩ L_{B'}`
 -/
 theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b' : Set UInt64),
   L_w ∩ L_b = ∅ →
@@ -297,21 +297,9 @@ theorem POST_WEAK : ∀(c : Code) (P Q1 Q2 : Assertion) (L_w L_b : Set UInt64) (
           exact K
 
 
-
--- some notations for conjunction and negation of Assertions
-private def Assertion.And (P Q : Assertion) : Assertion := fun st => (P st) ∧ (Q st)
-private def Assertion.Not (P : Assertion) : Assertion := fun st => ¬(P st)
-
-macro  a₁:term " ∧∧ " a₂:term : term => do
-  `(Assertion.And $a₁ $a₂)
-
-macro "∼" a:ident : term =>
-  `(Assertion.Not $a)
-
-
 /--
-In this rule, a condition $`B` is evaluated and, depending on whether it is fulfilled or not,
-either the command chain $`S_1` or $`S_2`$ is executed.
+In this rule, a condition `C` is evaluated and, depending on whether it is fulfilled or not,
+either the command chain `S_1` or `S_2`$ is executed.
 -/
 theorem S_COND: ∀ (c : Code) (P C Q : Assertion) (l : UInt64)
   (L_w L_b : Set UInt64),
@@ -343,9 +331,9 @@ theorem S_COND: ∀ (c : Code) (P C Q : Assertion) (l : UInt64)
 A rule to verify the formal correctness of a loop.
 Requires:
 
-* A Condition $`C`
-* An Invariant $`I`
-* A Variant $`V`
+* A Condition `C`
+* An Invariant `I`
+* A Variant `V`
 
 For more information, see the (documentation)[TODO insert link]
 -/
