@@ -1,0 +1,386 @@
+{"Verso.Genre.Manual.section":
+ {"title": "Sections or chapters of the manual",
+  "description": null,
+  "contents":
+  {"specification_instr":
+   [{"id": "specification_instr",
+     "data":
+     {"title": "Specification Of The Instructions",
+      "shortTitle": null,
+      "sectionNum": "2.3.2.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Fundamentals", "shortTitle": null, "number": "2"},
+       {"title": "Extension Of The Hoare-Logic  <missing>",
+        "shortTitle": null,
+        "number": "3"},
+       {"title": "Specification Of The Instructions",
+        "shortTitle": null,
+        "number": "2"}]},
+     "address": "/Fundamentals/"}],
+   "specification":
+   [{"id": "specification",
+     "data":
+     {"title": "Writing a specification",
+      "shortTitle": null,
+      "sectionNum": "3.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Writing a specification",
+        "shortTitle": null,
+        "number": "3"}]},
+     "address": "/Writing-a-specification/"}],
+   "proofProcess":
+   [{"id": "proofProcess",
+     "data":
+     {"title": "Process of proving the formal correctness",
+      "shortTitle": null,
+      "sectionNum": "4.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Process of proving the formal correctness",
+        "shortTitle": null,
+        "number": "4"}]},
+     "address": "/Process-of-proving-the-formal-correctness/"}],
+   "preAndPostcondition":
+   [{"id": "preAndPostcondition",
+     "data":
+     {"title": "Pre- And Postcondition",
+      "shortTitle": null,
+      "sectionNum": "3.1.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Writing a specification", "shortTitle": null, "number": "3"},
+       {"title": "Pre- And Postcondition", "shortTitle": null, "number": "1"}]},
+     "address": "/Writing-a-specification/"}],
+   "pc-black-whitelist":
+   [{"id": "pc-black-whitelist",
+     "data":
+     {"title": "ProgramCounter, Black- and Whitelist",
+      "shortTitle": null,
+      "sectionNum": "3.2.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Writing a specification", "shortTitle": null, "number": "3"},
+       {"title": "ProgramCounter, Black- and Whitelist",
+        "shortTitle": null,
+        "number": "2"}]},
+     "address": "/Writing-a-specification/"}],
+   "limitation":
+   [{"id": "limitation",
+     "data":
+     {"title": "Limitations",
+      "shortTitle": null,
+      "sectionNum": "5.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Limitations", "shortTitle": null, "number": "5"}]},
+     "address": "/Limitations/"}],
+   "l_as":
+   [{"id": "l_as",
+     "data":
+     {"title": "Extension Of The Hoare-Logic  <missing>",
+      "shortTitle": null,
+      "sectionNum": "2.3.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Fundamentals", "shortTitle": null, "number": "2"},
+       {"title": "Extension Of The Hoare-Logic  <missing>",
+        "shortTitle": null,
+        "number": "3"}]},
+     "address": "/Fundamentals/"}],
+   "intro":
+   [{"id": "intro",
+     "data":
+     {"title": "Introduction",
+      "shortTitle": null,
+      "sectionNum": "1.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Introduction", "shortTitle": null, "number": "1"}]},
+     "address": "/Introduction/"}],
+   "index":
+   [{"id": "index",
+     "data":
+     {"title": "Index",
+      "shortTitle": null,
+      "sectionNum": null,
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Index", "shortTitle": null, "number": null}]},
+     "address": "/Index/"}],
+   "hoare-rules":
+   [{"id": "hoare-rules",
+     "data":
+     {"title": "Hoare-Rules",
+      "shortTitle": null,
+      "sectionNum": "2.3.1.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Fundamentals", "shortTitle": null, "number": "2"},
+       {"title": "Extension Of The Hoare-Logic  <missing>",
+        "shortTitle": null,
+        "number": "3"},
+       {"title": "Hoare-Rules", "shortTitle": null, "number": "1"}]},
+     "address": "/Fundamentals/"}],
+   "hoare-logic":
+   [{"id": "hoare-logic",
+     "data":
+     {"title": "Hoare-Logic",
+      "shortTitle": null,
+      "sectionNum": "2.2.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Fundamentals", "shortTitle": null, "number": "2"},
+       {"title": "Hoare-Logic", "shortTitle": null, "number": "2"}]},
+     "address": "/Fundamentals/"}],
+   "fundamentals":
+   [{"id": "fundamentals",
+     "data":
+     {"title": "Fundamentals",
+      "shortTitle": null,
+      "sectionNum": "2.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Fundamentals", "shortTitle": null, "number": "2"}]},
+     "address": "/Fundamentals/"}],
+   "availableInstructions":
+   [{"id": "availableInstructions",
+     "data":
+     {"title": "Available Instructions",
+      "shortTitle": null,
+      "sectionNum": "2.1.1.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Fundamentals", "shortTitle": null, "number": "2"},
+       {"title": "The Assembly Language", "shortTitle": null, "number": "1"},
+       {"title": "Available Instructions", "shortTitle": null, "number": "1"}]},
+     "address": "/Fundamentals/"}],
+   "assembly":
+   [{"id": "assembly",
+     "data":
+     {"title": "The Assembly Language",
+      "shortTitle": null,
+      "sectionNum": "2.1.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Fundamentals", "shortTitle": null, "number": "2"},
+       {"title": "The Assembly Language", "shortTitle": null, "number": "1"}]},
+     "address": "/Fundamentals/"}],
+   "Documentation-MRiscX--Process-of-proving-the-formal-correctness--General-Idea-In-Proof":
+   [{"id":
+     "Documentation-MRiscX--Process-of-proving-the-formal-correctness--General-Idea-In-Proof",
+     "data":
+     {"title": "General Idea In Proof",
+      "shortTitle": null,
+      "sectionNum": "4.2.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Process of proving the formal correctness",
+        "shortTitle": null,
+        "number": "4"},
+       {"title": "General Idea In Proof", "shortTitle": null, "number": "2"}]},
+     "address": "/Process-of-proving-the-formal-correctness/"}],
+   "Documentation-MRiscX--Process-of-proving-the-formal-correctness--Custom-Tactics":
+   [{"id":
+     "Documentation-MRiscX--Process-of-proving-the-formal-correctness--Custom-Tactics",
+     "data":
+     {"title": "Custom Tactics",
+      "shortTitle": null,
+      "sectionNum": "4.1.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Process of proving the formal correctness",
+        "shortTitle": null,
+        "number": "4"},
+       {"title": "Custom Tactics", "shortTitle": null, "number": "1"}]},
+     "address": "/Process-of-proving-the-formal-correctness/"}],
+   "Documentation-MRiscX--Introduction--What-is--MRiscX":
+   [{"id": "Documentation-MRiscX--Introduction--What-is--MRiscX",
+     "data":
+     {"title": "What is  MRiscX",
+      "shortTitle": null,
+      "sectionNum": "1.1.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Introduction", "shortTitle": null, "number": "1"},
+       {"title": "What is  MRiscX", "shortTitle": null, "number": "1"}]},
+     "address": "/Introduction/"}],
+   "Documentation-MRiscX--Introduction--How-does--MRiscX--look-like":
+   [{"id": "Documentation-MRiscX--Introduction--How-does--MRiscX--look-like",
+     "data":
+     {"title": "How does  MRiscX  look like",
+      "shortTitle": null,
+      "sectionNum": "1.2.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Introduction", "shortTitle": null, "number": "1"},
+       {"title": "How does  MRiscX  look like",
+        "shortTitle": null,
+        "number": "2"}]},
+     "address": "/Introduction/"}],
+   "Documentation-MRiscX--Introduction--First-Example":
+   [{"id": "Documentation-MRiscX--Introduction--First-Example",
+     "data":
+     {"title": "First Example",
+      "shortTitle": null,
+      "sectionNum": "1.3.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Introduction", "shortTitle": null, "number": "1"},
+       {"title": "First Example", "shortTitle": null, "number": "3"}]},
+     "address": "/Introduction/"}],
+   "Documentation-MRiscX--Fundamentals--Hoare-Logic--Hoare-Triples":
+   [{"id": "Documentation-MRiscX--Fundamentals--Hoare-Logic--Hoare-Triples",
+     "data":
+     {"title": "Hoare-Triples",
+      "shortTitle": null,
+      "sectionNum": "2.2.1.",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null},
+       {"title": "Fundamentals", "shortTitle": null, "number": "2"},
+       {"title": "Hoare-Logic", "shortTitle": null, "number": "2"},
+       {"title": "Hoare-Triples", "shortTitle": null, "number": "1"}]},
+     "address": "/Fundamentals/"}],
+   "Documentation-MRiscX":
+   [{"id": "Documentation-MRiscX",
+     "data":
+     {"title": "Documentation MRiscX",
+      "shortTitle": null,
+      "sectionNum": "",
+      "context":
+      [{"title": "Documentation MRiscX", "shortTitle": null, "number": null}]},
+     "address": "/"}]}},
+ "Verso.Genre.Manual.example":
+ {"title": "Verso.Genre.Manual.example",
+  "description": null,
+  "contents":
+  {"some_code":
+   [{"id": "some_code",
+     "data":
+     {"/Fundamentals/#some_code":
+      {"display": "some_code",
+       "context":
+       ["Documentation MRiscX", "Fundamentals", "The Assembly Language"]}},
+     "address": "/Fundamentals/"}],
+   "myNameSpace.weak":
+   [{"id": "myNameSpace___weak",
+     "data":
+     {"/Fundamentals/#myNameSpace___weak":
+      {"display": "weak",
+       "context":
+       ["Documentation MRiscX",
+        "Fundamentals",
+        "Extension Of The Hoare-Logic  <missing>"]}},
+     "address": "/Fundamentals/"}],
+   "myNameSpace.hoare_triple_up":
+   [{"id": "myNameSpace___hoare_triple_up",
+     "data":
+     {"/Fundamentals/#myNameSpace___hoare_triple_up":
+      {"display": "hoare_triple_up",
+       "context":
+       ["Documentation MRiscX",
+        "Fundamentals",
+        "Extension Of The Hoare-Logic  <missing>"]}},
+     "address": "/Fundamentals/"}]}},
+ "Verso.Genre.Manual.doc.tech":
+ {"title": "Terminology",
+  "description": "Definitions of technical terms",
+  "contents": {}},
+ "Verso.Genre.Manual.doc.tactic.conv":
+ {"title": "Conversion Tactics",
+  "description": "Tactics for performing targeted rewriting of subterms",
+  "contents": {}},
+ "Verso.Genre.Manual.doc.tactic":
+ {"title": "Tactic Documentation",
+  "description": "Detailed descriptions of tactics",
+  "contents":
+  {"«tacticSapply_s_seqP:=_,R:=_,L_W:=_,L_W':=_,L_B:=_,L_B':=_»":
+   [{"id": "sapply_s_seq",
+     "data": {"userName": "sapply_s_seq"},
+     "address": "/Process-of-proving-the-formal-correctness/"}],
+   "«tacticSapply_s_seq''_,_,_,_,_»":
+   [{"id": "sapply_s_seq______",
+     "data": {"userName": "sapply_s_seq''"},
+     "address": "/Process-of-proving-the-formal-correctness/"}],
+   "tacticAuto_seq":
+   [{"id": "auto_seq",
+     "data": {"userName": "auto_seq"},
+     "address": "/Process-of-proving-the-formal-correctness/"}],
+   "tacticApply_spec_":
+   [{"id": "apply_spec",
+     "data": {"userName": "apply_spec"},
+     "address": "/Process-of-proving-the-formal-correctness/"}]}},
+ "Verso.Genre.Manual.doc.suggestion":
+ {"title": "Lean constant suggestions",
+  "description": "Search suggestions for Lean constants",
+  "contents": {}},
+ "Verso.Genre.Manual.doc.option":
+ {"title": "Compiler options", "description": null, "contents": {}},
+ "Verso.Genre.Manual.doc":
+ {"title": "Lean constant reference",
+  "description": "Documentation for Lean constants",
+  "contents":
+  {"weak": [{"id": "weak", "data": null, "address": "/Fundamentals/"}],
+   "specification_LoadImmediate":
+   [{"id": "specification_LoadImmediate",
+     "data": null,
+     "address": "/Fundamentals/"}],
+   "hoare_triple_up":
+   [{"id": "hoare_triple_up", "data": null, "address": "/Fundamentals/"}],
+   "WL_TO_BL": [{"id": "WL_TO_BL", "data": null, "address": "/Fundamentals/"}],
+   "S_SEQ": [{"id": "S_SEQ", "data": null, "address": "/Fundamentals/"}],
+   "S_LOOP": [{"id": "S_LOOP", "data": null, "address": "/Fundamentals/"}],
+   "S_COND": [{"id": "S_COND", "data": null, "address": "/Fundamentals/"}],
+   "PRE_STR": [{"id": "PRE_STR", "data": null, "address": "/Fundamentals/"}],
+   "POST_WEAK":
+   [{"id": "POST_WEAK", "data": null, "address": "/Fundamentals/"}],
+   "Instr.XorImmediate":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.XOR":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.SubRegister":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.SubImmediate":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.StoreWord":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.Panic":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.LoadWordReg":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.LoadWordImmediate":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.LoadImmediate":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.LoadAddress":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.JumpNeqZero":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.JumpNeq":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.JumpLe":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.JumpGt":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.JumpEqZero":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.JumpEq":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.Jump":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.Increment":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.Decrement":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.CopyRegister":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.AddRegister":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr.AddImmediate":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "Instr":
+   [{"id": "Instr___LoadAddress", "data": null, "address": "/Fundamentals/"}],
+   "BL_TO_WL": [{"id": "BL_TO_WL", "data": null, "address": "/Fundamentals/"}],
+   "BL_SUBSET":
+   [{"id": "BL_SUBSET", "data": null, "address": "/Fundamentals/"}]}}}

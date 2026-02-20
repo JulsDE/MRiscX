@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      (function(){
+  const {protocol:proto, host:hostName, pathname:path, search:srch, hash:hsh} = window.location;
+  if (!(path.endsWith("/") || path.endsWith(".html"))) {
+    window.location.replace(`${proto}//${hostName}${path}/${srch}${hsh}`);
+  }
+})()</script>
+    <base href="./../"><meta charset="utf-8">
+    <meta name="viewport" content="height=device-height, width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <title>Writing a specification</title><link rel="stylesheet" href="book.css">
+    <link rel="stylesheet" href="verso-vars.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js" integrity="sha384-zbcZAIxlvJtNE3Dp5nxLXdXtXyxwOdnILY1TDPVmKFhl4r4nSUG1r8bcFXGVa4Te" crossorigin="anonymous"></script>
+    <script src="-verso-search/elasticlunr.min.js"></script>
+    <script src="-verso-search/fuzzysort.min.js"></script>
+    <script src="-verso-search/searchIndex.js"></script>
+    <script type="module" src="-verso-search/search-init.js"></script>
+    <link rel="stylesheet" href="-verso-search/search-box.css">
+    <link rel="stylesheet" href="-verso-search/search-highlight.css">
+    <link rel="stylesheet" href="-verso-search/domain-display.css">
+    <script src="-verso-data/popper.min.js"></script>
+    <script src="-verso-data/katex/math.js"></script>
+    <script src="-verso-data/tippy-bundle.umd.min.js"></script>
+    <script src="-verso-data/katex/katex.js"></script>
+    <link rel="stylesheet" href="-verso-data/tippy-border.css">
+    <link rel="stylesheet" href="-verso-data/katex/katex.css">
+    <style>
+.namedocs {
+  position: relative;
+  border: solid 1px #98B2C0;
+  border-radius: .5rem;
+  padding-top: var(--verso--box-padding);
+  margin-top: var(--verso--box-vertical-margin);
+  margin-bottom: var(--verso--box-vertical-margin);
+}
+
+.namedocs .text {
+  /* Causes margins on child elements to collapse inside the element, such
+     that the margins don't extend into parent with the background color.
+     The effect is that weird borders in the definition box don't happen anymore. */
+  display: flow-root;
+  /* Add a padding. this is the same as the margin applied to the first and last child.
+     The effect is that the padding looks the same size on all sides. */
+  padding: 0 var(--verso--box-padding);
+  border-top: 1px solid #98B2C0;
+}
+
+.namedocs .text > pre {
+  overflow-x: auto;
+}
+
+.namedocs .signature {
+  font-family: var(--verso-code-font-family);
+  margin-top: 0 !important;
+  margin-left: var(--verso--box-padding) !important;
+  margin-bottom: .75rem !important;
+}
+
+.namedocs .label {
+  display: block;
+  font-size: small;
+  font-family: var(--verso-structure-font-family);
+  position: absolute;
+  top: -0.65rem;
+  left: 1rem;
+  background: #fff;
+  padding: 0 .5rem .125rem;
+  border: 1px solid #98B2C0;
+  border-radius: 1rem;
+  color: #555;
+}
+
+.namedocs h1 {
+  font-size: inherit;
+  font-weight: bold
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.namedocs > .text .constructor {
+  padding-top: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.namedocs > .text .constructor::before {
+  content: '| ';
+  display: block;
+  font-family: var(--verso-code-font-family);
+  font-weight: bold;
+  float: left;
+  width: 0.5rem;
+  white-space: pre;
+}
+
+.namedocs > .text .constructor .name-and-type {
+  padding-left: 0.5rem;
+  float: left;
+  margin-top: 0;
+  max-width: calc(100% - 1rem);
+}
+.namedocs > .text .constructor .docs {
+  clear: both;
+  padding-left: 1rem;
+}
+
+/* These margins work together with the padding on .text */
+.namedocs .text > :first-child {
+  margin-top: var(--verso--box-padding);
+}
+.namedocs .text > :last-child {
+  margin-bottom: var(--verso--box-padding);
+}
+
+.namedocs .methods td, .namedocs .fields td {
+  vertical-align: top;
+}
+.namedocs .inheritance {
+  vertical-align: top;
+  font-size: smaller;
+  font-family: var(--verso-structure-font-family);
+}
+.namedocs .inheritance ol {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+}
+.namedocs .inheritance ol li {
+  list-style-type: none;
+  display: inline-block;
+}
+.namedocs .inheritance ol li::after {
+  content: " > "
+}
+.namedocs .inheritance ol li:last-child::after {
+  content: "";
+}
+
+.namedocs .extends {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+.namedocs .extends li {
+  list-style-type: none;
+  display: inline-block;
+}
+
+.namedocs .extends li label {
+  padding-right: 1rem;
+}
+
+.namedocs .subdocs .name-and-type {
+  font-size: 1rem;
+  margin-left: 0;
+  margin-top: 0;
+  margin-right: 0;
+  margin-bottom: 0.5rem;
+}
+
+.namedocs .subdocs .docs {
+  margin-left: 1.5rem;
+  margin-top: 0;
+  margin-right: 0;
+  margin-bottom: 0.5rem;
+}
+
+.namedocs:has(input[data-parent-idx]) [data-inherited-from] {
+  transition-property: opacity, display;
+  transition-duration: 0.4s;
+  transition-behavior: allow-discrete;
+  @starting-style { opacity: 0 !important; }
+}
+
+#this-page-items .tactic-name { font-weight: bold; }
+.namedocs:has(input[data-parent-idx="0"]) [data-inherited-from="0"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="0"]:checked) [data-inherited-from="0"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="0"]:checked):has(.inheritance[data-inherited-from="0"]:hover) [data-inherited-from]:not([data-inherited-from="0"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="1"]) [data-inherited-from="1"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="1"]:checked) [data-inherited-from="1"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="1"]:checked):has(.inheritance[data-inherited-from="1"]:hover) [data-inherited-from]:not([data-inherited-from="1"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="2"]) [data-inherited-from="2"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="2"]:checked) [data-inherited-from="2"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="2"]:checked):has(.inheritance[data-inherited-from="2"]:hover) [data-inherited-from]:not([data-inherited-from="2"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="3"]) [data-inherited-from="3"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="3"]:checked) [data-inherited-from="3"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="3"]:checked):has(.inheritance[data-inherited-from="3"]:hover) [data-inherited-from]:not([data-inherited-from="3"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="4"]) [data-inherited-from="4"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="4"]:checked) [data-inherited-from="4"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="4"]:checked):has(.inheritance[data-inherited-from="4"]:hover) [data-inherited-from]:not([data-inherited-from="4"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="5"]) [data-inherited-from="5"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="5"]:checked) [data-inherited-from="5"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="5"]:checked):has(.inheritance[data-inherited-from="5"]:hover) [data-inherited-from]:not([data-inherited-from="5"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="6"]) [data-inherited-from="6"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="6"]:checked) [data-inherited-from="6"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="6"]:checked):has(.inheritance[data-inherited-from="6"]:hover) [data-inherited-from]:not([data-inherited-from="6"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="7"]) [data-inherited-from="7"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="7"]:checked) [data-inherited-from="7"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="7"]:checked):has(.inheritance[data-inherited-from="7"]:hover) [data-inherited-from]:not([data-inherited-from="7"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="8"]) [data-inherited-from="8"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="8"]:checked) [data-inherited-from="8"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="8"]:checked):has(.inheritance[data-inherited-from="8"]:hover) [data-inherited-from]:not([data-inherited-from="8"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="9"]) [data-inherited-from="9"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="9"]:checked) [data-inherited-from="9"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="9"]:checked):has(.inheritance[data-inherited-from="9"]:hover) [data-inherited-from]:not([data-inherited-from="9"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="10"]) [data-inherited-from="10"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="10"]:checked) [data-inherited-from="10"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="10"]:checked):has(.inheritance[data-inherited-from="10"]:hover) [data-inherited-from]:not([data-inherited-from="10"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="11"]) [data-inherited-from="11"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="11"]:checked) [data-inherited-from="11"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="11"]:checked):has(.inheritance[data-inherited-from="11"]:hover) [data-inherited-from]:not([data-inherited-from="11"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="12"]) [data-inherited-from="12"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="12"]:checked) [data-inherited-from="12"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="12"]:checked):has(.inheritance[data-inherited-from="12"]:hover) [data-inherited-from]:not([data-inherited-from="12"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="13"]) [data-inherited-from="13"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="13"]:checked) [data-inherited-from="13"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="13"]:checked):has(.inheritance[data-inherited-from="13"]:hover) [data-inherited-from]:not([data-inherited-from="13"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="14"]) [data-inherited-from="14"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="14"]:checked) [data-inherited-from="14"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="14"]:checked):has(.inheritance[data-inherited-from="14"]:hover) [data-inherited-from]:not([data-inherited-from="14"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="15"]) [data-inherited-from="15"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="15"]:checked) [data-inherited-from="15"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="15"]:checked):has(.inheritance[data-inherited-from="15"]:hover) [data-inherited-from]:not([data-inherited-from="15"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="16"]) [data-inherited-from="16"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="16"]:checked) [data-inherited-from="16"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="16"]:checked):has(.inheritance[data-inherited-from="16"]:hover) [data-inherited-from]:not([data-inherited-from="16"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="17"]) [data-inherited-from="17"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="17"]:checked) [data-inherited-from="17"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="17"]:checked):has(.inheritance[data-inherited-from="17"]:hover) [data-inherited-from]:not([data-inherited-from="17"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="18"]) [data-inherited-from="18"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="18"]:checked) [data-inherited-from="18"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="18"]:checked):has(.inheritance[data-inherited-from="18"]:hover) [data-inherited-from]:not([data-inherited-from="18"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="19"]) [data-inherited-from="19"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="19"]:checked) [data-inherited-from="19"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="19"]:checked):has(.inheritance[data-inherited-from="19"]:hover) [data-inherited-from]:not([data-inherited-from="19"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="20"]) [data-inherited-from="20"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="20"]:checked) [data-inherited-from="20"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="20"]:checked):has(.inheritance[data-inherited-from="20"]:hover) [data-inherited-from]:not([data-inherited-from="20"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="21"]) [data-inherited-from="21"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="21"]:checked) [data-inherited-from="21"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="21"]:checked):has(.inheritance[data-inherited-from="21"]:hover) [data-inherited-from]:not([data-inherited-from="21"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="22"]) [data-inherited-from="22"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="22"]:checked) [data-inherited-from="22"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="22"]:checked):has(.inheritance[data-inherited-from="22"]:hover) [data-inherited-from]:not([data-inherited-from="22"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="23"]) [data-inherited-from="23"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="23"]:checked) [data-inherited-from="23"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="23"]:checked):has(.inheritance[data-inherited-from="23"]:hover) [data-inherited-from]:not([data-inherited-from="23"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="24"]) [data-inherited-from="24"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="24"]:checked) [data-inherited-from="24"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="24"]:checked):has(.inheritance[data-inherited-from="24"]:hover) [data-inherited-from]:not([data-inherited-from="24"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="25"]) [data-inherited-from="25"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="25"]:checked) [data-inherited-from="25"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="25"]:checked):has(.inheritance[data-inherited-from="25"]:hover) [data-inherited-from]:not([data-inherited-from="25"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="26"]) [data-inherited-from="26"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="26"]:checked) [data-inherited-from="26"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="26"]:checked):has(.inheritance[data-inherited-from="26"]:hover) [data-inherited-from]:not([data-inherited-from="26"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="27"]) [data-inherited-from="27"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="27"]:checked) [data-inherited-from="27"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="27"]:checked):has(.inheritance[data-inherited-from="27"]:hover) [data-inherited-from]:not([data-inherited-from="27"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="28"]) [data-inherited-from="28"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="28"]:checked) [data-inherited-from="28"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="28"]:checked):has(.inheritance[data-inherited-from="28"]:hover) [data-inherited-from]:not([data-inherited-from="28"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="29"]) [data-inherited-from="29"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="29"]:checked) [data-inherited-from="29"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="29"]:checked):has(.inheritance[data-inherited-from="29"]:hover) [data-inherited-from]:not([data-inherited-from="29"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="30"]) [data-inherited-from="30"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="30"]:checked) [data-inherited-from="30"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="30"]:checked):has(.inheritance[data-inherited-from="30"]:hover) [data-inherited-from]:not([data-inherited-from="30"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="31"]) [data-inherited-from="31"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="31"]:checked) [data-inherited-from="31"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="31"]:checked):has(.inheritance[data-inherited-from="31"]:hover) [data-inherited-from]:not([data-inherited-from="31"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="32"]) [data-inherited-from="32"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="32"]:checked) [data-inherited-from="32"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="32"]:checked):has(.inheritance[data-inherited-from="32"]:hover) [data-inherited-from]:not([data-inherited-from="32"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="33"]) [data-inherited-from="33"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="33"]:checked) [data-inherited-from="33"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="33"]:checked):has(.inheritance[data-inherited-from="33"]:hover) [data-inherited-from]:not([data-inherited-from="33"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="34"]) [data-inherited-from="34"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="34"]:checked) [data-inherited-from="34"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="34"]:checked):has(.inheritance[data-inherited-from="34"]:hover) [data-inherited-from]:not([data-inherited-from="34"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="35"]) [data-inherited-from="35"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="35"]:checked) [data-inherited-from="35"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="35"]:checked):has(.inheritance[data-inherited-from="35"]:hover) [data-inherited-from]:not([data-inherited-from="35"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="36"]) [data-inherited-from="36"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="36"]:checked) [data-inherited-from="36"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="36"]:checked):has(.inheritance[data-inherited-from="36"]:hover) [data-inherited-from]:not([data-inherited-from="36"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="37"]) [data-inherited-from="37"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="37"]:checked) [data-inherited-from="37"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="37"]:checked):has(.inheritance[data-inherited-from="37"]:hover) [data-inherited-from]:not([data-inherited-from="37"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="38"]) [data-inherited-from="38"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="38"]:checked) [data-inherited-from="38"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="38"]:checked):has(.inheritance[data-inherited-from="38"]:hover) [data-inherited-from]:not([data-inherited-from="38"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="39"]) [data-inherited-from="39"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="39"]:checked) [data-inherited-from="39"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="39"]:checked):has(.inheritance[data-inherited-from="39"]:hover) [data-inherited-from]:not([data-inherited-from="39"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="40"]) [data-inherited-from="40"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="40"]:checked) [data-inherited-from="40"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="40"]:checked):has(.inheritance[data-inherited-from="40"]:hover) [data-inherited-from]:not([data-inherited-from="40"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="41"]) [data-inherited-from="41"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="41"]:checked) [data-inherited-from="41"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="41"]:checked):has(.inheritance[data-inherited-from="41"]:hover) [data-inherited-from]:not([data-inherited-from="41"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="42"]) [data-inherited-from="42"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="42"]:checked) [data-inherited-from="42"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="42"]:checked):has(.inheritance[data-inherited-from="42"]:hover) [data-inherited-from]:not([data-inherited-from="42"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="43"]) [data-inherited-from="43"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="43"]:checked) [data-inherited-from="43"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="43"]:checked):has(.inheritance[data-inherited-from="43"]:hover) [data-inherited-from]:not([data-inherited-from="43"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="44"]) [data-inherited-from="44"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="44"]:checked) [data-inherited-from="44"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="44"]:checked):has(.inheritance[data-inherited-from="44"]:hover) [data-inherited-from]:not([data-inherited-from="44"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="45"]) [data-inherited-from="45"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="45"]:checked) [data-inherited-from="45"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="45"]:checked):has(.inheritance[data-inherited-from="45"]:hover) [data-inherited-from]:not([data-inherited-from="45"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="46"]) [data-inherited-from="46"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="46"]:checked) [data-inherited-from="46"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="46"]:checked):has(.inheritance[data-inherited-from="46"]:hover) [data-inherited-from]:not([data-inherited-from="46"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="47"]) [data-inherited-from="47"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="47"]:checked) [data-inherited-from="47"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="47"]:checked):has(.inheritance[data-inherited-from="47"]:hover) [data-inherited-from]:not([data-inherited-from="47"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="48"]) [data-inherited-from="48"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="48"]:checked) [data-inherited-from="48"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="48"]:checked):has(.inheritance[data-inherited-from="48"]:hover) [data-inherited-from]:not([data-inherited-from="48"]) {
+  opacity: 0.5;
+}
+.namedocs:has(input[data-parent-idx="49"]) [data-inherited-from="49"] {
+  display: none;
+  opacity: 0;
+}
+.namedocs:has(input[data-parent-idx="49"]:checked) [data-inherited-from="49"] {
+  display: block;
+  transform: none;
+  opacity: 1;
+}
+.namedocs:has(input[data-parent-idx="49"]:checked):has(.inheritance[data-inherited-from="49"]:hover) [data-inherited-from]:not([data-inherited-from="49"]) {
+  opacity: 0.5;
+}
+</style><style>
+    main .theIndex {
+      padding-left: 0;
+      font-family: var(--verso-text-font-family);
+    }
+
+    main .theIndex nav {
+      position: sticky;
+      top: var(--verso-header-height);
+      background: white;
+      font-family: var(--verso-structure-font-family);
+    }
+
+    main .theIndex [id] {
+      /* This needs the combined height of the index header and the page header. We
+         know the height of the page header, but the index header height varies, so
+         we use the maximum height it gets which also works well for readers with
+         wide screens */
+      scroll-margin-top: calc(var(--verso-header-height) + 7.5rem);
+    }
+
+    @media screen and (max-width: 700px) {
+      /* On mobile, the sticky index takes up half the screen. */
+      main .theIndex nav {
+        position: static;
+      }
+
+      main .theIndex [id] {
+        /* On mobile, the index header is not sticky, so we just need to
+        be below the page header. */
+        scroll-margin-top: var(--verso-header-height);
+      }
+    }
+
+    main .theIndex nav ol {
+      padding: 0;
+    }
+
+    main .theIndex nav ol li {
+      display: inline-block;
+    }
+
+    main .theIndex nav ol li a {
+      /* Padding instead of margin to have a bigger click target */
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+    /* Increase the size of the touch target on phones */
+    @media screen and (max-width: 700px) {
+      main .theIndex nav ol li a {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+      }
+    }
+
+    main .theIndex nav ol li:first-child a {
+      padding-left: 0;
+    }
+
+    main .theIndex nav ol li + li:before {
+      content: "|";
+    }
+
+    main .theIndex h1,
+    main .theIndex h2,
+    main .theIndex h3,
+    main .theIndex h4,
+    main .theIndex h5,
+    main .theIndex h6 {
+      margin-top: 0;
+    }
+
+    main .theIndex ol {
+      list-style-type: none;
+    }
+
+    main .theIndex .division > ol {
+      padding-left: 0;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      overflow-wrap: break-word;
+    }
+
+   main .theIndex .division > ol > li {
+      margin-bottom: 0.5rem;
+    }
+
+    main .theIndex .division ol ol {
+      padding-left: 1rem;
+    }
+
+    main .theIndex .division {
+      break-inside: avoid;
+      counter-reset: none;
+      max-width: none;
+      width: auto;
+    }
+    </style><style>
+.marginalia .note {
+  position: relative;
+  padding: 0.5rem;
+}
+
+/* Wide viewport */
+@media screen and (min-width: 1400px) {
+  .marginalia .note {
+    float: right;
+    clear: right;
+    margin-right: -16rem;
+    width: 13rem;
+    margin-top: 1rem;
+  }
+}
+
+/* Very wide viewport */
+@media screen and (min-width: 1600px) {
+  .marginalia .note {
+    margin-right: -19vw;
+    width: 15vw;
+  }
+}
+
+.marginalia:hover, .marginalia:hover .note, .marginalia:has(.note:hover) {
+  background-color: var(--lean-accent-light-blue);
+}
+
+/* Medium viewport */
+@media screen and (700px < width <= 1400px) {
+  .marginalia .note {
+    float: right;
+    clear: right;
+    width: 40%;
+    margin: 1rem 0;
+    margin-left: 10%;
+  }
+}
+
+/* Narrow viewport (e.g. phone) */
+@media screen and (width <= 700px) {
+  .marginalia .note {
+    float: left;
+    clear: left;
+    width: 90%;
+    margin: 1rem 5%;
+  }
+}
+
+body {
+  counter-reset: margin-note-counter;
+}
+.marginalia .note {
+  counter-increment: margin-note-counter;
+}
+.marginalia .note::before {
+  content: counter(margin-note-counter) ".";
+  position: absolute;
+  vertical-align: baseline;
+  font-size: 0.9em;
+  font-weight: bold;
+  left: -3rem;
+  width: 3rem;
+  text-align: right;
+}
+.marginalia::after {
+  content: counter(margin-note-counter);
+  vertical-align: super;
+  font-size: 0.7em;
+  font-weight: bold;
+  margin-right: 0.5em;
+}
+</style><style>
+
+.hl.lean {
+  white-space: pre;
+  font-weight: normal;
+  font-style: normal;
+  font-size: inherit;
+}
+
+.hl.lean .keyword {
+  color: var(--verso-code-keyword-color,);
+  font-weight: var(--verso-code-keyword-weight, bold);
+  font-style: var(--verso-code-keyword-style, normal);
+  font-family: var(--verso-code-keyword-font-family,);
+}
+
+.hl.lean .const {
+  color: var(--verso-code-const-color,);
+  font-weight: var(--verso-code-const-weight, normal);
+  font-style: var(--verso-code-const-style, normal);
+  font-family: var(--verso-code-const-font-family,);
+}
+
+.hl.lean .var {
+  color: var(--verso-code-var-color,);
+  font-weight: var(--verso-code-var-weight, normal);
+  font-style: var(--verso-code-var-style, italic);
+  font-family: var(--verso-code-var-font-family,);
+
+  position: relative;
+}
+
+.hl.lean .literal, .hl.lean .unknown {
+  color: var(--verso-code-color,);
+  font-weight: normal;
+  font-style: normal;
+  font-family: var(--verso-code-font-family,);
+}
+
+.hover-container {
+  width: 0;
+  height: 0;
+  position: relative;
+  display: inline;
+}
+
+.hl.lean a {
+  color: inherit;
+  text-decoration: currentcolor underline dotted;
+}
+
+.hl.lean a:hover {
+  text-decoration: currentcolor underline solid;
+}
+
+.hl.lean .hover-info {
+  white-space: normal;
+}
+
+.hl.lean .token .hover-info {
+  display: none;
+  position: absolute;
+  background-color: #e5e5e5;
+  border: 1px solid black;
+  padding: 0.5rem;
+  z-index: 300;
+}
+
+.hl.lean .hover-info.messages {
+  max-height: 10rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding: 0 0.5rem 0 0;
+  display: block;
+}
+
+.hl.lean .hover-info code {
+  white-space: pre-wrap;
+  background: none;
+  color: black;
+}
+
+.hl.lean .hover-info.messages > code {
+  padding: 0.5rem;
+  display: block;
+  width: fit-content;
+}
+
+.hl.lean .hover-info.messages > code:only-child {
+  margin: 0;
+}
+
+.hl.lean .hover-info.messages > code {
+  margin: 0.1rem;
+}
+
+.hl.lean .hover-info.messages > code:not(:first-child) {
+  margin-top: 0rem;
+}
+
+.hl.lean {
+}
+
+.hl.lean.block {
+  display: block;
+}
+
+.hl.lean.inline {
+  display: inline;
+  white-space: pre-wrap;
+}
+
+.hl.lean * {
+}
+
+.hl.lean .token {
+  transition: all 0.25s; /* Slight fade for highlights */
+}
+
+@media (hover: hover) {
+  .hl.lean .token.binding-hl, .hl.lean .literal.string:hover, .hl.lean .token.typed:hover {
+    background-color: #eee;
+    border-radius: 2px;
+    transition: none;
+  }
+}
+
+
+.hl.lean .has-info .token:not(.tactic-state):not(.tactic-state *), .hl.lean .has-info .inter-text:not(.tactic-state):not(.tactic-state *) {
+  text-decoration-style: wavy;
+  text-decoration-line: underline;
+  text-decoration-thickness: from-font;
+  text-decoration-skip-ink: none;
+}
+
+.hl.lean .has-info .hover-info {
+  display: none;
+  position: absolute;
+  transform: translate(0.25rem, 0.3rem);
+  border: 1px solid black;
+  padding: 0.5rem;
+  z-index: 400;
+  text-align: left;
+}
+
+.hl.lean .has-info.error :not(.tactic-state):not(.tactic-state *){
+  text-decoration-color: red;
+}
+
+@media (hover: hover) {
+  .hl.lean .has-info.error:hover {
+    background-color: #ffb3b3;
+  }
+}
+
+.hl.lean .hover-info.messages > code.error {
+  background-color: #e5e5e5;
+  border-left: 0.2rem solid #ffb3b3;
+}
+
+.tippy-box[data-theme~='error'] .hl.lean .hover-info.messages > code.error {
+  background: none;
+  border: none;
+}
+
+.error .verso-message, .error .verso-message .token, .error .verso-message label {
+  color: var(--verso-error-color);
+}
+
+.error .verso-message .case-label:has(input[type="checkbox"])::before {
+  background-color: var(--verso-error-color) !important;
+}
+
+.hl.lean .has-info.warning :not(.tactic-state):not(.tactic-state *) {
+  text-decoration-color: var(--verso-warning-indicator-color);
+}
+
+@media (hover: hover) {
+  .hl.lean .has-info.warning:hover {
+    background-color:var(--verso-warning-color);
+  }
+}
+
+.hl.lean .hover-info.messages > code.warning {
+  background-color: var(--verso-warning-color);
+}
+
+.lean-output {
+  border-left: 0.2em solid transparent;
+  padding: 0 0 0 0.5em;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.lean-output.error {
+  border-color: var(--verso-error-indicator-color);
+}
+
+.lean-output.information {
+  border-color: var(--verso-info-indicator-color);
+}
+
+.lean-output.warning {
+  border-color: var(--verso-warning-indicator-color);
+}
+
+.hl.lean .hover-info.messages > code.error {
+  background-color: #e5e5e5;
+  border-left: 0.2rem solid var(--verso-warning-color);
+}
+
+.tippy-box[data-theme~='warning'] .hl.lean .hover-info.messages > code.warning {
+  background: none;
+  border: none;
+}
+
+
+.hl.lean .has-info.information :not(.tactic-state):not(.tactic-state *) {
+  text-decoration-color: var(--verso-info-indicator-color, blue);
+}
+
+@media (hover: hover) {
+  .hl.lean .has-info.information:hover {
+    background-color: #4777ff;
+  }
+}
+
+
+.hl.lean .hover-info.messages > code.information {
+  background-color: #e5e5e5;
+  border-left: 0.2rem solid #4777ff;
+}
+
+.tippy-box[data-theme~='info'] .hl.lean .hover-info.messages > code.information {
+  background: none;
+  border: none;
+}
+
+.hl.lean div.docstring {
+  font-family: var(--verso-text-font-family, sans-serif);
+  white-space: normal;
+  max-width: calc(min(40rem, 90vw));
+  width: max-content;
+}
+
+.hl.lean div.docstring > :last-child {
+  margin-bottom: 0;
+}
+
+.hl.lean div.docstring > :first-child {
+  margin-top: 0;
+}
+
+.hl.lean .hover-info .sep {
+  display: block;
+  width: auto;
+  margin-left: 1rem;
+  margin-right: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0;
+  height: 1px;
+  border-top: 1px solid #ccc;
+}
+
+.hl.lean code {
+  font-family: var(--verso-code-font-family);
+}
+
+.hl.lean .tactic-state {
+  display: none;
+  position: relative;
+  width: fit-content;
+  border: 1px solid #888888;
+  border-radius: 0.1rem;
+  padding: 0.5rem;
+  font-family: sans-serif;
+  background-color: #ffffff;
+}
+
+.hl.lean.popup .tactic-state {
+  position: static;
+  display: block;
+  width: auto;
+  border: none;
+  padding: 0.5rem;
+  font-family: sans-serif;
+  background-color: #ffffff;
+}
+
+
+.hl.lean .tactic {
+  position: relative;
+  display: inline;
+  vertical-align: top;
+  /* Without these, mobile Safari will start making font sizes inconsistent when its text size adjustment feature is triggered.*/
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+.hl.lean .tactic:has(.tactic-toggle:checked) {
+  display: inline-grid;
+  grid-template-columns: 1fr;
+}
+
+.hl.lean .tactic-toggle:checked ~ .tactic-state {
+  display: inline-block;
+  vertical-align: top;
+  grid-row: 2;
+  justify-self: start;
+}
+
+.hl.lean .tactic > label {
+  position: relative;
+  grid-row: 1;
+  display: inline;
+}
+
+@media (hover: hover) {
+  .hl.lean .tactic:has(.tactic-toggle:not(:checked)) > label:hover {
+    background-color: #eeeeee;
+  }
+}
+
+.hl.lean .tactic-toggle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  height: 0;
+  width: 0;
+  z-index: -10;
+}
+
+.hl.lean .tactic > label::after {
+  content: "";
+  border: 1px solid #bbbbbb;
+  /* These need to be em, not rem, to scale with the font */
+  border-radius: 1em;
+  height: 0.25em;
+  vertical-align: middle;
+  width: 0.6em;
+  margin-left: 0.1em;
+  margin-right: 0.1em;
+  display: inline-block;
+  transition: all 0.5s;
+}
+
+/*
+@media (hover: hover) {
+  .hl.lean .tactic > label:hover::after {
+    border: 1px solid #aaaaaa;
+    background-color: #aaaaaa;
+    transition: all 0.5s;
+  }
+}
+*/
+
+.hl.lean .tactic > label:has(+ .tactic-toggle:checked)::after {
+  border: 1px solid #999999;
+  background-color: #999999;
+  transition: all 0.5s;
+}
+
+.hl.lean .tactic-state .goal + .goal {
+  margin-top: 1.5em;
+}
+
+/*
+Some CSS frameworks customize details/summary in ways not compatible with Verso's output.
+*/
+
+.hl.lean details {
+  display: block !important;
+  margin: 0;
+}
+
+.hl.lean details summary {
+  display: list-item !important;
+  margin: 0;
+}
+
+.hl.lean details summary:focus {
+  outline: none;
+  outline-offset: none;
+  color: inherit;
+}
+
+.hl.lean ul > li {
+  margin-bottom: 0;
+}
+
+.hl.lean details summary::marker {
+  display: inline !important;
+}
+
+.hl.lean details > summary:first-of-type {
+  list-style-type: disclosure-closed;
+  list-style-position: inside;
+}
+
+.hl.lean details[open] > summary:first-of-type {
+  list-style-type: disclosure-open;
+}
+
+.hl.lean details summary::before, .hl.lean details summary::after {
+  content: "" !important;
+  background: none;
+  display: none;
+}
+
+.hl.lean .tactic-state summary {
+  /* These need to be em, not rem, to scale with the font */
+  margin-left: -0.5em;
+}
+
+.hl.lean .tactic-state details {
+  /* These need to be em, not rem, to scale with the font */
+  padding-left: 0.5em;
+}
+
+.hl.lean .case-label {
+  display: block;
+  position: relative;
+}
+
+.hl.lean .case-label input[type="checkbox"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  height: 0;
+  width: 0;
+  z-index: -10;
+}
+
+.hl.lean .case-label:has(input[type="checkbox"])::before {
+  display: inline-block;
+  background-color: black;
+  content: ' ';
+  transition: ease 0.2s;
+  margin-right: 0.7em;
+  clip-path: polygon(100% 0, 0 0, 50% 100%);
+  width: 0.6em;
+  height: 0.6em;
+  vertical-align: middle;
+}
+
+.hl.lean .case-label:has(input[type="checkbox"]:not(:checked))::before {
+  transform: rotate(-90deg);
+}
+
+.hl.lean .case-label:has(input[type="checkbox"]) {
+
+}
+
+.hl.lean .case-label:has(input[type="checkbox"]:checked) {
+
+}
+
+
+.hl.lean .labeled-case > :not(:first-child) {
+  max-height: 0px;
+  display: block;
+  overflow: hidden;
+  transition: max-height 0.1s ease-in;
+  /* These need to be em, not rem, to scale with the font */
+  margin-left: 0.5em;
+  margin-top: 0.1em;
+}
+
+.hl.lean .labeled-case:has(.case-label input[type="checkbox"]:checked) > :not(:first-child) {
+  max-height: 100%;
+}
+
+
+.hl.lean .goal-name::before {
+  font-style: normal;
+  content: "case ";
+}
+
+.hl.lean .goal-name {
+  font-style: italic;
+  font-family: var(--verso-code-font-family);
+  color: inherit;
+}
+
+.hl.lean .hypotheses {
+  display: table;
+}
+
+.hl.lean .hypothesis {
+  display: table-row;
+}
+
+.hl.lean .hypothesis > * {
+  display: table-cell;
+}
+
+
+.hl.lean .hypotheses .colon {
+  text-align: center;
+  /* This needs to be em, not rem, to scale with the font */
+  min-width: 1em;
+}
+
+.hl.lean .hypotheses .name {
+  text-align: right;
+}
+
+.hl.lean .hypotheses .name,
+.hl.lean .hypotheses .type,
+.hl.lean .conclusion .type {
+  font-family: var(--verso-code-font-family);
+}
+
+.tippy-box {
+  /* Without these, mobile Safari will start making font sizes inconsistent when its text size adjustment feature is triggered.*/
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+
+}
+
+.tippy-box[data-theme~='lean'] {
+  background-color: #e5e5e5;
+  color: black;
+  border: 1px solid black;
+}
+.tippy-box[data-theme~='lean'][data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: #e5e5e5;
+}
+.tippy-box[data-theme~='lean'][data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: #e5e5e5;
+}
+.tippy-box[data-theme~='lean'][data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: #e5e5e5;
+}
+.tippy-box[data-theme~='lean'][data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: #e5e5e5;
+}
+
+.tippy-box[data-theme~='message'][data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: #e5e5e5;
+  border-width: 11px 11px 0;
+}
+.tippy-box[data-theme~='message'][data-placement^='top'] > .tippy-arrow::after {
+  bottom: -11px;
+  border-width: 11px 11px 0;
+}
+.tippy-box[data-theme~='message'][data-placement^='bottom'] > .tippy-arrow::before {
+  border-width: 0 11px 11px;
+}
+.tippy-box[data-theme~='message'][data-placement^='bottom'] > .tippy-arrow::after {
+  top: -11px;
+  border-width: 0 11px 11px;
+}
+.tippy-box[data-theme~='message'][data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: #e5e5e5;
+  border-width: 11px 0 11px 11px;
+}
+.tippy-box[data-theme~='message'][data-placement^='left'] > .tippy-arrow::after {
+  right: -11px;
+  border-width: 11px 0 11px 11px;
+}
+
+.tippy-box[data-theme~='message'][data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: #e5e5e5;
+  border-width: 11px 11px 11px 0;
+}
+.tippy-box[data-theme~='message'][data-placement^='right'] > .tippy-arrow::after {
+  left: -11px;
+  border-width: 11px 11px 11px 0;
+}
+
+
+
+.tippy-box[data-theme~='warning'] {
+  background-color: #e5e5e5;
+  color: black;
+  border: 3px solid var(--verso-warning-color);
+}
+
+.tippy-box[data-theme~='error'] {
+  background-color: #e5e5e5;
+  color: black;
+  border: 3px solid #f7a7af;
+}
+
+.tippy-box[data-theme~='info'] {
+  background-color: #e5e5e5;
+  color: black;
+  border: 3px solid #99b3c2;
+}
+
+.tippy-box[data-theme~='tactic'] {
+  background-color: white;
+  color: black;
+  border: 1px solid black;
+}
+.tippy-box[data-theme~='tactic'][data-placement^='top'] > .tippy-arrow::before {
+  border-top-color: white;
+}
+.tippy-box[data-theme~='tactic'][data-placement^='bottom'] > .tippy-arrow::before {
+  border-bottom-color: white;
+}
+.tippy-box[data-theme~='tactic'][data-placement^='left'] > .tippy-arrow::before {
+  border-left-color: white;
+}
+.tippy-box[data-theme~='tactic'][data-placement^='right'] > .tippy-arrow::before {
+  border-right-color: white;
+}
+
+.extra-doc-links {
+  list-style-type: none;
+  margin-left: 0;
+  padding: 0;
+}
+
+.extra-doc-links > li {
+  display: inline-block;
+}
+
+.extra-doc-links > li:not(:last-child)::after {
+  content: '|';
+  display: inline-block;
+  margin: 0 0.25em;
+}
+
+.verso-message .trace {
+  display: block;
+}
+
+.verso-message .trace > summary::marker {
+  color: var(--verso-text-color);
+}
+
+.verso-message .trace-children {
+  margin: 0;
+  padding: 0;
+}
+
+.verso-message .trace-children > li {
+  list-style-type: none;
+  margin-left: 1.5em;
+}
+
+.verso-message .trace-children > li:not(:has(.trace)) {
+  margin-left: 0;
+}
+
+.verso-message .trace-class {
+  color: color-mix(in srgb, currentColor 70%, transparent);
+  font-weight: bold;
+  margin: 0;
+  padding: 0;
+}
+
+.verso-message .text {
+  white-space: pre-wrap;
+}
+
+</style><script>
+      
+window.onload = () => {
+
+    // Don't show hovers inside of closed tactic states
+    function blockedByTactic(elem) {
+      let parent = elem.parentNode;
+      while (parent && "classList" in parent) {
+        if (parent.classList.contains("tactic")) {
+          const toggle = parent.querySelector("input.tactic-toggle");
+          if (toggle) {
+            return !toggle.checked;
+          }
+        }
+        parent = parent.parentNode;
+      }
+      return false;
+    }
+
+    function blockedByTippy(elem) {
+      // Don't show a new hover until the old ones are all closed.
+      // Scoped to the nearest "top-level block" to avoid being O(n) in the size of the document.
+      var block = elem;
+      const topLevel = new Set(["section", "body", "html", "nav", "header"]);
+      while (block.parentNode && !topLevel.has(block.parentNode.nodeName.toLowerCase())) {
+        block = block.parentNode;
+      }
+      for (const child of block.querySelectorAll(".token, .has-info")) {
+        if (child._tippy && child._tippy.state.isVisible) { return true };
+      }
+      return false;
+    }
+
+    for (const c of document.querySelectorAll(".hl.lean .token")) {
+        if (c.dataset.binding != "") {
+            c.addEventListener("mouseover", (event) => {
+                if (blockedByTactic(c)) {return;}
+                const context = c.closest(".hl.lean").dataset.leanContext;
+                for (const example of document.querySelectorAll(".hl.lean")) {
+                    if (example.dataset.leanContext == context) {
+                        for (const tok of example.querySelectorAll(".token")) {
+                            if (c.dataset.binding == tok.dataset.binding) {
+                                tok.classList.add("binding-hl");
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        c.addEventListener("mouseout", (event) => {
+            for (const tok of document.querySelectorAll(".hl.lean .token")) {
+                tok.classList.remove("binding-hl");
+            }
+        });
+    }
+    /* Render docstrings */
+    if ('undefined' !== typeof marked) {
+        for (const d of document.querySelectorAll("code.docstring, pre.docstring")) {
+            const str = d.innerText;
+            const html = marked.parse(str);
+            const rendered = document.createElement("div");
+            rendered.classList.add("docstring");
+            rendered.innerHTML = html;
+            d.parentNode.replaceChild(rendered, d);
+        }
+    }
+    // Add hovers
+    let docsJson = "-verso-docs.json";
+    fetch(docsJson).then((resp) => resp.json()).then((versoDocData) => {
+
+      function hideParentTooltips(element) {
+        let parent = element.parentElement;
+        while (parent) {
+          const tippyInstance = parent._tippy;
+          if (tippyInstance) {
+            tippyInstance.hide();
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+
+
+      const defaultTippyProps = {
+        /* DEBUG -- remove the space: * /
+        onHide(any) { return false; },
+        trigger: "click",
+        // */
+        /* theme: "lean", */
+        maxWidth: "none",
+        appendTo: () => document.body,
+        interactive: true,
+        delay: [100, null],
+        /* ignoreAttributes: true, */
+        followCursor: 'initial',
+        onShow(inst) {
+          if (inst.reference.className == 'tactic') {
+
+            const toggle = inst.reference.querySelector("input.tactic-toggle");
+            if (toggle && toggle.checked) {
+              return false;
+            }
+            hideParentTooltips(inst.reference);
+            //if (blockedByTippy(inst.reference)) { return false; }
+
+          } else if (inst.reference.querySelector(".hover-info") || "versoHover" in inst.reference.dataset) {
+            if (blockedByTactic(inst.reference)) { return false };
+            if (blockedByTippy(inst.reference)) { return false; }
+          } else { // Nothing to show here!
+            return false;
+          }
+        },
+        content (tgt) {
+          const content = document.createElement("span");
+          if (tgt.className == 'tactic') {
+            const state = tgt.querySelector(".tactic-state").cloneNode(true);
+            state.style.display = "block";
+            content.appendChild(state);
+            content.style.display = "block";
+            content.className = "hl lean popup";
+          } else {
+            content.className = "hl lean";
+            content.style.display = "block";
+            content.style.maxHeight = "300px";
+            content.style.overflowY = "auto";
+            content.style.overflowX = "hidden";
+            const hoverId = tgt.dataset.versoHover;
+            const hoverInfo = tgt.querySelector(".hover-info");
+            if (hoverId) { // Docstrings from the table
+              // TODO stop doing an implicit conversion from string to number here
+              let data = versoDocData[hoverId];
+              if (data) {
+                const info = document.createElement("span");
+                info.className = "hover-info";
+                info.style.display = "block";
+                info.innerHTML = data;
+                content.appendChild(info);
+                /* Render docstrings - TODO server-side */
+                if ('undefined' !== typeof marked) {
+                    for (const d of content.querySelectorAll("code.docstring, pre.docstring")) {
+                        const str = d.innerText;
+                        const html = marked.parse(str);
+                        const rendered = document.createElement("div");
+                        rendered.classList.add("docstring");
+                        rendered.innerHTML = html;
+                        d.parentNode.replaceChild(rendered, d);
+                    }
+                }
+              } else {
+                content.innerHTML = "Failed to load doc ID: " + hoverId;
+              }
+            } else if (hoverInfo) { // The inline info, still used for compiler messages
+              content.appendChild(hoverInfo.cloneNode(true));
+            }
+            const extraLinks = tgt.parentElement.dataset['versoLinks'];
+            if (extraLinks) {
+              try {
+                const extras = JSON.parse(extraLinks);
+                const links = document.createElement('ul');
+                links.className = 'extra-doc-links';
+                extras.forEach((l) => {
+                  const li = document.createElement('li');
+                  li.innerHTML = "<a href=\"" + l['href'] + "\" title=\"" + l.long + "\">" + l.short + "</a>";
+                  links.appendChild(li);
+                });
+                content.appendChild(links);
+              } catch (error) {
+                console.error(error);
+              }
+            }
+          }
+          return content;
+        }
+      };
+
+
+      document.querySelectorAll('.hl.lean .const.token, .hl.lean .keyword.token, .hl.lean .literal.token, .hl.lean .option.token, .hl.lean .var.token, .hl.lean .typed.token, .hl.lean .level-var, .hl.lean .level-const, .hl.lean .level-op, .hl.lean .sort').forEach(element => {
+        element.setAttribute('data-tippy-theme', 'lean');
+      });
+      document.querySelectorAll('.hl.lean .has-info.warning').forEach(element => {
+        element.setAttribute('data-tippy-theme', 'warning message');
+      });
+      document.querySelectorAll('.hl.lean .has-info.information').forEach(element => {
+        element.setAttribute('data-tippy-theme', 'info message');
+      });
+      document.querySelectorAll('.hl.lean .has-info.error').forEach(element => {
+        element.setAttribute('data-tippy-theme', 'error message');
+      });
+      document.querySelectorAll('.hl.lean .tactic').forEach(element => {
+        element.setAttribute('data-tippy-theme', 'tactic');
+      });
+      let insts = tippy('.hl.lean .const.token, .hl.lean .keyword.token, .hl.lean .literal.token, .hl.lean .option.token, .hl.lean .var.token, .hl.lean .typed.token, .hl.lean .has-info, .hl.lean .tactic, .hl.lean .level-var, .hl.lean .level-const, .hl.lean .level-op, .hl.lean .sort', defaultTippyProps);
+  });
+}
+</script>
+    <script src="-verso-search/search-highlight.js" defer="defer"></script>
+    </head>
+  <body>
+    <header>
+      <div class="header-logo-wrapper"></div>
+      <div class="header-title-wrapper">
+        <a href="" class="header-title"><h1>
+            Documentation MRiscX</h1>
+          </a></div>
+      </header>
+    <label for="toggle-toc" id="toggle-toc-click"><span class="line line1"></span><span class="line line2"></span><span class="line line3"></span></label><div class="with-toc">
+      <div class="toc-backdrop" onclick="document.getElementById('toggle-toc-click')?.click()"></div>
+      <nav id="toc">
+        <input type="checkbox" id="toggle-toc"><div class="first">
+          <a href="" class="toc-title"><h1>
+              Documentation MRiscX</h1>
+            </a><div class="split-tocs">
+            <div class="split-toc book">
+              <div class="title">
+                <label for="--verso-manual-toc-----bookRoot" class="toggle-split-toc"><input type="checkbox" class="toggle-split-toc" id="--verso-manual-toc-----bookRoot" checked="checked"></label><span class="">Table of Contents</span></div>
+              <table><tr class="numbered"><td class="num">1.</td><td><a href="Introduction/#intro">Introduction</a></td></tr><tr class="numbered"><td class="num">2.</td><td><a href="Fundamentals/#fundamentals">Fundamentals</a></td></tr><tr class="current numbered"><td class="num">3.</td><td><a href="Writing-a-specification/#specification">Writing a specification</a></td></tr><tr class="numbered"><td class="num">4.</td><td><a href="Process-of-proving-the-formal-correctness/#proofProcess">Process of proving the formal correctness</a></td></tr><tr class="numbered"><td class="num">5.</td><td><a href="Limitations/#limitation">Limitations</a></td></tr><tr class="unnumbered"><td class="num"><td><a href="Index/#index">Index</a></td></tr></table></div>
+            <div class="split-toc">
+              <div class="title">
+                <label for="--verso-manual-toc-specification" class="toggle-split-toc"><input type="checkbox" class="toggle-split-toc" id="--verso-manual-toc-specification" checked="checked"></label><span class="number">3.</span> <span class="current"><a href="Writing-a-specification/#specification">Writing a specification</a></span></div>
+              <table><tr class="numbered"><td class="num">3.1.</td><td><a href="Writing-a-specification/#preAndPostcondition">Pre- And Postcondition</a></td></tr><tr class="numbered"><td class="num">3.2.</td><td><a href="Writing-a-specification/#pc-black-whitelist">ProgramCounter, Black- and Whitelist</a></td></tr></table></div>
+            </div>
+          </div>
+        <div class="last"></div>
+        </nav>
+      <main><div class="content-wrapper">
+          <nav class="prev-next-buttons">
+            <a class="local-button active" href="Fundamentals/#fundamentals" rel="prev" title="2. Fundamentals"><span class="arrow">←</span><span class="where">2. Fundamentals</span></a><a class="local-button active" href="Process-of-proving-the-formal-correctness/#proofProcess" rel="next" title="4. Process of proving the formal correctness"><span class="where">4. Process of proving the formal correctness</span><span class="arrow">→</span></a></nav>
+          <section>
+            <h1>
+              3. Writing a specification<span class="permalink-widget inline"><a href="find/?domain=Verso.Genre.Manual.section&amp;name=specification" title="Permalink">🔗</a></span></h1>
+            <p>
+              After understanding the fundamentals, lets have a look how we can use this
+to actually prove some code.</p>
+            <p>
+              Let's start by writing down the pre-, and postcondition of a program!</p>
+            <section>
+              <h2 id="preAndPostcondition">
+                3.1. Pre- And Postcondition<span class="permalink-widget inline"><a href="find/?domain=Verso.Genre.Manual.section&amp;name=preAndPostcondition" title="Permalink">🔗</a></span></h2>
+              <p>
+                First of all, we need to be aware what our program is actually doing.
+Once this is clear, we want to express this in first-order predicate logic.</p>
+              <p>
+                Let's take a look at the following two examples:</p>
+              <code class="hl lean block" data-lean-context="examples"><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">mriscx</span><span class="inter-text">
+</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">first</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">:</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">li</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">1</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">1</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">li</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">2</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">43</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">add</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">3</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">1</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">2</span><span class="inter-text">
+    
+</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">finish</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">:</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">end</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-Code" data-verso-hover="7">Code</span><span class="inter-text"></span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-716">#check</span></span><span class="inter-text">
+  </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-725">mriscx</span><span class="inter-text">
+    </span><span class="unknown token" data-binding="">first</span><span class="unknown token" data-binding="">:</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-755">li</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-755">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-777">li</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-777">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">43</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddX_,X_,X___»-800">add</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddX_,X_,X___»-800">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">3</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddX_,X_,X___»-800">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddX_,X_,X___»-800">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="inter-text">
+
+    </span><span class="unknown token" data-binding="">finish</span><span class="unknown token" data-binding="">:</span><span class="inter-text">
+  </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-725">end</span><span class="inter-text">
+</span><span class="unknown token" data-binding=""></span></code><p>
+                we expect after execution this program,
+that the registers <code class="math inline">x_1</code> and <code class="math inline">x_2</code> hold the values
+which were loaded into them, the register <code class="math inline">x_3</code> holds the result of the
+addition of <code class="math inline">x_1</code> and <code class="math inline">x_2</code>.
+That means, the specification of this code snippet should look something like this:
+<code class="math display">x_1 = 1 \wedge x_2 = 43 \wedge x_3 = x_1 + x_2</code></p>
+              <p>
+                The next example involves a loop:</p>
+              <code class="hl lean block" data-lean-context="examples"><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.variable-1216" data-verso-hover="67">variable</span><span class="inter-text"> </span><span class="unknown token" data-binding="">(</span><span class="var token" data-binding="var-_uniq.2" data-verso-hover="2">regWithAddr</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.4" data-verso-hover="2">addr</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.6" data-verso-hover="2">counter</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.8" data-verso-hover="2">regWithValue</span><span class="inter-text">
+          </span><span class="var token" data-binding="var-_uniq.10" data-verso-hover="2">length</span><span class="unknown token" data-binding="">:</span><span class="inter-text"> </span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="unknown token" data-binding="">)</span><span class="inter-text">
+</span><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">mriscx</span><span class="inter-text">
+</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">first</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">:</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">la</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.2" data-verso-hover="2">regWithAddr</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.4" data-verso-hover="2">addr</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">li</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.6" data-verso-hover="2">counter</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.10" data-verso-hover="2">length</span><span class="inter-text">
+    
+</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">loop</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">:</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">beqz</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.6" data-verso-hover="2">counter</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">finish</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">sw</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.8" data-verso-hover="2">regWithValue</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.4" data-verso-hover="2">addr</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">addi</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.4" data-verso-hover="2">addr</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.4" data-verso-hover="2">addr</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">1</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">subi</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.6" data-verso-hover="2">counter</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.6" data-verso-hover="2">counter</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">1</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">j</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">loop</span><span class="inter-text">
+    
+</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">finish</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">:</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">end</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-Code" data-verso-hover="7">Code</span><span class="inter-text"></span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-1290">#check</span></span><span class="inter-text">
+  </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-1299">mriscx</span><span class="inter-text">
+    </span><span class="unknown token" data-binding="">first</span><span class="unknown token" data-binding="">:</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLaX_,___»-1329">la</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLaX_,___»-1329">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">regWithAddr</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">addr</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-1364">li</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-1364">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">counter</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">length</span><span class="inter-text">
+
+    </span><span class="unknown token" data-binding="">loop</span><span class="unknown token" data-binding="">:</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrBeqzX_,___»-1408">beqz</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrBeqzX_,___»-1408">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">counter</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">finish</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSwX_,X___»-1443">sw</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSwX_,X___»-1443">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">regWithValue</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSwX_,X___»-1443">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">addr</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddiX_,X_,___»-1481">addi</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddiX_,X_,___»-1481">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">addr</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddiX_,X_,___»-1481">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">addr</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSubiX_,X_,___»-1516">subi</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSubiX_,X_,___»-1516">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">counter</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSubiX_,X_,___»-1516">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">counter</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="inter-text">
+            </span><span class="keyword token" data-binding="kw-occ-mriscx_InstrJ___-1557">j</span><span class="inter-text"> </span><span class="unknown token" data-binding="">loop</span><span class="inter-text">
+
+    </span><span class="unknown token" data-binding="">finish</span><span class="unknown token" data-binding="">:</span><span class="inter-text">
+  </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-1299">end</span><span class="inter-text">
+
+</span><span class="unknown token" data-binding=""></span></code><p>
+                In this code, we have no concrete values, but some variables. This makes
+the specification more general and we do not restrict the specification on
+certain values.
+So let's see what is happening here:</p>
+              <p>
+                First, an address <code>addr</code> is loaded into a register <code>regWithAddr</code>.
+Then, the loop is entered. It starts with a conditional jump, which happens when
+the content of a register <code>counter</code> equals zero. If that is the case, we jump to the label
+finish.
+When the register holds a value greater than zero, the actual loop body is entered.
+The content of a register <code>regWithValue</code> is stored into the memory at the address the
+register <code>regWithAddr</code> holds.
+Once this is done, the address inside the register <code>regWithAddr</code> is incremented by one,
+the value the register <code>counter</code> holds is decremented by one and we jump back to the
+label <code>loop</code>.</p>
+              <p>
+                Furthermore, let <code class="math inline">\text{memory}(n)</code> denote the memory address <code class="math inline">n</code>.
+Then, the specification of this program could be formulated as follows:</p>
+              <p>
+                <code class="math display">
+\begin{aligned}
+\text{Pre} \; \coloneqq \;
+& i &lt; \text{length}
+  \;\wedge\;
+  \text{addr} + \text{length} - 1 &lt; 2^{64} \\[0.5em]
+\forall i \in \mathbb{U}_{64},\;
+& \text{Pre}
+  \;\rightarrow\;
+  \text{memory}(\text{addr} + i)
+  = x_{\text{regWithValue}}
+\end{aligned}
+</code></p>
+              <p>
+                So as you can see, we need multiple things to successfully write down a
+correct specification:</p>
+              <ol start="1">
+                <li>
+                  <p>
+                    First order logic with arithmetic expressions</p>
+                  </li>
+                <li>
+                  <p>
+                    Access to the values (registers, memory, ...) of a certain machine state</p>
+                  </li>
+                </ol>
+              <p>
+                The point 1. is already provided by lean itself, so just need to somehow
+access a machine state.
+<code>MRiscX</code> offers a simple way to do this.</p>
+              <p>
+                Inside the <code>⦃⦄</code> braces, we can write down first order logic formulas just like
+in usual terms of type <code class="hl lean inline" data-lean-context="examples"><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span></code>. Additionally, there are the following custom term,
+which can be used:</p>
+              <ul>
+                <li>
+                  <p>
+                    <code>⸨terminated⸩</code></p>
+                  <p>
+                    This term is the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-MState.terminated" data-verso-hover="65">MState.terminated</span></code> flag.
+  It indicates whether the program has terminated and whether the current machine state is legal.
+  If this flag is <code>true</code>, the machine state is no longer legal, and no further instructions
+  can be executed.
+  Consequently, <code class="hl lean inline" data-lean-context="examples"><span class="unknown token" data-binding="">⦃</span><span class="unknown token" data-binding="">¬</span><span class="unknown token" data-binding="">⸨terminated⸩</span><span class="unknown token" data-binding="">⦄</span></code> serves as a precondition that is almost always
+  required to ensure that instructions can be executed and, ultimately, to establish the
+  functional correctness of a program.</p>
+                  </li>
+                <li>
+                  <p>
+                    <code>⸨pc⸩</code></p>
+                  <p>
+                    With this term, we can define the value of the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-MState.pc" data-verso-hover="31">MState.pc</span></code>. Using this, we can
+  ensure that the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-MState.pc" data-verso-hover="31">MState.pc</span></code> holds a certain value before or after
+  executing a program. Note, that <code>l</code> also ensures, that the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-MState.pc" data-verso-hover="31">MState.pc</span></code> points to
+  a certain line before executing the program, so this term is often only useful in the
+  postcondition.</p>
+                  </li>
+                <li>
+                  <p>
+                    <code>x[n]</code>, where <code class="math inline">n</code> is either a number of type <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span></code> or an identifier
+  (<code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-Lean.Parser.ident" data-verso-hover="68">Lean.Parser.ident</span></code>)</p>
+                  <p>
+                    Using this term we are able to define a value <code class="math inline">n</code> for a register <code class="math inline">x_n</code> in
+  <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-MState.registers" data-verso-hover="69">MState.registers</span></code>.
+  As already mentioned, this <code class="math inline">n</code> can either be a number of type <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span></code> or
+  an identifier.
+  This means, that the terms</p>
+                  <code class="hl lean block" data-lean-context="examples"><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.variable-4630" data-verso-hover="67">variable</span><span class="inter-text"> </span><span class="unknown token" data-binding="">(</span><span class="var token" data-binding="var-_uniq.46" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.48" data-verso-hover="2">v</span><span class="inter-text"> </span><span class="unknown token" data-binding="">:</span><span class="inter-text"> </span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="unknown token" data-binding="">)</span><span class="inter-text">
+</span><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="keyword token" data-binding="">fun</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=&gt;</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getRegisterAt" data-verso-hover="70">getRegisterAt</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.46" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.48" data-verso-hover="2">v</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-MState" data-verso-hover="35">MState</span><span class="inter-text"> </span><span class="unknown token" data-binding="">→</span><span class="inter-text"> </span><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-4656">#check</span></span><span class="inter-text"> </span><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termX[_]»-4666">x[</span><span class="var token" data-binding="var-_uniq.46" data-verso-hover="2">n</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.48" data-verso-hover="2">v</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+</span><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="keyword token" data-binding="">fun</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=&gt;</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getRegisterAt" data-verso-hover="70">getRegisterAt</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="unknown token" data-binding="">42</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-MState" data-verso-hover="35">MState</span><span class="inter-text"> </span><span class="unknown token" data-binding="">→</span><span class="inter-text"> </span><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-4680">#check</span></span><span class="inter-text"> </span><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termX[_]»-4690">x[</span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">42</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+</span><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="keyword token" data-binding="">fun</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=&gt;</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getRegisterAt" data-verso-hover="70">getRegisterAt</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="unknown token" data-binding="">17425</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-MState" data-verso-hover="35">MState</span><span class="inter-text"> </span><span class="unknown token" data-binding="">→</span><span class="inter-text"> </span><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-4705">#check</span></span><span class="inter-text"> </span><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termX[_]»-4715">x[</span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">0x4411</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+</span><span class="unknown token" data-binding=""></span></code><p>
+                    are all legal.
+  Also note, that lean inherently supports hexadecimal numbers, so <code class="hl lean inline" data-lean-context="examples"><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termX[_]»-4832">x[</span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">0x4411</span><span class="unknown token" data-binding="">⦄</span></code> is legal
+  and can be used to describe that a certain register holds a memory address.</p>
+                  </li>
+                <li>
+                  <p>
+                    <code>mem[t]</code>, where <code>t</code> is a <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-Lean.Syntax.Term" data-verso-hover="71">Lean.Term</span></code>. This includes every custom term presented here.</p>
+                  <p>
+                    This term can be used to define a value of a certain place in the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-MState.memory" data-verso-hover="72">MState.memory</span></code>.
+  Since it is possible to use the regular terms of lean as well as the custom terms,
+  we can load an address into a register, manipulate it and then use this register inside
+  the square brackets.</p>
+                  <code class="hl lean block" data-lean-context="examples"><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="keyword token" data-binding="">fun</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=&gt;</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getMemoryAt" data-verso-hover="73">getMemoryAt</span><span class="inter-text"> </span><span class="unknown token" data-binding="">140730297737284</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="unknown token" data-binding="">4123</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-MState" data-verso-hover="35">MState</span><span class="inter-text"> </span><span class="unknown token" data-binding="">→</span><span class="inter-text"> </span><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-5335">#check</span></span><span class="inter-text"> </span><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termMem[_]»-5345">mem[</span><span class="typed token" data-binding="" data-verso-hover="2">0x7ffe5367e044</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">4123</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+</span><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="keyword token" data-binding="">fun</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=&gt;</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getMemoryAt" data-verso-hover="73">getMemoryAt</span><span class="inter-text"> </span><span class="const token" data-binding="const-HAdd.hAdd" data-verso-hover="17">(</span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getRegisterAt" data-verso-hover="70">getRegisterAt</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="inter-text"> </span><span class="const token" data-binding="const-HAdd.hAdd" data-verso-hover="17">+</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="const token" data-binding="const-HAdd.hAdd" data-verso-hover="17">)</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getRegisterAt" data-verso-hover="70">getRegisterAt</span><span class="inter-text"> </span><span class="unknown token" data-binding="">4</span><span class="inter-text"> </span><span class="const token" data-binding="const-HAdd.hAdd" data-verso-hover="17">+</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getRegisterAt" data-verso-hover="70">getRegisterAt</span><span class="inter-text"> </span><span class="unknown token" data-binding="">5</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-MState" data-verso-hover="35">MState</span><span class="inter-text"> </span><span class="unknown token" data-binding="">→</span><span class="inter-text"> </span><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-5377">#check</span></span><span class="inter-text"> </span><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termMem[_]»-5387">mem[</span><span class="keyword token" data-binding="kw-occ-«termX[_]»-5391">x[</span><span class="typed token" data-binding="" data-verso-hover="2">2</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">+</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«termX[_]»-5403">x[</span><span class="typed token" data-binding="" data-verso-hover="2">4</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">+</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«termX[_]»-5410">x[</span><span class="typed token" data-binding="" data-verso-hover="2">5</span><span class="unknown token" data-binding="">]</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+</span><span class="unknown token" data-binding=""></span></code></li>
+                <li>
+                  <p>
+                    <code>labels[i]</code>, where <code>i</code> is of type <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-Lean.Syntax.Ident" data-verso-hover="74">Lean.Ident</span></code>.</p>
+                  <p>
+                    Using this, we can ensure either that the label <code>i</code> exists on a specific line or that it does not
+  exist at all. Note, that the labels inside the code sections are already stored inside the
+  <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-Code.labels" data-verso-hover="75">Code.labels</span></code>, so they do not nee to be specified within the pre- or postcondition.</p>
+                  <p>
+                    This term returns an <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-Option" data-verso-hover="76">Option</span><span class="inter-text"> </span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span></code>.</p>
+                  <code class="hl lean block" data-lean-context="examples"><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="keyword token" data-binding="">fun</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=&gt;</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getLabelAt" data-verso-hover="77">getLabelAt</span><span class="inter-text"> </span><span class="literal string token" data-binding="" data-verso-hover="11">"first"</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="const token" data-binding="const-Option.some" data-verso-hover="78">some</span><span class="inter-text"> </span><span class="unknown token" data-binding="">0</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-MState" data-verso-hover="35">MState</span><span class="inter-text"> </span><span class="unknown token" data-binding="">→</span><span class="inter-text"> </span><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-5826">#check</span></span><span class="inter-text"> </span><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termLabels[_]»-5836">labels[</span><span class="unknown token" data-binding="">first</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="const token" data-binding="const-Option.some" data-verso-hover="78">some</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">0</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+</span><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="keyword token" data-binding="">fun</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=&gt;</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.1" data-verso-hover="34">st</span><span class="unknown token" data-binding="">.</span><span class="const token" data-binding="const-MState.getLabelAt" data-verso-hover="77">getLabelAt</span><span class="inter-text"> </span><span class="literal string token" data-binding="" data-verso-hover="79">"_L_store"</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="const token" data-binding="const-Option.none" data-verso-hover="80">none</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-MState" data-verso-hover="35">MState</span><span class="inter-text"> </span><span class="unknown token" data-binding="">→</span><span class="inter-text"> </span><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-5864">#check</span></span><span class="inter-text"> </span><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termLabels[_]»-5874">labels[</span><span class="unknown token" data-binding="">_L_store</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="const token" data-binding="const-Option.none" data-verso-hover="80">none</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+</span><span class="unknown token" data-binding=""></span></code></li>
+                </ul>
+              <p>
+                To wrap things up, here is an example of a Hoare-triple with most of the terms presented:</p>
+              <code class="hl lean block" data-lean-context="examples"><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">mriscx</span><span class="inter-text">
+  </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">_start</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">:</span><span class="inter-text">
+      </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">la</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">2</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">140730297737284</span><span class="inter-text">
+      </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">addi</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">2</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">2</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">1</span><span class="inter-text">
+      </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">xori</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">3</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">4</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">412</span><span class="inter-text">
+      </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">sw</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">3</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">2</span><span class="inter-text">
+      </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">end</span><span class="inter-text">
+</span><span class="unknown token" data-binding="">⦃</span><span class="const token" data-binding="const-Not" data-verso-hover="13">¬</span><span class="unknown token" data-binding="">⸨terminated⸩</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="const token" data-binding="const-Bool.true" data-verso-hover="15">true</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text"> </span><span class="unknown token" data-binding="">0</span><span class="inter-text"> </span><span class="unknown token" data-binding="">↦</span><span class="inter-text"> </span><span class="unknown token" data-binding="">⟨</span><span class="const token" data-binding="const-Singleton.singleton" data-verso-hover="16">{</span><span class="unknown token" data-binding="">0</span><span class="inter-text"> </span><span class="const token" data-binding="const-HAdd.hAdd" data-verso-hover="17">+</span><span class="inter-text"> </span><span class="unknown token" data-binding="">4</span><span class="const token" data-binding="const-Singleton.singleton" data-verso-hover="16">}</span><span class="inter-text"> </span><span class="unknown token" data-binding="">|</span><span class="inter-text"> </span><span class="const token" data-binding="const-setOf" data-verso-hover="18">{</span><span class="var token" data-binding="var-_pp_uniq.6" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="const token" data-binding="const-setOf" data-verso-hover="18">|</span><span class="inter-text"> </span><span class="var token" data-binding="var-_pp_uniq.6" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="const token" data-binding="const-GT.gt" data-verso-hover="20">&gt;</span><span class="inter-text"> </span><span class="unknown token" data-binding="">0</span><span class="inter-text"> </span><span class="const token" data-binding="const-HAdd.hAdd" data-verso-hover="17">+</span><span class="inter-text"> </span><span class="unknown token" data-binding="">4</span><span class="const token" data-binding="const-setOf" data-verso-hover="18">}</span><span class="inter-text"> </span><span class="const token" data-binding="const-Union.union" data-verso-hover="19">∪</span><span class="inter-text"> </span><span class="const token" data-binding="const-Singleton.singleton" data-verso-hover="16">{</span><span class="unknown token" data-binding="">0</span><span class="const token" data-binding="const-Singleton.singleton" data-verso-hover="16">}</span><span class="unknown token" data-binding="">⟩⦃</span><span class="unknown token" data-binding="">x[</span><span class="unknown token" data-binding="">3</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="unknown token" data-binding="">x[</span><span class="unknown token" data-binding="">4</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="const token" data-binding="const-HXor.hXor" data-verso-hover="81">^^^</span><span class="inter-text"> </span><span class="unknown token" data-binding="">412</span><span class="inter-text"> </span><span class="const token" data-binding="const-And" data-verso-hover="21">∧</span><span class="inter-text"> </span><span class="unknown token" data-binding="">mem[</span><span class="unknown token" data-binding="">x[</span><span class="unknown token" data-binding="">2</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="const token" data-binding="const-HAdd.hAdd" data-verso-hover="17">+</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="unknown token" data-binding="">x[</span><span class="unknown token" data-binding="">3</span><span class="unknown token" data-binding="">]</span><span class="unknown token" data-binding="">⦄</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="sort token" data-binding="sort-14430969920833713138" data-verso-hover="1">Prop</span><span class="inter-text"></span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-6010">#check</span></span><span class="inter-text">
+    </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-6023">mriscx</span><span class="inter-text">
+      </span><span class="unknown token" data-binding="">_start</span><span class="unknown token" data-binding="">:</span><span class="inter-text">
+              </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLaX_,___»-6062">la</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLaX_,___»-6062">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">0x7ffe5367e044</span><span class="inter-text">
+              </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddiX_,X_,___»-6101">addi</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddiX_,X_,___»-6101">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrAddiX_,X_,___»-6101">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="inter-text">
+              </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrXoriX_,X_,___»-6134">xori</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrXoriX_,X_,___»-6134">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">3</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrXoriX_,X_,___»-6134">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">4</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">412</span><span class="inter-text">
+              </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSwX_,X___»-6169">sw</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSwX_,X___»-6169">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">3</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrSwX_,X___»-6169">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="inter-text">
+    </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-6023">end</span><span class="inter-text">
+    </span><span class="unknown token" data-binding="">⦃</span><span class="unknown token" data-binding="">¬</span><span class="unknown token" data-binding="">⸨terminated⸩</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+    </span><span class="literal string token" data-binding="" data-verso-hover="82">"_start"</span><span class="inter-text"> </span><span class="unknown token" data-binding="">↦</span><span class="inter-text"> </span><span class="unknown token" data-binding="">⟨</span><span class="unknown token" data-binding="">{</span><span class="literal string token" data-binding="" data-verso-hover="82">"_start"</span><span class="inter-text"> </span><span class="unknown token" data-binding="">+</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">4</span><span class="unknown token" data-binding="">}</span><span class="inter-text"> </span><span class="unknown token" data-binding="">|</span><span class="inter-text"> </span><span class="unknown token" data-binding="">{</span><span class="var token" data-binding="var-_uniq.359" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="unknown token" data-binding="">|</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.359" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="unknown token" data-binding="">&gt;</span><span class="inter-text"> </span><span class="literal string token" data-binding="" data-verso-hover="82">"_start"</span><span class="inter-text"> </span><span class="unknown token" data-binding="">+</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">4</span><span class="unknown token" data-binding="">}</span><span class="inter-text"> </span><span class="unknown token" data-binding="">∪</span><span class="inter-text"> </span><span class="unknown token" data-binding="">{</span><span class="literal string token" data-binding="" data-verso-hover="82">"_start"</span><span class="unknown token" data-binding="">}</span><span class="unknown token" data-binding="">⟩</span><span class="inter-text">
+    </span><span class="unknown token" data-binding="">⦃</span><span class="keyword token" data-binding="kw-occ-«termX[_]»-6311">x[</span><span class="typed token" data-binding="" data-verso-hover="2">3</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«termX[_]»-6318">x[</span><span class="typed token" data-binding="" data-verso-hover="2">4</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">^^^</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">412</span><span class="inter-text"> </span><span class="unknown token" data-binding="">∧</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«termMem[_]»-6335">mem[</span><span class="keyword token" data-binding="kw-occ-«termX[_]»-6339">x[</span><span class="typed token" data-binding="" data-verso-hover="2">2</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">+</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">]</span><span class="inter-text"> </span><span class="unknown token" data-binding="">=</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«termX[_]»-6351">x[</span><span class="typed token" data-binding="" data-verso-hover="2">3</span><span class="unknown token" data-binding="">]</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+</span><span class="unknown token" data-binding=""></span></code></section>
+            <section>
+              <h2 id="pc-black-whitelist">
+                3.2. ProgramCounter, Black- and Whitelist<span class="permalink-widget inline"><a href="find/?domain=Verso.Genre.Manual.section&amp;name=pc-black-whitelist" title="Permalink">🔗</a></span></h2>
+              <p>
+                As already shown in <a href="Fundamentals/#l_as">the introduction of the Hoare-logic</a> which
+is used, we need to specify exactly where the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-ProgramCounter" data-verso-hover="10">ProgramCounter</span></code> points to
+before executing the program. Also, we need to provide a black- and whitelist
+in order to ensure, that the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-ProgramCounter" data-verso-hover="10">ProgramCounter</span></code> just visits the lines
+we intend to proof the formal correctness of.
+The <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-ProgramCounter" data-verso-hover="10">ProgramCounter</span></code> is of type <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span></code> and the black-, and
+whitelist are of type <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-Set" data-verso-hover="5">Set</span><span class="inter-text"> </span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span></code>.
+We can use the usual syntax here.</p>
+              <p>
+                The value required for the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-ProgramCounter" data-verso-hover="10">ProgramCounter</span></code> is the line which the PC
+points to, before executing the first instruction. So basically, this should
+be the first instruction we want to be executed.
+After executing one instruction, the <code class="hl lean inline" data-lean-context="examples"><span class="const token" data-binding="const-ProgramCounter" data-verso-hover="10">ProgramCounter</span></code> points to the next
+instruction.</p>
+              <p>
+                We define the whitelist as a set of lines which contains any lines the PC might
+point to <strong>after</strong> the program terminated.</p>
+              <p>
+                So if we have a program like this:</p>
+              <code class="hl lean block" data-lean-context="examples"><span class="has-info information"><span class="hover-container"><span class="hover-info messages"><code class="verso-message information"><span class="text"></span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">mriscx</span><span class="inter-text">
+</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">_start</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">:</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">li</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">1</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">2</span><span class="inter-text">
+    </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">end</span></span><span class="text"> : </span><span class="highlighted"><span class="inter-text"></span><span class="const token" data-binding="const-Code" data-verso-hover="7">Code</span><span class="inter-text"></span></span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.check-7407">#check</span></span><span class="inter-text">
+  </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-7416">mriscx</span><span class="inter-text">
+    </span><span class="unknown token" data-binding="">_start</span><span class="unknown token" data-binding="">:</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-7435">li</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-7435">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="inter-text">
+  </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-7416">end</span><span class="inter-text">
+</span><span class="unknown token" data-binding=""></span></code><p>
+                the Hoare-triple should look like this</p>
+              <code class="hl lean block" data-lean-context="examples"><span class="has-info warning"><span class="hover-container"><span class="hover-info messages"><code class="verso-message warning"><span class="text"></span><span class="text">declaration uses `</span><span class="highlighted"><span class="inter-text"></span><span class="unknown token" data-binding="">sorry</span><span class="inter-text"></span></span><span class="text">`</span></code></span></span><span class="keyword token" data-binding="kw-occ-Lean.Parser.Command.example-7504">example</span></span><span class="inter-text"> </span><span class="unknown token" data-binding="">:</span><span class="inter-text">
+  </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-7516">mriscx</span><span class="inter-text">
+    </span><span class="unknown token" data-binding="">_start</span><span class="unknown token" data-binding="">:</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-7535">li</span><span class="inter-text"> </span><span class="keyword token" data-binding="kw-occ-«mriscx_InstrLiX_,___»-7535">x</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="unknown token" data-binding="">,</span><span class="inter-text"> </span><span class="unknown token" data-binding="">2</span><span class="inter-text">
+  </span><span class="keyword token" data-binding="kw-occ-mriscx_syntaxMriscx__End-7516">end</span><span class="inter-text">
+  </span><span class="unknown token" data-binding="">⦃</span><span class="unknown token" data-binding="">¬</span><span class="unknown token" data-binding="">⸨terminated⸩</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+  </span><span class="typed token" data-binding="" data-verso-hover="2">0</span><span class="inter-text"> </span><span class="unknown token" data-binding="">↦</span><span class="inter-text"> </span><span class="unknown token" data-binding="">⟨</span><span class="unknown token" data-binding="">{</span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">}</span><span class="inter-text"> </span><span class="unknown token" data-binding="">|</span><span class="inter-text"> </span><span class="unknown token" data-binding="">{</span><span class="var token" data-binding="var-_uniq.286" data-verso-hover="2">n</span><span class="unknown token" data-binding="">:</span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"> </span><span class="unknown token" data-binding="">|</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.286" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="unknown token" data-binding="">&gt;</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">}</span><span class="inter-text"> </span><span class="unknown token" data-binding="">∪</span><span class="inter-text"> </span><span class="unknown token" data-binding="">{</span><span class="typed token" data-binding="" data-verso-hover="2">0</span><span class="unknown token" data-binding="">}</span><span class="unknown token" data-binding="">⟩</span><span class="inter-text">
+  </span><span class="unknown token" data-binding="">⦃</span><span class="const token" data-binding="const-Bool.true" data-verso-hover="15">true</span><span class="inter-text"> </span><span class="unknown token" data-binding="">∧</span><span class="inter-text"> </span><span class="unknown token" data-binding="">¬</span><span class="unknown token" data-binding="">⸨terminated⸩</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text">
+  </span><span class="unknown token" data-binding="">:=</span><span class="inter-text"> </span><span class="tactic"><label for="tactic-state-7855690137770638074-7666-7668-9"><span class="keyword token" data-binding="kw-occ-Lean.Parser.Term.byTactic-7666" data-verso-hover="8">by</span></label><input type="checkbox" class="tactic-toggle" id="tactic-state-7855690137770638074-7666-7668-9"><span class="tactic-state"><span class="goal"><span class="hypotheses"><span class="hypothesis"><span class="name"><span class="var token" data-binding="var-_uniq.2" data-verso-hover="2">regWithAddr</span></span><span class="colon">:</span><span class="type"><span class="inter-text"></span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"></span></span></span><span class="hypothesis"><span class="name"><span class="var token" data-binding="var-_uniq.4" data-verso-hover="2">addr</span></span><span class="colon">:</span><span class="type"><span class="inter-text"></span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"></span></span></span><span class="hypothesis"><span class="name"><span class="var token" data-binding="var-_uniq.6" data-verso-hover="2">counter</span></span><span class="colon">:</span><span class="type"><span class="inter-text"></span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"></span></span></span><span class="hypothesis"><span class="name"><span class="var token" data-binding="var-_uniq.8" data-verso-hover="2">regWithValue</span></span><span class="colon">:</span><span class="type"><span class="inter-text"></span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"></span></span></span><span class="hypothesis"><span class="name"><span class="var token" data-binding="var-_uniq.10" data-verso-hover="2">length</span></span><span class="colon">:</span><span class="type"><span class="inter-text"></span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"></span></span></span><span class="hypothesis"><span class="name"><span class="var token" data-binding="var-_uniq.12" data-verso-hover="2">n</span></span><span class="colon">:</span><span class="type"><span class="inter-text"></span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"></span></span></span><span class="hypothesis"><span class="name"><span class="var token" data-binding="var-_uniq.14" data-verso-hover="2">v</span></span><span class="colon">:</span><span class="type"><span class="inter-text"></span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"></span></span></span></span><span class="conclusion"><span class="prefix">⊢ </span><span class="type"><span class="inter-text"></span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">mriscx</span><span class="inter-text">
+  </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">_start</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">:</span><span class="inter-text">
+      </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">li</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">x</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">1</span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">,</span><span class="inter-text"> </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">2</span><span class="inter-text">
+      </span><span class="const token" data-binding="const-Code.mk" data-verso-hover="12">end</span><span class="inter-text">
+</span><span class="unknown token" data-binding="">⦃</span><span class="const token" data-binding="const-Not" data-verso-hover="13">¬</span><span class="unknown token" data-binding="">⸨terminated⸩</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="const token" data-binding="const-Bool.true" data-verso-hover="15">true</span><span class="unknown token" data-binding="">⦄</span><span class="inter-text"> </span><span class="unknown token" data-binding="">0</span><span class="inter-text"> </span><span class="unknown token" data-binding="">↦</span><span class="inter-text"> </span><span class="unknown token" data-binding="">⟨</span><span class="const token" data-binding="const-Singleton.singleton" data-verso-hover="16">{</span><span class="unknown token" data-binding="">1</span><span class="const token" data-binding="const-Singleton.singleton" data-verso-hover="16">}</span><span class="inter-text"> </span><span class="unknown token" data-binding="">|</span><span class="inter-text"> </span><span class="const token" data-binding="const-setOf" data-verso-hover="18">{</span><span class="var token" data-binding="var-_uniq.403" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="const token" data-binding="const-setOf" data-verso-hover="18">|</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.403" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="const token" data-binding="const-GT.gt" data-verso-hover="20">&gt;</span><span class="inter-text"> </span><span class="unknown token" data-binding="">1</span><span class="const token" data-binding="const-setOf" data-verso-hover="18">}</span><span class="inter-text"> </span><span class="const token" data-binding="const-Union.union" data-verso-hover="19">∪</span><span class="inter-text"> </span><span class="const token" data-binding="const-Singleton.singleton" data-verso-hover="16">{</span><span class="unknown token" data-binding="">0</span><span class="const token" data-binding="const-Singleton.singleton" data-verso-hover="16">}</span><span class="unknown token" data-binding="">⟩⦃</span><span class="const token" data-binding="const-Bool.true" data-verso-hover="15">true</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="const token" data-binding="const-Bool.true" data-verso-hover="15">true</span><span class="inter-text"> </span><span class="const token" data-binding="const-And" data-verso-hover="21">∧</span><span class="inter-text"> </span><span class="const token" data-binding="const-Not" data-verso-hover="13">¬</span><span class="unknown token" data-binding="">⸨terminated⸩</span><span class="inter-text"> </span><span class="const token" data-binding="const-Eq" data-verso-hover="14">=</span><span class="inter-text"> </span><span class="const token" data-binding="const-Bool.true" data-verso-hover="15">true</span><span class="unknown token" data-binding="">⦄</span></span></span></span></span></span><span class="inter-text">
+  </span><span class="tactic"><label for="tactic-state-7-7671-7676-11"><span class="keyword token" data-binding="kw-occ-Lean.Parser.Tactic.tacticSorry-7671" data-verso-hover="9">sorry</span></label><input type="checkbox" class="tactic-toggle" id="tactic-state-7-7671-7676-11"><span class="tactic-state">All goals completed! 🐙</span></span><span class="inter-text">
+</span><span class="unknown token" data-binding=""></span></code><p>
+                As you can see, we want to stop when the PC points to line 1, that is, the line
+immediately following the instruction we want to inspect.
+To make explicit something that can be slightly confusing when defining a
+Hoare-triple, we write <code class="hl lean inline" data-lean-context="examples"><span class="unknown token" data-binding="">{</span><span class="var token" data-binding="var-_uniq.409" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="unknown token" data-binding="">:</span><span class="inter-text"> </span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"> </span><span class="unknown token" data-binding="">|</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.409" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="unknown token" data-binding="">&gt;</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">}</span><span class="inter-text"> </span><span class="unknown token" data-binding="">∪</span><span class="inter-text"> </span><span class="unknown token" data-binding="">{</span><span class="typed token" data-binding="" data-verso-hover="2">0</span><span class="unknown token" data-binding="">}</span></code>
+(which is simply a cumbersome way of writing <code class="hl lean inline" data-lean-context="examples"><span class="unknown token" data-binding="">{</span><span class="var token" data-binding="var-_uniq.528" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="unknown token" data-binding="">:</span><span class="inter-text"> </span><span class="const token" data-binding="const-UInt64" data-verso-hover="3">UInt64</span><span class="inter-text"> </span><span class="unknown token" data-binding="">|</span><span class="inter-text"> </span><span class="var token" data-binding="var-_uniq.528" data-verso-hover="2">n</span><span class="inter-text"> </span><span class="unknown token" data-binding="">≠</span><span class="inter-text"> </span><span class="typed token" data-binding="" data-verso-hover="2">1</span><span class="unknown token" data-binding="">}</span></code>)
+as the blacklist.
+This choice is motivated by the fact that the <code class="math inline">\mathsf{weak}</code> function only
+considers machine states that have executed at least one instruction.
+Consequently, if we want to ensure that the PC does not visit the line where the
+first instruction is located after at least one instruction has been executed,
+we must include this line in the blacklist.
+</p>
+              </section>
+            </section>
+          <nav class="prev-next-buttons">
+            <a class="local-button active" href="Fundamentals/#fundamentals" rel="prev" title="2. Fundamentals"><span class="arrow">←</span><span class="where">2. Fundamentals</span></a><a class="local-button active" href="Process-of-proving-the-formal-correctness/#proofProcess" rel="next" title="4. Process of proving the formal correctness"><span class="where">4. Process of proving the formal correctness</span><span class="arrow">→</span></a></nav>
+          </div>
+        </main></div>
+    </body>
+  </html>
+

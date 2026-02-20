@@ -1,0 +1,146 @@
+{"9":
+ "<code class=\"docstring\">The `sorry` tactic is a temporary placeholder for an incomplete tactic proof,\nclosing the main goal using `exact sorry`.\n\nThis is intended for stubbing-out incomplete parts of a proof while still having a syntactically correct proof skeleton.\nLean will give a warning whenever a proof uses `sorry`, so you aren't likely to miss it,\nbut you can double check if a theorem depends on `sorry` by looking for `sorryAx` in the output\nof the `#print axioms my_thm` command, the axiom used by the implementation of `sorry`.\n</code>",
+ "88":
+ "<code class=\"docstring\">Apply a given specification and try to get rid of all proof goals which\nare create during the process.\n\nTo be able to apply a specification, `L_B` **must** contain every line\nexcept the one that is being executed. For example, if you want to\napply the specification for the `Instr.LoadImmediate`, which is on line `l`,\nand you have some `(P Q : Prop)`, then the Hoare-triple needs to look like this:\n\n`⦃P⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l + 1}⟩ ⦃Q⦄`\n\nTODO: Avoid having to provide pc, registers and values in application of specification\n</code>",
+ "87":
+ "<code class=\"docstring\">Apply `S_SEQ` to 'peel' off the last instruction.\nAlso, try to solve all goals which are created during the process\nexcept for the two goals, which involve the actual Hoare-triples which\nwill be generated.\n</code>",
+ "86":
+ "<code class=\"docstring\">The same as the other `sapply_s_seq` tactic, but without having to provide\n`P`.\n</code>",
+ "85":
+ "<code class=\"docstring\">Like `sapply_s_seq`, but without solving the sidegoal `L_b = L_b' ∩ L_b''`.\n</code>",
+ "84":
+ "<code>S_SEQ {L_b'' : Set UInt64} (P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b' : Set UInt64) :\n  L_w ∩ L_b = ∅ →\n    L_w ≠ ∅ →\n      L_w' ∩ L_b' = ∅ →\n        L_w' ⊆ L_b ∧ L_w ∩ L_w' = ∅ →\n          c\n            ⦃P⦄ l ↦ ⟨L_w | L_b⟩⦃R⦄ →\n            (∀ l' ∈ L_w,\n                c\n                ⦃R⦄ l' ↦ ⟨L_w' | L_b'⟩⦃Q⦄) →\n              L_b'' = L_b ∩ L_b' →\n                c\n                ⦃P⦄ l ↦ ⟨L_w' | L_b''⟩⦃Q⦄</code><span class=\"sep\"></span><code class=\"docstring\">Equal to `S_SEQ'`, but was defined for simplicity reasons.\n`S_SEQ'` requires `L_{B''}` to be in the form of `L_B ∩ L_{B'}`.\nThis rule lets you apply S_SEQ with any form of `L_{B''}` but asks for\na proof of `L_{B''} = L_B ∩ L_{B'}`\n</code>",
+ "83":
+ "<code class=\"docstring\">Apply the Hoare rule `S_SEQ` in order to split the current Hoare triple into two.\nTo do so, the names and values must be provided explicitly, each\nseparated by a colon.\n\nThe order is:\n\n1. `P`\n2. `R`\n3. `L_W`\n4. `L_W'`\n5. `L_B`\n6. `L_B'`\n\nAlso, try to automatically solve most of the \"side goals\" that are generated\nduring the process. These side goals are generally statements about the provided\nsets (e.g., `L_W ≠ ∅`), which are trivial in most cases.\n\nThe same tactic can be used without providing `P`\n</code>",
+ "82": "<code><span class=\"literal string\">\"_start\"</span> : String</code>",
+ "81":
+ "<code>HXor.hXor.{u, v, w} {α : Type u} {β : Type v} {γ : outParam (Type w)} [self : HXor α β γ] : α → β → γ</code><span class=\"sep\"></span><code class=\"docstring\">`a ^^^ b` computes the bitwise XOR of `a` and `b`.\nThe meaning of this notation is type-dependent. \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `^^^` in identifiers is `xor`.</code>",
+ "80":
+ "<code>Option.none.{u} {α : Type u} : Option α</code><span class=\"sep\"></span><code class=\"docstring\">No value. </code>",
+ "8":
+ "<code class=\"docstring\">`by tac` constructs a term of the expected type by running the tactic(s) `tac`. </code>",
+ "79":
+ "<code><span class=\"literal string\">\"_L_store\"</span> : String</code>",
+ "78":
+ "<code>Option.some.{u} {α : Type u} (val : α) : Option α</code><span class=\"sep\"></span><code class=\"docstring\">Some value of type `α`. </code>",
+ "77":
+ "<code>MState.getLabelAt (ms : MState) (s : String) : Option UInt64</code>",
+ "76":
+ "<code>Option.{u} (α : Type u) : Type u</code><span class=\"sep\"></span><code class=\"docstring\">Optional values, which are either `some` around a value from the underlying type or `none`.\n\n`Option` can represent nullable types or computations that might fail. In the codomain of a function\ntype, it can also represent partiality.\n</code>",
+ "75": "<code>Code.labels (self : Code) : LabelMap</code>",
+ "74":
+ "<code>Lean.Syntax.Ident : Type</code><span class=\"sep\"></span><code class=\"docstring\">Syntax that represents an identifier.\n</code>",
+ "73": "<code>MState.getMemoryAt (ms : MState) (i : UInt64) : UInt64</code>",
+ "72": "<code>MState.memory (self : MState) : Memory</code>",
+ "71":
+ "<code>Lean.Syntax.Term : Type</code><span class=\"sep\"></span><code class=\"docstring\">Syntax that represents a Lean term.\n</code>",
+ "70": "<code>MState.getRegisterAt (ms : MState) (i : UInt64) : UInt64</code>",
+ "7":
+ "<code>Code : Type</code><span class=\"sep\"></span><code class=\"docstring\">The InstructionMap and the LabelMap are combined into a single structure,\nwhich is refered as `Code`.\n</code>",
+ "69": "<code>MState.registers (self : MState) : Registers</code>",
+ "68":
+ "<code>Lean.Parser.ident : Lean.Parser.Parser</code><span class=\"sep\"></span><code class=\"docstring\">The parser `ident` parses a single identifier, possibly with namespaces, such as `foo` or\n`bar.baz`. The identifier must not be a declared token, so for example it will not match `\"def\"`\nbecause `def` is a keyword token. Tokens are implicitly declared by using them in string literals\nin parser declarations, so `syntax foo := \"bla\"` will make `bla` no longer legal as an identifier.\n\nIdentifiers can contain special characters or keywords if they are escaped using the `«»` characters:\n`«def»` is an identifier named `def`, and `«x»` is treated the same as `x`. This is useful for\nusing disallowed characters in identifiers such as `«foo.bar».baz` or `«hello world»`.\n\nThis parser has arity 1: it produces a `Syntax.ident` node containing the parsed identifier.\nYou can use `TSyntax.getId` to extract the name from the resulting syntax object. </code>",
+ "67":
+ "<code class=\"docstring\">Declares one or more typed variables, or modifies whether already-declared variables are\n  implicit.\n\nIntroduces variables that can be used in definitions within the same `namespace` or `section` block.\nWhen a definition mentions a variable, Lean will add it as an argument of the definition. This is\nuseful in particular when writing many definitions that have parameters in common (see below for an\nexample).\n\nVariable declarations have the same flexibility as regular function parameters. In particular they\ncan be [explicit, implicit][binder docs], or [instance implicit][tpil classes] (in which case they\ncan be anonymous). This can be changed, for instance one can turn explicit variable `x` into an\nimplicit one with `variable {x}`. Note that currently, you should avoid changing how variables are\nbound and declare new variables at the same time; see [issue 2789] for more on this topic.\n\nIn *theorem bodies* (i.e. proofs), variables are not included based on usage in order to ensure that\nchanges to the proof cannot change the statement of the overall theorem. Instead, variables are only\navailable to the proof if they have been mentioned in the theorem header or in an `include` command\nor are instance implicit and depend only on such variables.\n\nSee [*Variables and Sections* from Theorem Proving in Lean][tpil vars] for a more detailed\ndiscussion.\n\n[tpil vars]:\nhttps://lean-lang.org/theorem_proving_in_lean4/dependent_type_theory.html#variables-and-sections\n(Variables and Sections on Theorem Proving in Lean) [tpil classes]:\nhttps://lean-lang.org/theorem_proving_in_lean4/type_classes.html (Type classes on Theorem Proving in\nLean) [binder docs]:\nhttps://leanprover-community.github.io/mathlib4_docs/Lean/Expr.html#Lean.BinderInfo (Documentation\nfor the BinderInfo type) [issue 2789]: https://github.com/leanprover/lean4/issues/2789 (Issue 2789\non github)\n\n## Examples\n\n```lean\nsection\n  variable\n    {α : Type u}      -- implicit\n    (a : α)           -- explicit\n    [instBEq : BEq α] -- instance implicit, named\n    [Hashable α]      -- instance implicit, anonymous\n\n  def isEqual (b : α) : Bool :=\n    a == b\n\n  #check isEqual\n  -- isEqual.{u} {α : Type u} (a : α) [instBEq : BEq α] (b : α) : Bool\n\n  variable\n    {a} -- `a` is implicit now\n\n  def eqComm {b : α} := a == b ↔ b == a\n\n  #check eqComm\n  -- eqComm.{u} {α : Type u} {a : α} [instBEq : BEq α] {b : α} : Prop\nend\n```\n\nThe following shows a typical use of `variable` to factor out definition arguments:\n\n```lean\nvariable (Src : Type)\n\nstructure Logger where\n  trace : List (Src × String)\n#check Logger\n-- Logger (Src : Type) : Type\n\nnamespace Logger\n  -- switch `Src : Type` to be implicit until the `end Logger`\n  variable {Src}\n\n  def empty : Logger Src where\n    trace := []\n  #check empty\n  -- Logger.empty {Src : Type} : Logger Src\n\n  variable (log : Logger Src)\n\n  def len :=\n    log.trace.length\n  #check len\n  -- Logger.len {Src : Type} (log : Logger Src) : Nat\n\n  variable (src : Src) [BEq Src]\n\n  -- at this point all of `log`, `src`, `Src` and the `BEq` instance can all become arguments\n\n  def filterSrc :=\n    log.trace.filterMap\n      fun (src', str') =&gt; if src' == src then some str' else none\n  #check filterSrc\n  -- Logger.filterSrc {Src : Type} (log : Logger Src) (src : Src) [inst✝ : BEq Src] : List String\n\n  def lenSrc :=\n    log.filterSrc src |&gt;.length\n  #check lenSrc\n  -- Logger.lenSrc {Src : Type} (log : Logger Src) (src : Src) [inst✝ : BEq Src] : Nat\nend Logger\n```\n\nThe following example demonstrates availability of variables in proofs:\n```lean\nvariable\n  {α : Type}    -- available in the proof as indirectly mentioned through `a`\n  [ToString α]  -- available in the proof as `α` is included\n  (a : α)       -- available in the proof as mentioned in the header\n  {β : Type}    -- not available in the proof\n  [ToString β]  -- not available in the proof\n\ntheorem ex : a = a := rfl\n```\nAfter elaboration of the proof, the following warning will be generated to highlight the unused\nhypothesis:\n```\nincluded section variable '[ToString α]' is not used in 'ex', consider excluding it\n```\nIn such cases, the offending variable declaration should be moved down or into a section so that\nonly theorems that do depend on it follow it until the end of the section.\n</code>",
+ "66":
+ "<code>Instr.LoadImmediate : UInt64 → UInt64 → Instr</code><span class=\"sep\"></span><code class=\"docstring\">Load an immediate value into a register\n\nSyntax:\n\n`li x dst, m`\n\nwhere `(dst m : UInt64)`.\n</code>",
+ "65": "<code>MState.terminated (self : MState) : Bool</code>",
+ "64": "<code>MState.incPc (ms : MState) : MState</code>",
+ "63": "<code>MState.addRegister (ms : MState) (i v : UInt64) : MState</code>",
+ "62":
+ "<code>hoare_triple_up_1 (P Q : Assertion) (l : UInt64) (L_w L_b : Set UInt64) (i : Instr) : Prop</code><span class=\"sep\"></span><code class=\"docstring\">Essentially the same as the `hoare_triple_up`, but instead of inspecting a whole code segment,\nthis relation only focusses on the instruction which is executed next. This can be used to\nreason about single instructions in order to define their specification.\n</code>",
+ "61":
+ "<code>HasSSubset.SSubset.{u} {α : Type u} [self : HasSSubset α] : α → α → Prop</code><span class=\"sep\"></span><code class=\"docstring\">Strict subset relation: `a ⊂ b`  \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `⊂` in identifiers is `ssubset`.</code>",
+ "60":
+ "<code>SDiff.sdiff.{u} {α : Type u} [self : SDiff α] : α → α → α</code><span class=\"sep\"></span><code class=\"docstring\">`a \\ b` is the set difference of `a` and `b`,\nconsisting of all elements in `a` that are not in `b`.\n\n\nConventions for notations in identifiers:\n\n * The recommended spelling of `\\` in identifiers is `sdiff`.</code>",
+ "6": "<code>Code</code>",
+ "59": "<code>Assertion.Not (P : Assertion) : Assertion</code>",
+ "58": "<code>Assertion.And (P Q : Assertion) : Assertion</code>",
+ "57":
+ "<code>LT.lt.{u} {α : Type u} [self : LT α] : α → α → Prop</code><span class=\"sep\"></span><code class=\"docstring\">The less-than relation: `x &lt; y` \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `&lt;` in identifiers is `lt`.</code>",
+ "56": "<code>α</code>",
+ "55": "<code>MState → α</code>",
+ "54":
+ "<code>WellFoundedLT.{u_1} (α : Type u_1) [LT α] : Prop</code><span class=\"sep\"></span><code class=\"docstring\">A class for a well-founded relation `&lt;`. </code>",
+ "53":
+ "<code>LT.{u} (α : Type u) : Type u</code><span class=\"sep\"></span><code class=\"docstring\">`LT α` is the typeclass which supports the notation `x &lt; y` where `x y : α`.</code>",
+ "52":
+ "<code>Preorder.{u_2} (α : Type u_2) : Type u_2</code><span class=\"sep\"></span><code class=\"docstring\">A preorder is a reflexive, transitive relation `≤`.\nIn a preorder, `a &lt; b` means `a ≤ b ∧ ¬b ≤ a`, and `&lt;` is defined this way by default.\nYou can override this definition to set a better def-eq.\n</code>",
+ "51": "<code>Type</code>",
+ "50":
+ "<code>S_SEQ' (P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b' : Set UInt64) :\n  L_w ∩ L_b = ∅ →\n    L_w ≠ ∅ →\n      L_w' ∩ L_b' = ∅ →\n        L_w' ⊆ L_b ∧ L_w ∩ L_w' = ∅ →\n          c\n            ⦃P⦄ l ↦ ⟨L_w | L_b⟩⦃R⦄ →\n            (∀ l' ∈ L_w,\n                c\n                ⦃R⦄ l' ↦ ⟨L_w' | L_b'⟩⦃Q⦄) →\n              c\n              ⦃P⦄ l ↦ ⟨L_w' | L_b ∩ L_b'⟩⦃Q⦄</code><span class=\"sep\"></span><code class=\"docstring\">Enables the merge of two Hoare-triples into one, given that the postcondition\nof the first triple is equal to the precondition of the second triple.\n</code>",
+ "5":
+ "<code>Set.{u} (α : Type u) : Type u</code><span class=\"sep\"></span><code class=\"docstring\">A set is a collection of elements of some type `α`.\n\nAlthough `Set` is defined as `α → Prop`, this is an implementation detail which should not be\nrelied on. Instead, `setOf` and membership of a set (`∈`) should be used to convert between sets\nand predicates.\n</code>",
+ "49":
+ "<code>HasSubset.Subset.{u} {α : Type u} [self : HasSubset α] : α → α → Prop</code><span class=\"sep\"></span><code class=\"docstring\">Subset relation: `a ⊆ b`  \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `⊆` in identifiers is `subset`.</code>",
+ "48":
+ "<code>Ne.{u} {α : Sort u} (a b : α) : Prop</code><span class=\"sep\"></span><code class=\"docstring\">`a ≠ b`, or `Ne a b` is defined as `¬ (a = b)` or `a = b → False`,\nand asserts that `a` and `b` are not equal.\n\n\nConventions for notations in identifiers:\n\n * The recommended spelling of `≠` in identifiers is `ne`.</code>",
+ "47":
+ "<code>EmptyCollection.emptyCollection.{u} {α : Type u} [self : EmptyCollection α] : α</code><span class=\"sep\"></span><code class=\"docstring\">`∅` or `{}` is the empty set or empty collection.\nIt is supported by the `EmptyCollection` typeclass. \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `{}` in identifiers is `empty`.\n\n * The recommended spelling of `∅` in identifiers is `empty`.</code>",
+ "46":
+ "<code>Inter.inter.{u} {α : Type u} [self : Inter α] : α → α → α</code><span class=\"sep\"></span><code class=\"docstring\">`a ∩ b` is the intersection of `a` and `b`. \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `∩` in identifiers is `inter`.</code>",
+ "45":
+ "<code>Membership.mem.{u, v} {α : outParam (Type u)} {γ : Type v} [self : Membership α γ] : γ → α → Prop</code><span class=\"sep\"></span><code class=\"docstring\">The membership relation `a ∈ s : Prop` where `a : α`, `s : γ`. \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `∈` in identifiers is `mem`.</code>",
+ "44":
+ "<code class=\"docstring\">`end` closes a `section` or `namespace` scope. If the scope is named `&lt;id&gt;`, it has to be closed\nwith `end &lt;id&gt;`. The `end` command is optional at the end of a file.\n</code>",
+ "43": "<code>Assertion : Type</code>",
+ "42": "<code>Assertion</code>",
+ "41":
+ "<code>myNameSpace.hoare_triple_up (P Q : Assertion) (l : UInt64) (L_w L_b : Set UInt64) (c : Code) : Prop</code>",
+ "40":
+ "<code>hoare_triple_up (P Q : Assertion) (l : UInt64) (L_w L_b : Set UInt64) (c : Code) : Prop</code><span class=\"sep\"></span><code class=\"docstring\">Inspired by the `judgement of L_{as}` in the paper Lundberg et al. (2020).\n\nSuppose, that `L_w ∩ L_b = ∅` and `L_w ≠ ∅` hold, then the `hoare_triple_up` means:\n\nFor all states `s` in which both `P(s)` and `I(s)` are satisfied and whose\nprogram counter points to `l`,\nthere exists a successor state `s'` for which both the relation\n`weak(s, L_w ∪ L_b, s')` and `Q(s')`, `I(s')` and `s'.pc ∉ L_w`\nare satisfied.\n</code>",
+ "4": "<code>Set UInt64</code>",
+ "39": "<code>?m.2</code>",
+ "38": "<code>?m.1</code>",
+ "37":
+ "<code>Nat : Type</code><span class=\"sep\"></span><code class=\"docstring\">The natural numbers, starting at zero.\n\nThis type is special-cased by both the kernel and the compiler, and overridden with an efficient\nimplementation. Both use a fast arbitrary-precision arithmetic library (usually\n[GMP](https://gmplib.org/)); at runtime, `Nat` values that are sufficiently small are unboxed.\n</code>",
+ "36": "<code>MState.code (self : MState) : Code</code>",
+ "35": "<code>MState : Type</code>",
+ "34": "<code>MState</code>",
+ "33":
+ "<code>myNameSpace.weak (s s' : MState) (L_w L_b : Set UInt64) (c : Code) : Prop</code>",
+ "32":
+ "<code class=\"docstring\">`namespace &lt;id&gt;` opens a section with label `&lt;id&gt;` that influences naming and name resolution inside\nthe section:\n* Declarations names are prefixed: `def seventeen : ℕ := 17` inside a namespace `Nat` is given the\n  full name `Nat.seventeen`.\n* Names introduced by `export` declarations are also prefixed by the identifier.\n* All names starting with `&lt;id&gt;.` become available in the namespace without the prefix. These names\n  are preferred over names introduced by outer namespaces or `open`.\n* Within a namespace, declarations can be `protected`, which excludes them from the effects of\n  opening the namespace.\n\nAs with `section`, namespaces can be nested and the scope of a namespace is terminated by a\ncorresponding `end &lt;id&gt;` or the end of the file.\n\n`namespace` also acts like `section` in delimiting the scope of `variable`, `open`, and other scoped commands.\n</code>",
+ "31": "<code>MState.pc (self : MState) : ProgramCounter</code>",
+ "30":
+ "<code>MState.runNSteps (ms : MState) (n : ℕ) : MState</code><span class=\"sep\"></span><code class=\"docstring\">Runs `runOneStep` `n` times.\nIt represents the function **nxt^n** from\n`LUNDBERG, Didrik, et al. Hoare-style logic for unstructured programs.\nIn: International Conference on Software Engineering and Formal Methods.\nCham: Springer International Publishing, 2020. S. 193-213.`\n</code>",
+ "3":
+ "<code>UInt64 : Type</code><span class=\"sep\"></span><code class=\"docstring\">Unsigned 64-bit integers.\n\nThis type has special support in the compiler so it can be represented by an unboxed 64-bit value\nrather than wrapping a `BitVec 64`.\n</code>",
+ "29":
+ "<code>MState.runOneStep (ms : MState) : MState</code><span class=\"sep\"></span><code class=\"docstring\">This function evaluates the given machine state to a new one.\nTt represents the **nxt** function from the paper\n`LUNDBERG, Didrik, et al. Hoare-style logic for unstructured programs.\nIn: International Conference on Software Engineering and Formal Methods.\nCham: Springer International Publishing, 2020. S. 193-213.`\n\nGenerally, if the `terminated` of the `State` is `false` and the instruction\nis legal and evaluateable, a new `State` is\nreturned holding the next instructions and the updated storage.\nWhen the instruction is not legal (e.g. jmp s, there is no label `s`),\n`terminated` is set to `true`.\n</code>",
+ "28": "<code>Sort ?u.3023</code>",
+ "27": "<code>ident</code>",
+ "26":
+ "<code>String : Type</code><span class=\"sep\"></span><code class=\"docstring\">A string is a sequence of Unicode scalar values.\n\nAt runtime, strings are represented by [dynamic arrays](https://en.wikipedia.org/wiki/Dynamic_array)\nof bytes using the UTF-8 encoding. Both the size in bytes (`String.utf8ByteSize`) and in characters\n(`String.length`) are cached and take constant time. Many operations on strings perform in-place\nmodifications when the reference to the string is unique.\n</code>",
+ "25": "<code>ℕ</code>",
+ "24":
+ "<code>Instr : Type</code><span class=\"sep\"></span><code class=\"docstring\">Definition of the Instructions.\n</code>",
+ "23":
+ "<code class=\"docstring\">A type universe. `Type ≡ Type 0`, `Type u ≡ Sort (u + 1)`. </code>",
+ "22": "<code>some_code : Code</code>",
+ "21":
+ "<code>And (a b : Prop) : Prop</code><span class=\"sep\"></span><code class=\"docstring\">`And a b`, or `a ∧ b`, is the conjunction of propositions. It can be\nconstructed and destructed like a pair: if `ha : a` and `hb : b` then\n`⟨ha, hb⟩ : a ∧ b`, and if `h : a ∧ b` then `h.left : a` and `h.right : b`.\n\n\nConventions for notations in identifiers:\n\n * The recommended spelling of `∧` in identifiers is `and`.\n\n * The recommended spelling of `/\\` in identifiers is `and` (prefer `∧` over `/\\`).</code>",
+ "20":
+ "<code>GT.gt.{u} {α : Type u} [LT α] (a b : α) : Prop</code><span class=\"sep\"></span><code class=\"docstring\">`a &gt; b` is an abbreviation for `b &lt; a`. \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `&gt;` in identifiers is `gt`.</code>",
+ "2": "<code>UInt64</code>",
+ "19":
+ "<code>Union.union.{u} {α : Type u} [self : Union α] : α → α → α</code><span class=\"sep\"></span><code class=\"docstring\">`a ∪ b` is the union of `a` and `b`. \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `∪` in identifiers is `union`.</code>",
+ "18":
+ "<code>setOf.{u} {α : Type u} (p : α → Prop) : Set α</code><span class=\"sep\"></span><code class=\"docstring\">Turn a predicate `p : α → Prop` into a set, also written as `{x | p x}` </code>",
+ "17":
+ "<code>HAdd.hAdd.{u, v, w} {α : Type u} {β : Type v} {γ : outParam (Type w)} [self : HAdd α β γ] : α → β → γ</code><span class=\"sep\"></span><code class=\"docstring\">`a + b` computes the sum of `a` and `b`.\nThe meaning of this notation is type-dependent. \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `+` in identifiers is `add`.</code>",
+ "16":
+ "<code>Singleton.singleton.{u, v} {α : outParam (Type u)} {β : Type v} [self : Singleton α β] : α → β</code><span class=\"sep\"></span><code class=\"docstring\">`singleton x` is a collection with the single element `x` (notation: `{x}`). \n\nConventions for notations in identifiers:\n\n * The recommended spelling of `{x}` in identifiers is `singleton`.</code>",
+ "15":
+ "<code>Bool.true : Bool</code><span class=\"sep\"></span><code class=\"docstring\">The Boolean value `true`, not to be confused with the proposition `True`. </code>",
+ "14":
+ "<code>Eq.{u_1} {α : Sort u_1} : α → α → Prop</code><span class=\"sep\"></span><code class=\"docstring\">The equality relation. It has one introduction rule, `Eq.refl`.\nWe use `a = b` as notation for `Eq a b`.\nA fundamental property of equality is that it is an equivalence relation.\n```\nvariable (α : Type) (a b c d : α)\nvariable (hab : a = b) (hcb : c = b) (hcd : c = d)\n\nexample : a = d :=\n  Eq.trans (Eq.trans hab (Eq.symm hcb)) hcd\n```\nEquality is much more than an equivalence relation, however. It has the important property that every assertion\nrespects the equivalence, in the sense that we can substitute equal expressions without changing the truth value.\nThat is, given `h1 : a = b` and `h2 : p a`, we can construct a proof for `p b` using substitution: `Eq.subst h1 h2`.\nExample:\n```\nexample (α : Type) (a b : α) (p : α → Prop)\n        (h1 : a = b) (h2 : p a) : p b :=\n  Eq.subst h1 h2\n\nexample (α : Type) (a b : α) (p : α → Prop)\n    (h1 : a = b) (h2 : p a) : p b :=\n  h1 ▸ h2\n```\nThe triangle in the second presentation is a macro built on top of `Eq.subst` and `Eq.symm`, and you can enter it by typing `\\t`.\nFor more information: [Equality](https://lean-lang.org/theorem_proving_in_lean4/quantifiers_and_equality.html#equality)\n\n\nConventions for notations in identifiers:\n\n * The recommended spelling of `=` in identifiers is `eq`.</code>",
+ "13":
+ "<code>Not (a : Prop) : Prop</code><span class=\"sep\"></span><code class=\"docstring\">`Not p`, or `¬p`, is the negation of `p`. It is defined to be `p → False`,\nso if your goal is `¬p` you can use `intro h` to turn the goal into\n`h : p ⊢ False`, and if you have `hn : ¬p` and `h : p` then `hn h : False`\nand `(hn h).elim` will prove anything.\nFor more information: [Propositional Logic](https://lean-lang.org/theorem_proving_in_lean4/propositions_and_proofs.html#propositional-logic)\n\n\nConventions for notations in identifiers:\n\n * The recommended spelling of `¬` in identifiers is `not`.</code>",
+ "12":
+ "<code>Code.mk (instructionMap : InstructionMap) (labels : LabelMap) : Code</code>",
+ "11": "<code><span class=\"literal string\">\"first\"</span> : String</code>",
+ "10": "<code>ProgramCounter : Type</code>",
+ "1":
+ "<code class=\"docstring\">The universe of propositions. `Prop ≡ Sort 0`.\n\nEvery proposition is propositionally equal to either `True` or `False`. </code>",
+ "0": "<code>Prop</code>"}

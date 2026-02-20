@@ -1,0 +1,1 @@
+window.docContents[101].resolve({"/Fundamentals/#fundamentals":{"contents":"\n\n\n\n\n\n","context":"Documentation MRiscX","header":"2. Fundamentals","id":"/Fundamentals/#fundamentals"}});
