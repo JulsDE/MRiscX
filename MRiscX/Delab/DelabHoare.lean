@@ -29,7 +29,7 @@ def extractStringFromTerm? (t : Term) : Option (TSyntax `ident) :=
   if let some s := t.raw.isStrLit? then some (mkIdent (Name.mkSimple s)) else none
 
 def termToMriscx_syntax? (t : Term) : Option (TSyntax `mriscx_syntax) :=
-  if t.raw.getKind == `mriscx_syntaxMriscx___End
+  if t.raw.getKind == `mriscx_syntaxMriscx__End
    then some ⟨t.raw⟩
   else none
 
@@ -143,14 +143,14 @@ def hoareTripleDelab : Delab :=
     match termToIdent? cSyn with
     | none => pure ()
     | some c => return ←hoare_termToTerm (←`(hoare_term | $c:ident
-          ⦃$preSyn⦄ $lSyn ↦ ⟨$L_wSyn | $L_bSyn⟩ ⦃$postSyn⦄))
+        ⦃$preSyn⦄ $lSyn ↦ ⟨$L_wSyn | $L_bSyn⟩ ⦃$postSyn⦄))
 
     match extractStringFromTerm? cSyn with
     | none => pure ()
     | some c => return ←hoare_termToTerm (←`(hoare_term | $c:ident
         ⦃$preSyn⦄ $lSyn ↦ ⟨$L_wSyn | $L_bSyn⟩ ⦃$postSyn⦄))
 
-    logInfo s!"A problem occured while delaborating {cSyn} was not of Expr Type ident
+    logInfo s!"A problem occurred while delaborating {cSyn} was not of Expr Type ident
     or mriscx_syntax but it has type {cSyn.raw.getKind}, falling back to delab without code"
 
     hoare_termToTerm (←`(hoare_term | $(mkIdent `c?):ident

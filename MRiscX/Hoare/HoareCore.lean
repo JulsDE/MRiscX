@@ -29,6 +29,9 @@ This can be used to perform a structured proof later.
 -/
 abbrev Assertion : Type := MState → Prop
 
+def Assertion.And (P Q : Assertion) : Assertion := fun st => (P st) ∧ (Q st)
+def Assertion.Not (P : Assertion) : Assertion := fun st => ¬(P st)
+
 
 
 /--

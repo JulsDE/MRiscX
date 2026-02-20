@@ -106,7 +106,7 @@ syntax ppDedent(ppDedent(ppLine)) ident ": "  mriscx_Instr* : mriscx_label
 
 syntax "mriscx" withPosition(linebreak)
   mriscx_label*
-  ppDedent(ppSpace) "end" : mriscx_syntax
+  ppDedent("end") : mriscx_syntax
 
 syntax mriscx_syntax : term
 

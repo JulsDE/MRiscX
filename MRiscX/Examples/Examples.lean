@@ -274,9 +274,9 @@ example:
     ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123) ∧ ¬⸨terminated⸩⦄
   := by
   unfold code
-  -- use tactic `auto seq` which automatically applies S_SEQ and calcs missing values
-  auto seq
-  . auto seq
+  -- use tactic `auto_seq` which automatically applies S_SEQ and calcs missing values
+  auto_seq
+  . auto_seq
     . have : (({n:UInt64 | n = 0} ∪ {n : UInt64 | n > 3} ∪ {3} ∪ {2}) = {n : UInt64 | n ≠ 1})
                 := by
                 simp_set_eq

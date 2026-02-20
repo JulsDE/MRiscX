@@ -5,9 +5,10 @@ Syntax for hoare terms
 declare_syntax_cat hoare_term
 
 syntax mriscx_syntax withPosition(linebreak ppDedent(ppLine))
- "⦃" term "⦄ " term " ↦ " "⟨" term " | " term "⟩" "⦃" term "⦄" : hoare_term
+    "⦃" term "⦄ " term " ↦ " "⟨" term " | " term "⟩" "⦃" term "⦄" : hoare_term
+
 syntax ident withPosition(linebreak ppDedent(ppLine))
- "⦃" term "⦄ " term " ↦ " "⟨" term " | " term "⟩" "⦃" term "⦄" : hoare_term
+    "⦃" term "⦄ " term " ↦ " "⟨" term " | " term "⟩" "⦃" term "⦄" : hoare_term
 
 syntax "⦃" term "⦄" : term
 
@@ -15,8 +16,10 @@ syntax "⦃" term "⦄" : term
 syntax "x[" mriscx_num_or_ident "]" : term
 syntax "mem[" term "]" : term
 syntax "labels[" ident "]" : term
--- To avoid parsing errors we decided to
--- put these double paranthesis around these tokens
+/--
+To avoid parsing errors we decided to
+put these double parenthesis around these tokens
+-/
 syntax "⸨pc⸩" : term
 syntax "⸨terminated⸩": term
 
