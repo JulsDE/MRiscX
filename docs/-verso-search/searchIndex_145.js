@@ -1,1 +1,0 @@
-window.docContents[145].resolve({"/Index/#index":{"contents":"\n\n","context":"Documentation MRiscX","header":"Index","id":"/Index/#index"}});
