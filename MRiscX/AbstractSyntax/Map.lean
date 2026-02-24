@@ -69,7 +69,14 @@ namespace TMap
   def getValues {α : Type} {β : Type} [BEq α] [LawfulBEq α] (map : TMap α β) : List β :=
     (map.getValuesAux [])
 
+  def toString {α : Type} {β : Type} [ToString α][ToString β] (t : TMap α β) : String :=
+    match t with
+    | TMap.empty d => s!"{d}"
+    | TMap.put k v t => s!"({k} ↦ {v} ; " ++ t.toString ++ ")"
 end TMap
+
+instance {α β} [ToString α] [ToString β]: Repr (TMap (α : Type) (β :Type)) where
+  reprPrec t _ := t.toString
 
 
 notation:60 "(" k " ↦ "v" ; "m")" => TMap.put k v m
@@ -110,7 +117,18 @@ namespace PMap
   def getKeys {α : Type} {β : Type} [BEq α] [LawfulBEq α] (map : PMap α β) : List α :=
     (map.getKeysAux [])
 
+  def toString {α : Type} {β : Type} [ToString α][ToString β] (t : PMap α β) : String :=
+    match t with
+    | PMap.empty => s!"()"
+    | PMap.put k v t =>
+      let s := s!"({k} ↦ {v} ; " ++ t.toString ++ ")"
+      "p" ++ s
+
 end PMap
+
+instance {α β} [ToString α] [ToString β]: Repr (PMap (α : Type) (β :Type)) where
+  reprPrec p _ := p.toString
+
 
 notation:60 "p("k" ↦ "v" ; "m")" => PMap.put k v m
 
