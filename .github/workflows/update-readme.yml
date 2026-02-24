@@ -1,0 +1,37 @@
+name: Sync README version with lakefile
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'lakefile.toml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from lakefile.toml
+        id: version
+        run: |
+          VERSION=$(awk -F'"' '/^version *= *"/ {print $2; exit}' lakefile.toml)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update README
+        run: |
+          sed -i -E 's|^version = ".*"$|version = "${{ steps.version.outputs.VERSION }}"|' README.md
+          
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add README.md
+          git commit -m "Sync README version to ${{ steps.version.outputs.VERSION }}" || echo "No changes"
+          git push
