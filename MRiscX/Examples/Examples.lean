@@ -286,9 +286,6 @@ example:
   . apply_spec specification_LoadAddress (r := 2) (l := 2) (v := 291)
 
 
-#check ⦃x[2] = 12⦄
-
-
 example:
   mriscx
     first:  li x 0, 6

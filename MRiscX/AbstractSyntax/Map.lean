@@ -69,10 +69,14 @@ namespace TMap
   def getValues {α : Type} {β : Type} [BEq α] [LawfulBEq α] (map : TMap α β) : List β :=
     (map.getValuesAux [])
 
-  def toString {α : Type} {β : Type} [ToString α][ToString β] (t : TMap α β) : String :=
+  def toStringAux {α : Type} {β : Type} [ToString α][ToString β] (t : TMap α β) : String :=
     match t with
     | TMap.empty d => s!"{d}"
-    | TMap.put k v t => s!"({k} ↦ {v} ; " ++ t.toString ++ ")"
+    | TMap.put k v t' => s!"{k} ↦ {v} ; " ++ t'.toStringAux ++ ""
+
+  def toString {α : Type} {β : Type} [ToString α][ToString β] (t : TMap α β) : String :=
+    let s := toStringAux t
+    "(" ++ s ++ ")"
 end TMap
 
 instance {α β} [ToString α] [ToString β]: Repr (TMap (α : Type) (β :Type)) where
@@ -117,12 +121,14 @@ namespace PMap
   def getKeys {α : Type} {β : Type} [BEq α] [LawfulBEq α] (map : PMap α β) : List α :=
     (map.getKeysAux [])
 
-  def toString {α : Type} {β : Type} [ToString α][ToString β] (t : PMap α β) : String :=
-    match t with
+  def toStringAux {α : Type} {β : Type} [ToString α][ToString β] (p : PMap α β) : String :=
+    match p with
     | PMap.empty => s!"()"
-    | PMap.put k v t =>
-      let s := s!"({k} ↦ {v} ; " ++ t.toString ++ ")"
-      "p" ++ s
+    | PMap.put k v p' => s!"{k} ↦ {v} ; " ++ p'.toStringAux ++ ""
+
+  def toString {α : Type} {β : Type} [ToString α][ToString β] (p : PMap α β) : String :=
+    let s := toStringAux p
+    "p(" ++ s ++ ")"
 
 end PMap
 
@@ -131,6 +137,8 @@ instance {α β} [ToString α] [ToString β]: Repr (PMap (α : Type) (β :Type))
 
 
 notation:60 "p("k" ↦ "v" ; "m")" => PMap.put k v m
+notation:65 "("k" ↦ "v" ; "m")" => PMap.put k v m
+
 
 /--
 This theorem states, when a given map [t] which contains the key [k]
