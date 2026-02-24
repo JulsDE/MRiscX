@@ -20,7 +20,7 @@ Add this project to your lakefile.toml like this
 name = "MRiscX"
 git = "git@github.com:JulsDE/MRiscX.git"
 rev = "main"
-version = "0.1.0-v4.28.0-rc1"
+version = "0.1.0-v4.28.0"
 ```
 Then, execute 
 ```bash
