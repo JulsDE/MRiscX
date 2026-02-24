@@ -27,11 +27,14 @@ jobs:
       - name: Update README
         run: |
           sed -i -E 's|^version = ".*"$|version = "${{ steps.version.outputs.VERSION }}"|' README.md
-          
+
+      - name: Set Git identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
       - name: Commit changes
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
           git add README.md
           git commit -m "Sync README version to ${{ steps.version.outputs.VERSION }}" || echo "No changes"
           git push
