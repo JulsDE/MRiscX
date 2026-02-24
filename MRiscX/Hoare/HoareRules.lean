@@ -21,7 +21,7 @@ TODO: prove of S_LOOP
 
 /--
 Allows to weaken the Hoare triple by removing a set
-`L` from `L_B`
+`L` from `L_B` without any restrictions
 -/
 theorem BL_SUBSET: ∀ (code : Code) (P Q : Assertion) (l: UInt64) (L_w L_b L : Set UInt64),
   L_w ∩ L_b = ∅ → -- TODO This or L ⊄ L_w
@@ -181,8 +181,9 @@ theorem S_SEQ': ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b
 
 
 /--
-Equal to `S_SEQ'`, but was defined for simplicity reasons.
-`S_SEQ'` requires `L_{B''}` to be in the form of `L_B ∩ L_{B'}`.
+Enables the merge of two Hoare-triples into one, given that the postcondition
+of the first triple is equal to the precondition of the second triple.
+
 This rule lets you apply S_SEQ with any form of `L_{B''}` but asks for
 a proof of `L_{B''} = L_B ∩ L_{B'}`
 -/
@@ -200,9 +201,6 @@ theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64
   c
   ⦃P⦄ l ↦ ⟨L_w' | L_b''⟩ ⦃Q⦄
   := by
-  /-
-  already shown in S_SEQ'
-  -/
   intros P R Q c l L_w L_b L_w' L_b' TInter TEmpty TInter' T
   unfold hoare_triple_up
   intros HFirst HSecond def_L_b'' _ h_empty' s HCode HPc pre
@@ -335,27 +333,27 @@ Requires:
 * An Invariant `I`
 * A Variant `V`
 
-For more information, see the (documentation)[TODO insert link]
+For more information, see the (documentation)[https://docs.mriscx.dev/Fundamentals/#sloop]
 -/
 theorem S_LOOP {α : Type} [Preorder α] [LT α] [WellFoundedLT α] :
-    ∀ (Q C I : Assertion) (c : Code) (l : UInt64)
+    ∀ (Q C I : Assertion) (code : Code) (l : UInt64)
     (L_w L_b : Set UInt64) (V :MState → α),
   l ∉ L_w →
   l ∉ L_b →
   (∀ (x:α),
-  c
+  code
   -- TODO: Introduce a notation for this (?)
   ⦃fun st => C st ∧ I st ∧ V st = x⦄
   l ↦ ⟨{l} ∪ L_w | L_b⟩
   ⦃fun st => V st < x ∧ I st ∧ st.pc = l⦄)
   →
-  c
+  code
   ⦃fun st => ¬C st ∧ I st⦄ l ↦ ⟨L_w | L_b⟩ ⦃Q⦄ →
-  c
+  code
   ⦃I⦄ l ↦ ⟨L_w | L_b⟩ ⦃Q⦄
   := by
 
-  intros Q C I c l L_w L_b x h_lNinLw h_lNinL_b h_RunCondTrue h_RunCondFalse
+  intros Q C I code l L_w L_b x h_lNinLw h_lNinL_b h_RunCondTrue h_RunCondFalse
   unfold hoare_triple_up
   intros h_inter h_empty s h_code h_pc pre
   have h_luLwInterLbEmpty:  ({l} ∪ L_w) ∩ L_b = ∅ := by
