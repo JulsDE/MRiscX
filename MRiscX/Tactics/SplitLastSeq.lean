@@ -89,11 +89,13 @@ def typeSetUInt64 : Expr :=
 def mkSingletonOf (n : UInt64) : Expr :=
   let instSing := mkAppN (.const ``Set.instSingletonSet [levelZero]) #[(.const `UInt64 [])]
   let set := mkApp (.const `Set [levelZero]) (mkConst `UInt64)
-  mkAppN (.const ``Singleton.singleton [levelZero, levelZero]) #[(mkConst `UInt64), set, instSing, mkUInt64Lit n]
+  mkAppN (.const ``Singleton.singleton [levelZero, levelZero])
+    #[(mkConst `UInt64), set, instSing, mkUInt64Lit n]
 
 
 def getNeSet (n : UInt64) : Expr :=
-  let lam := Expr.lam `n (.const `UInt64 []) (mkAppN (.const `Ne [levelOne]) #[(Expr.const `UInt64 []), (.bvar 0), mkUInt64Lit n])
+  let lam := Expr.lam `n (.const `UInt64 []) (mkAppN (.const `Ne [levelOne])
+      #[(Expr.const `UInt64 []), (.bvar 0), mkUInt64Lit n])
     BinderInfo.default
   mkAppN (.const `setOf [levelZero]) #[(mkConst `UInt64), lam]
 

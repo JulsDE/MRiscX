@@ -263,6 +263,6 @@ def CodeUnexpander : Unexpander
         $syntaxes*
         end)
     else
-      `($(mkIdent `empty))
+      throw Unit.unit
 
   | _ => throw Unit.unit
