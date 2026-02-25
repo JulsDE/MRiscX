@@ -137,7 +137,6 @@ instance {α β} [ToString α] [ToString β]: Repr (PMap (α : Type) (β :Type))
 
 
 notation:60 "p("k" ↦ "v" ; "m")" => PMap.put k v m
-notation:65 "("k" ↦ "v" ; "m")" => PMap.put k v m
 
 
 /--
