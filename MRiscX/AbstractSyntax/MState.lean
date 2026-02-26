@@ -15,7 +15,7 @@ structure MState where
   code: Code
   terminated: Bool
 
-def DefaultState : MState :=
+def DefaultMState : MState :=
   {registers := EmptyRegisters, memory := EmptyMemory, pc := 0,
     terminated := false, code := DefaultCode}
 
@@ -68,7 +68,7 @@ namespace MState
     ms.code.labels.get s
 
   def createStandardState (c : Code): MState :=
-    {DefaultState with code := c}
+    {DefaultMState with code := c}
 
   /-
   This creates a Machine state with the pointer which the label [s] points to.
