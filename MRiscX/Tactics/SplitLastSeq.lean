@@ -79,7 +79,66 @@ def getExprOfInstForR (instr : Instr) (oldState : Expr): MetaM Expr := do
   | Instr.StoreWord reg dst =>
     return mkAppN (.const `MState.addMemory [])
       #[(incPcExpr oldState), mkUInt64Lit reg, mkUInt64Lit dst]
-  | _ => throwError "not implemented yet"
+  | _ => throwError "Error while building R, the Instruction is not implemented yet
+      for this feature"
+
+
+def getExprOfInstrForRFromExpr (instr : Expr) (oldState : Expr) : MetaM Expr := do
+  let e ← Meta.whnf instr
+  if (e.isAppOfArity' `Instr.LoadImmediate 2
+     || e.isAppOfArity' `Instr.LoadAddress 2)
+  then
+    let r := e.getArg! 0
+    let v := e.getArg! 1
+
+    return mkAppN (.const `MState.addRegister [])
+      #[(incPcExpr oldState), r, v]
+  else if instr.isAppOfArity' `Instr.StoreWord 2 then
+    let r := e.getArg! 0
+    let d := e.getArg! 1
+
+    return mkAppN (.const `MState.addMemory [])
+      #[(incPcExpr oldState), r, d]
+  else
+    throwError s!"Error while building R, the Instruction is not implemented yet for this feature"
+
+
+/--
+Recursively search through a TMap Expr to find the Instr at the given line number.
+
+This helper function navigates through the nested TMap.put structure to locate
+the instruction at the specified program counter position.
+-/
+private partial def getInstrExprFromMapExpr (mapExpr : Expr) (pc : UInt64) : MetaM Expr := do
+  let mapExpr ← Meta.whnf mapExpr
+  if mapExpr.isAppOfArity ``TMap.empty 3 then
+    -- Return the panic instruction (default)
+    return mkAppN (mkConst `Instr.Panic []) #[]
+  else if mapExpr.isAppOfArity ``TMap.put 5 then
+    let lineExpr ← Meta.whnf <| mapExpr.getArg! 2
+    let line ← getUInt64FromExpr lineExpr
+    if line = pc then
+      -- Found the instruction at this line
+      return ← Meta.whnf <| mapExpr.getArg! 3
+    else
+      -- Continue searching in the rest of the map
+      return ← getInstrExprFromMapExpr (mapExpr.getArg! 4) pc
+  else
+    throwError s!"Expected a TMap expression, got {mapExpr}"
+
+/--
+Extract an Instr from a Code.mk Expr given a program counter value.
+
+This function takes an Expr of type Code.mk and a program counter (UInt64),
+and returns the Expr of the Instr at that program counter position.
+-/
+def getInstrFromCodeExpr (codeExpr : Expr) (pc : UInt64) : MetaM Expr := do
+  let codeExpr ← Meta.whnf codeExpr
+  if codeExpr.isAppOfArity ``Code.mk 2 then
+    let instrMapExpr := codeExpr.getArg! 0
+    return ← getInstrExprFromMapExpr instrMapExpr pc
+  else
+    throwError "Expected an Expr of type Code"
 
 
 def typeSetUInt64 : Expr :=
@@ -89,23 +148,25 @@ def typeSetUInt64 : Expr :=
 def mkSingletonOf (n : UInt64) : Expr :=
   let instSing := mkAppN (.const ``Set.instSingletonSet [levelZero]) #[(.const `UInt64 [])]
   let set := mkApp (.const `Set [levelZero]) (mkConst `UInt64)
-  mkAppN (.const ``Singleton.singleton [levelZero, levelZero]) #[(mkConst `UInt64), set, instSing, mkUInt64Lit n]
+  mkAppN (.const ``Singleton.singleton [levelZero, levelZero])
+    #[(mkConst `UInt64), set, instSing, mkUInt64Lit n]
 
 
 def getNeSet (n : UInt64) : Expr :=
-  let lam := Expr.lam `n (.const `UInt64 []) (mkAppN (.const `Ne [levelOne]) #[(Expr.const `UInt64 []), (.bvar 0), mkUInt64Lit n])
+  let lam := Expr.lam `n (.const `UInt64 []) (mkAppN (.const `Ne [levelOne])
+      #[(Expr.const `UInt64 []), (.bvar 0), mkUInt64Lit n])
     BinderInfo.default
   mkAppN (.const `setOf [levelZero]) #[(mkConst `UInt64), lam]
 
 
 
-def calcRExprDefault (Q: Expr) (lastInstr : Instr) : MetaM Expr := do
+def calcRExprDefault (Q: Expr) (lastInstrExpr : Expr): MetaM Expr := do
   let hasOneLam := Q.isLambda
   if !hasOneLam then
     throwError s!"Expected postcondition Q {Q} to be a λ-expression"
   let hasScdLam := Q.bindingBody!.getAppFn.isLambda
 
-  let mstateInferedOld := ← match hasScdLam with
+  let mstateInferredOld := ← match hasScdLam with
                 | true => do
                   match Q.bindingBody!.getArg? 1 with
                   | some state => do
@@ -120,9 +181,11 @@ def calcRExprDefault (Q: Expr) (lastInstr : Instr) : MetaM Expr := do
               | false => do
                 return Q
 
-  let assignmentToAdd ← getExprOfInstForR lastInstr mstateInferedOld
+  let assignmentToAdd ← getExprOfInstrForRFromExpr lastInstrExpr mstateInferredOld
+
   return Expr.lam `st (.const `MState []) (mkApp qBody assignmentToAdd)
     BinderInfo.default
+
 
 
 elab "peel_last_instr" : tactic => do
@@ -146,14 +209,13 @@ elab "peel_last_instr" : tactic => do
 
     let codeEqExpr ← Meta.whnf (←findHypTypeM ctx `h_code')
     let codeExpr := codeEqExpr.getArg! 2
-    -- let labelmap ← getLabelMapExpr codeExpr
-    let instrMap ← getInstrMapFromCodeExpr codeExpr
 
     let L_w' ← buildL_w'FromExpr L_w'_expr
     let L_w_expr := mkSingletonOf (L_w' - 1)
     let L_b'asExpr := getNeSet L_w'
 
-    let instrToSplit := instrMap.get (L_w' - 1)
+    let instrToSplit ← getInstrFromCodeExpr codeExpr (L_w' - 1)
+
     let newR ← calcRExprDefault currentQ instrToSplit
     let preMVar ← mkFreshExprMVar (some typeSetUInt64)
     let mut s_seq := mkAppN (mkConst `S_SEQ [])

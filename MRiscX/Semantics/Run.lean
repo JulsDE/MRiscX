@@ -104,6 +104,20 @@ namespace MState
     | zero => ms
     | succ n' => ms.runOneStep.runNSteps n'
 
+
+  def runUntilTerminatedWithFuel (ms : MState) (fuel : Nat) : MState :=
+    match fuel with
+    | Nat.zero => ms
+    | Nat.succ n' =>
+      if ms.terminated then
+        ms
+      else
+        runUntilTerminatedWithFuel ms.runOneStep (n')
+
+  def runUntilTerminated (ms : MState) : MState :=
+    runUntilTerminatedWithFuel ms UInt64.size
+
+
   def nextInstruction (ms:MState) : Instr := ms.runOneStep.currInstruction
 
 end MState

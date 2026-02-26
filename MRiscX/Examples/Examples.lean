@@ -226,9 +226,6 @@ example:
   . apply_spec specification_LoadAddress (l := 2) (r := 2) (v := 0x123)
 
 
-
-
-
 /-
 Use of identifiers of type `Code` in hoare-triple
 -/
@@ -266,7 +263,9 @@ example:
 
 
 
-
+/--
+Usage of auto_seq
+-/
 example:
     code
     ⦃¬⸨terminated⸩⦄
@@ -283,6 +282,48 @@ example:
       rw [this]
       apply_spec specification_LoadImmediate (l := 0) (r := 0) (v := 2)
     .apply_spec specification_LoadImmediate (l := 1) (r := 1) (v := 0)
+  . apply_spec specification_LoadAddress (r := 2) (l := 2) (v := 291)
+
+
+/--
+Usage of auto_seq with variables
+-/
+example (r₀ r₁ p : UInt64):
+    r₀ ≠ r₁ →
+    r₀ ≠ 2 →
+    2 ≠ r₁ →
+    mriscx
+      first:  li x r₀, p
+              li x r₁, 0
+              la x 2, 0x123
+    end
+    ⦃¬⸨terminated⸩⦄
+    "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
+    ⦃(x[r₀] = p ∧ x[r₁] = 0 ∧ x[2] = 0x123) ∧ ¬⸨terminated⸩⦄
+  := by
+  intros h₁ h₂ h₃
+  auto_seq
+  . auto_seq
+    . have : (({n:UInt64 | n = 0} ∪ {n : UInt64 | n > 3} ∪ {3} ∪ {2}) = {n : UInt64 | n ≠ 1})
+                := by
+                simp_set_eq
+      rw [this]
+      apply_spec specification_LoadImmediate (l := 0) (r := r₀) (v := p)
+    . apply_spec specification_LoadImmediate (l := 1) (r := r₁) (v := 0)
+      -- TODO automate this:
+      have : (r₁ ↦ 0 ; (2 ↦ 291 ; s.registers)).get r₀ = p := by assumption
+      .
+        rw [t_update_neq] at this
+        rw [t_update_neq] at this
+        exact this
+        apply Ne.symm
+        exact h₂
+        apply Ne.symm
+        assumption
+      simp [t_update_eq]
+      rw [t_update_neq, t_update_eq]
+      assumption
+      -- /:
   . apply_spec specification_LoadAddress (r := 2) (l := 2) (v := 291)
 
 
