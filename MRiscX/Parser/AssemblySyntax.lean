@@ -13,7 +13,7 @@ First of all, we define some syntax categories
 -/
 
 declare_syntax_cat mriscx_label
- -- behaviour := both controls the behavior wether lean parser
+ -- behaviour := both controls the behavior whether lean parser
  -- wants to parse func name as token / ident
 declare_syntax_cat mriscx_Instr (behavior := both)
 declare_syntax_cat mriscx_syntax
@@ -21,7 +21,7 @@ declare_syntax_cat mriscx_program
 declare_syntax_cat mriscx_num_or_ident
 declare_syntax_cat hoare
 
--- this cat is for making it easier to differenciate between single line
+-- this cat is for making it easier to differentiate between single line
 -- proofs and hole code snippets. Its specially for specifications.
 declare_syntax_cat mriscx_spec
 
@@ -65,10 +65,10 @@ syntax "xor " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident &", " &"x" 
 /-
 Operations on memory
 -/
--- Load word immediatly from address
+-- Load word immediately from address
 syntax "lw " &"x" mriscx_num_or_ident ", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
--- Load word from address stored in regsiter
+-- Load word from address stored in register
 syntax "lw " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 -- Store word stored in register
@@ -102,6 +102,7 @@ syntax "PANIC!" withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Ins
 The labels followed by the instructions
 -/
 syntax ppDedent(ppDedent(ppLine)) ident ": "  mriscx_Instr* : mriscx_label
+syntax ppDedent(ppDedent(ppLine)) &"." ident ": "  mriscx_Instr* : mriscx_label
 
 
 syntax "mriscx" withPosition(linebreak)
