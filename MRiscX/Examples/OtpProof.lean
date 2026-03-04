@@ -24,7 +24,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
           la x 2, c
           li x 3, l
 
-    loop: beqz x 3, finish
+    .loop: beqz x 3, finish
           lw x 5, x 0
           lw x 6, x 1
 
@@ -36,7 +36,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
           inc x 2
 
           dec x 3
-          j loop
+          j .loop
     finish:
   end
   ⦃

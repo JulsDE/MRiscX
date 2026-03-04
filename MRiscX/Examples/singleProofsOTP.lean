@@ -135,7 +135,7 @@ def otp_code (p k c l : UInt64) :=
           la x 2, c
           li x 3, l
 
-      loop:
+      .loop:
           beqz x 3, finish
           lw x 5, x 0
           lw x 6, x 1
@@ -145,7 +145,7 @@ def otp_code (p k c l : UInt64) :=
           inc x 1
           inc x 2
           dec x 3
-          j loop
+          j .loop
 
       finish:
     end
@@ -571,7 +571,7 @@ theorem j_otp : ∀ (p k c l : UInt64),
     apply this
     clear this
 
-    apply_spec_basic specification_Jump' (l := 13) (newPc := 4) (label := "loop")
+    apply_spec_basic specification_Jump' (l := 13) (newPc := 4) (label := ".loop")
     . repeat (constructor <;> try assumption)
       simp
       rw [h_code']

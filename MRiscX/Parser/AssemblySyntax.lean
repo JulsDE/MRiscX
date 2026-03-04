@@ -43,7 +43,7 @@ syntax "la " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "li " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "mv " &"x" mriscx_num_or_ident &","  &"x" mriscx_num_or_ident
+syntax "mv " &"x" mriscx_num_or_ident &"," &"x" mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "addi " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
@@ -80,17 +80,30 @@ syntax "sw " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident
 Flow control operations
 -/
 syntax &"j " ident withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax &"j " &"." ident withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "beq " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "beq " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", "  &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "bne " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "bne " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " &"." ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "bgt " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "bgt " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "ble " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "ble " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " &"." ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "beqz " &"x" mriscx_num_or_ident &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "beqz " &"x" mriscx_num_or_ident &", " &"." ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "bnez " &"x" mriscx_num_or_ident &", " ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "bnez " &"x" mriscx_num_or_ident &", " &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 
 /-
@@ -101,8 +114,8 @@ syntax "PANIC!" withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Ins
 /-
 The labels followed by the instructions
 -/
-syntax ppDedent(ppDedent(ppLine)) ident ": "  mriscx_Instr* : mriscx_label
-syntax ppDedent(ppDedent(ppLine)) &"." ident ": "  mriscx_Instr* : mriscx_label
+syntax ppDedent(ppDedent(ppLine)) ident ": " mriscx_Instr* : mriscx_label
+syntax ppDedent(ppDedent(ppLine)) &"." ident ": " mriscx_Instr* : mriscx_label
 
 
 syntax "mriscx" withPosition(linebreak)
