@@ -43,14 +43,16 @@ and theorems without depending on specific numerical literals is required. Simul
 we want the ability to execute instructions with actual values. Therefore, we
 need to support both abstract reasoning and concrete computation.
 
-To achieve this, we use a function that first checks whether the given `num` or
+To achieve this, we use -/
+
+/-- A function that first checks whether the given `num` or
 `ident` is a numeric literal. If so, it returns the corresponding `UInt64` expression.
 If not, it checks if the variable name has been declared as a `UInt64` in the current
 context and, if found, returns it as an expression. If neither condition is met,
 the function fails.
 To be able to check if the variable has already been declared, the MetaM
 Monad is required. For this reason, we return a TermElabM Expr, which has to be
-"lifted" afterwards.
+lifted afterwards.
 -/
 def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
   match s with
@@ -66,25 +68,38 @@ def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
         throwError s!"Identifier {a} not found in context"
   | _ => throwError "Unexpected syntax"
 
+/--
+Apply `parseMriscxNumOrIdent` on all elements inside an array
+-/
+def parseMriscxNumOrIdentArray (a : Array Syntax): (TermElabM (Array Expr)) := do
+  let mut result := #[]
+  for syn in a do
+    result := result.push (←parseMriscxNumOrIdent syn)
+
+  return result
+
 /-
 Since we need a similar functionality for the names of the labels, we
 require the following functions, which check if the given ident is a
 variable in the local context. If it is, the functions returns ident
 as a variable and if it is not, they return ident as a string respectively.
 -/
-def parseLabelname (s : TSyntax `ident) : TermElabM Expr := do
+def parseLabelname (s : TSyntax `ident) (withDot : Bool) : TermElabM Expr := do
   if let some decl := (← getLCtx).findFromUserName? s.getId then
       return decl.toExpr
-  else
-    return mkStrLit s.getId.getString!
+  else if withDot then
+    return mkStrLit ("." ++ s.getId.getString!)
+  return mkStrLit s.getId.getString!
 
 
 
-def checkIfVariableToTerm (t : TSyntax `ident) : TermElabM Term := do
+def checkIfVariableToTerm (t : TSyntax `ident) (identWithDot : Bool) : TermElabM Term := do
   if let some _ := (← getLCtx).findFromUserName? t.getId then
     return t
-  else
-    pure (← `(term| $(quote t.getId.getString!) ))
+  else if identWithDot then
+    return (← `(term| $(quote ("." ++ t.getId.getString!))))
+
+  return (← `(term| $(quote t.getId.getString!)))
 
 def numOrIdentToSyntax (t:TSyntax `term) : UnexpandM (TSyntax `mriscx_num_or_ident) := do
   match t with

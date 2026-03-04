@@ -60,7 +60,10 @@ where
     let et ← replaceKeywords t curState
     return ←`(term | $(mkIdent `MState.getMemoryAt) ($curState) ($(⟨et⟩)))
   | _stx@`(labels[$s:ident]) => do
-    let newS ← checkIfVariableToTerm s
+    let newS ← checkIfVariableToTerm s false
+    return ←`(term | $(mkIdent `MState.getLabelAt) ($curState) $newS)
+  | _stx@`(labels[.$s:ident]) => do
+    let newS ← checkIfVariableToTerm s true
     return ←`(term | $(mkIdent `MState.getLabelAt) ($curState) $newS)
   | _stx@`(⸨pc⸩) => do
     return ←`(term | $(mkIdent `MState.pc) ($curState))

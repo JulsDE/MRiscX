@@ -16,6 +16,7 @@ syntax "⦃" term "⦄" : term
 syntax "x[" mriscx_num_or_ident "]" : term
 syntax "mem[" term "]" : term
 syntax "labels[" ident "]" : term
+syntax "labels[" &"." ident "]" : term
 /--
 To avoid parsing errors we decided to
 put these double parenthesis around these tokens
