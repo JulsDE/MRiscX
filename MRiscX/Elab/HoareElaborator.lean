@@ -3,7 +3,7 @@ import MRiscX.Elab.CodeElaborator
 import MRiscX.Parser.HoareSyntax
 
 
-open Lean Elab
+open Lean Meta Elab
 
 /-
 This file contains the definition of the Hoare Notation and elaboration.
@@ -24,7 +24,7 @@ partial def processHoareTerm (stx : Term) : TermElabM Syntax := do
     return newStx
 where
   /-
-    Differntiate between hoare assignment and usual term in pre and post condition.
+    Differentiate between hoare assignment and usual term in pre and post condition.
   -/
   go : Syntax → TermElabM Syntax
   | _stx@`(hoare_assignment_term | ⟦$h:hoare_assignment_chain⟧) => do
@@ -46,18 +46,26 @@ elab "⦃" t:term "⦄" : term => do
   return ← Lean.Elab.Term.elabTerm (←`($newTOpt)) (some (.const ``String []))
 
 
+/--
+Some utility function which casts an `Array TSyntax mriscx_label` to `TSyntax term`
+-/
 def mriscxSyntaxToTerm (stx : Array (TSyntax `mriscx_label)) : TermElabM (TSyntax `term) := do
   let newStx : (TSyntax `term) := ←`(mriscx
                                       $stx*
                                      end)
   return newStx
 
+/--
+Some utility function which casts `TSyntax mriscx_label` to `TSyntax term`
+-/
 def mriscxSpecToTerm (stx: (TSyntax  `mriscx_Instr)) : TermElabM (TSyntax `term) := do
   let newStx : (TSyntax `term) ←`(⟪$stx⟫)
   return ←`($newStx)
 
 
-
+/--
+Hoare-triples for specifications with only one instruction
+-/
 elab "hoare" syn:mriscx_spec linebreak
       "⦃" P:term "⦄" l:term "↦" "⟨" L_w:term "|" L_b:term "⟩" "⦃" Q:term "⦄"
       "end" : term => do
@@ -67,12 +75,13 @@ elab "hoare" syn:mriscx_spec linebreak
   | `(mriscx_spec | ⟪$i:mriscx_Instr⟫) => do
     let synAsTerm ← mriscxSpecToTerm i
     return ←Lean.Elab.Term.elabTerm
-        (←`($(mkIdent ``hoare_triple_up_1) $translatedP $translatedQ $l $L_w $L_b $synAsTerm))
-        (some (.const ``String []))
+        (←`($(mkIdent ``hoare_triple_up_1) $translatedP $translatedQ $l $L_w $L_b $synAsTerm)) none
   | _ => throwError "Expected syntax of type mriscx_spec with ⟪⟫ braces!"
 
 
-
+/--
+Regular Hoare-triple with concrete MRiscX syntax before the actual triple
+-/
 elab t:hoare_term : term => do
   match t with
   | `(hoare_term | $syn:mriscx_syntax
@@ -90,12 +99,13 @@ elab t:hoare_term : term => do
       end) => do
       let mriscxSyntaxAsTerm ← mriscxSyntaxToTerm labelsSyn
       return ←Lean.Elab.Term.elabTerm (←`($(mkIdent ``hoare_triple_up) $translatedP $translatedQ
-        $evaluatedL $evaluatedLw $evaluatedLb $mriscxSyntaxAsTerm))
-        (some (.const ``String []))
+        $evaluatedL $evaluatedLw $evaluatedLb $mriscxSyntaxAsTerm)) none
     | _ => throwError "expected mriscx syntax while elaborating hoare term"
   | _ => throwError "failure"
 
-
+/--
+Define the code beforehand, does not support the usage of variables
+-/
 elab id:ident withPosition(linebreak ppDedent(ppLine))
   "⦃" P:term "⦄" l:term "↦" "⟨" L_w:term "|" L_b:term "⟩" "⦃" Q:term "⦄"
    : term => do
@@ -107,19 +117,50 @@ elab id:ident withPosition(linebreak ppDedent(ppLine))
 
   return ←Lean.Elab.Term.elabTerm
       (←`($(mkIdent ``hoare_triple_up) $translatedP $translatedQ $evaluatedL $evaluatedLw
-          $evaluatedLb $id))
-      (some (.const ``String []))
+          $evaluatedLb $id)) none
 
--- Fallback elab if no Labelnames in l, L_w or L_b required
-elab id:ident
+
+/--
+To define the code beforehand with some some variables.
+-/
+elab codeTerm:term withPosition(linebreak ppDedent(ppLine))
+    "⦃" P:term "⦄" l:term "↦" "⟨" L_w:term "|" L_b:term "⟩" "⦃" Q:term "⦄"
+  : term => do
+  let e ← Lean.Elab.Term.elabTerm codeTerm none
+  let ty ← Lean.Meta.inferType e
+  let ty ← Meta.whnf ty
+
+  if (ty.isAppOf `Code) then
+    let translatedP ← elabHoareTerm P
+    let translatedQ ← elabHoareTerm Q
+    let evaluatedLw := ⟨(←replaceLabelsWithCodeExpr L_w e)⟩
+    let evaluatedLb := ⟨(←replaceLabelsWithCodeExpr L_b e)⟩
+    let evaluatedL := ⟨(←replaceLabelsWithCodeExpr l e)⟩
+
+    return ←Lean.Elab.Term.elabTerm
+        (←`($(mkIdent ``hoare_triple_up) $translatedP $translatedQ $evaluatedL $evaluatedLw
+            $evaluatedLb $codeTerm)) none
+  else throwError  m!"Application type mismatch: The argument
+  {codeTerm}
+has type
+  {ty}
+but is expected to have type
+  Code"
+
+
+/--
+Fallback elab if no Labelnames in l, L_w or L_b required
+-/
+elab id:ident withPosition(linebreak ppDedent(ppLine))
     "⦃" P:term "⦄" l:term "↦" "⟨" L_w:term "|" L_b:term "⟩" "⦃" Q:term "⦄"
     : term => do
   return ←Lean.Elab.Term.elabTerm
-    (←`($(mkIdent ``hoare_triple_up) $P $Q $l $L_w $L_b $id))
-    (some (.const ``String []))
+    (←`($(mkIdent ``hoare_triple_up) $P $Q $l $L_w $L_b $id)) none
 
 
--- Elab of hoare assignment
+/--
+Elab of hoare assignment
+-/
 elab "⟦"stx:hoare_assignment_chain"⟧" : term => do
   return ←Lean.Elab.Term.elabTerm (← generateHoareAssignmentSyntax stx) none
 

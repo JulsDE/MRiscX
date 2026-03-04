@@ -32,9 +32,13 @@ where
     | _ => pure stx
 
 
-partial def replaceLabelsWithIdent (stx : Term) (i : Ident) : TermElabM Syntax := do
-  let e ← Term.elabTerm i none
+partial def replaceLabelsWithCodeExpr (stx : Term) (e : Expr) : TermElabM Syntax := do
   if e.isFVar then
     return stx
-  let labels ← getLabelMapExpr e
+  let labels ← getLabelMapFromCodeExpr e
   return ←replaceLabels stx labels
+
+
+partial def replaceLabelsWithIdent (stx : Term) (i : Ident) : TermElabM Syntax := do
+  let e ← Term.elabTerm i none
+  replaceLabelsWithCodeExpr stx e
