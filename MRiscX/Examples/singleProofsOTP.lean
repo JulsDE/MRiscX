@@ -127,28 +127,32 @@ theorem help_I_pre''''' : ∀ (p k c l i x: UInt64),
   grind only
 
 
+def otp_code (p k c l : UInt64) :=
+    mriscx
+      main:
+          la x 0, p
+          la x 1, k
+          la x 2, c
+          li x 3, l
+
+      loop:
+          beqz x 3, finish
+          lw x 5, x 0
+          lw x 6, x 1
+          xor x 7, x 5, x 6
+          sw x 7, x 2
+          inc x 0
+          inc x 1
+          inc x 2
+          dec x 3
+          j loop
+
+      finish:
+    end
+
+
 theorem sw_otp : ∀ (p k c l : UInt64),
-  mriscx
-    main:
-        la x 0, p
-        la x 1, k
-        la x 2, c
-        li x 3, l
-
-    loop:
-        beqz x 3, finish
-        lw x 5, x 0
-        lw x 6, x 1
-        xor x 7, x 5, x 6
-        sw x 7, x 2
-        inc x 0
-        inc x 1
-        inc x 2
-        dec x 3
-        j loop
-
-    finish:
-  end
+  (otp_code p k c l)
   ⦃(x[3] > 0
     ∧ (∀ i < l - x[3], mem[c + i] = mem[p + i] ^^^ mem[k + i])
     ∧ x[0] = p + (l - x[3])
@@ -171,6 +175,7 @@ theorem sw_otp : ∀ (p k c l : UInt64),
               x[5] = mem[x[0]] ∧ x[6] = mem[x[1]] ∧ x[7] = x[5] ^^^ x[6] ∧ x[3] = x
               ∧ I_pre' p k c l) ∧
     ¬⸨terminated⸩ = true⦄ := by
+    unfold otp_code
     intros p k c l
     rintro h_inter h_empty s h_code' h_pc ⟨⟨h_cond, h_I, h_x0, h_x1, h_x2, h_x3LtL, h_x5, h_x6, h_x7, h_x3, h_I_pre'⟩, h_terminated⟩
     have: ({9} : Set UInt64)  = {8 + 1}  := by
@@ -276,27 +281,7 @@ theorem sw_otp : ∀ (p k c l : UInt64),
 
 
 theorem inc_otp_0 : ∀ (p k c l : UInt64),
-  mriscx
-    main:
-        la x 0, p
-        la x 1, k
-        la x 2, c
-        li x 3, l
-
-    loop:
-        beqz x 3, finish
-        lw x 5, x 0
-        lw x 6, x 1
-        xor x 7, x 5, x 6
-        sw x 7, x 2
-        inc x 0
-        inc x 1
-        inc x 2
-        dec x 3
-        j loop
-
-    finish:
-  end
+  (otp_code p k c l)
   ⦃(x[3] > 0 ∧
     (∀ i ≤ l - x[3], mem[c + i] = mem[p + i] ^^^ mem[k + i]) ∧
       x[0] = p + (l - x[3]) ∧
@@ -317,6 +302,7 @@ theorem inc_otp_0 : ∀ (p k c l : UInt64),
                 x[6] = mem[x[1]] ∧ x[7] = x[5] ^^^ x[6] ∧ x[3] = x ∧
                 I_pre' p k c l) ∧
     ¬⸨terminated⸩ = true⦄ := by
+    unfold otp_code
     intros p k c l
     unfold hoare_triple_up
     rintro h_inter h_empty s h_code' h_pc ⟨⟨h_cond, h_I, h_x0, h_x1, h_x2, h_x3LtL, h_x5, h_x6, h_x7, h_x3, h_I_pre'⟩, h_terminated⟩
@@ -343,27 +329,7 @@ theorem inc_otp_0 : ∀ (p k c l : UInt64),
 
 
 theorem inc_otp_1 : ∀ (p k c l : UInt64),
-  mriscx
-    main:
-        la x 0, p
-        la x 1, k
-        la x 2, c
-        li x 3, l
-
-    loop:
-        beqz x 3, finish
-        lw x 5, x 0
-        lw x 6, x 1
-        xor x 7, x 5, x 6
-        sw x 7, x 2
-        inc x 0
-        inc x 1
-        inc x 2
-        dec x 3
-        j loop
-
-    finish:
-  end
+  (otp_code p k c l)
   ⦃(x[3] > 0 ∧
       (∀ i ≤ l - x[3], mem[c + i] = mem[p + i] ^^^ mem[k + i]) ∧
         x[0] = p + (l - (x[3] - 1)) ∧
@@ -397,7 +363,10 @@ theorem inc_otp_1 : ∀ (p k c l : UInt64),
     apply specification_Increment (d := 1)
     . simp
     . simp
-    . simp_currInstr
+    . simp
+      rw [h_code', h_pc]
+      unfold otp_code
+      simp[t_update_neq, t_update_eq]
     . exact h_pc
     .
       simp at *
@@ -419,27 +388,8 @@ theorem inc_otp_1 : ∀ (p k c l : UInt64),
       exact ⟨h_x7, h_x3, h_I_pre'⟩
       simp
 
-theorem inc_otp_2 : ∀ (p k c l : UInt64),
-  mriscx
-    main:
-        la x 0, p
-        la x 1, k
-        la x 2, c
-        li x 3, l
-
-    loop:
-        beqz x 3, finish
-        lw x 5, x 0
-        lw x 6, x 1
-        xor x 7, x 5, x 6
-        sw x 7, x 2
-        inc x 0
-        inc x 1
-        inc x 2
-        dec x 3
-        j loop
-  finish:
-  end
+theorem inc_otp_2 {x} : ∀ (p k c l : UInt64),
+(otp_code p k c l)
 ⦃(x[3] > 0 ∧
       (∀ i ≤ l - x[3], mem[c + i] = mem[p + i] ^^^ mem[k + i]) ∧
         x[0] = p + (l - (x[3] - 1)) ∧
@@ -463,6 +413,7 @@ theorem inc_otp_2 : ∀ (p k c l : UInt64),
                   I_pre' p k c l) ∧
     ¬⸨terminated⸩ = true⦄
     := by
+    unfold otp_code
     intros p k c l
     unfold hoare_triple_up
     rintro h_inter h_empty s h_code' h_pc
@@ -494,27 +445,7 @@ theorem inc_otp_2 : ∀ (p k c l : UInt64),
 
 
 theorem dec_otp : ∀ (p k c l : UInt64),
-  mriscx
-    main:
-        la x 0, p
-        la x 1, k
-        la x 2, c
-        li x 3, l
-
-    loop:
-        beqz x 3, finish
-        lw x 5, x 0
-        lw x 6, x 1
-        xor x 7, x 5, x 6
-        sw x 7, x 2
-        inc x 0
-        inc x 1
-        inc x 2
-        dec x 3
-        j loop
-
-    finish:
-  end
+  (otp_code p k c l)
   ⦃(x[3] > 0 ∧
       (∀ i ≤ l - x[3], mem[c + i] = mem[p + i] ^^^ mem[k + i]) ∧
         x[0] = p + (l - (x[3] - 1)) ∧
@@ -533,6 +464,7 @@ theorem dec_otp : ∀ (p k c l : UInt64),
               x[5] = mem[x[0] - 1] ∧
                 x[6] = mem[x[1] - 1] ∧ x[7] = x[5] ^^^ x[6] ∧ x[3] < x ∧ I_pre' p k c l) ∧
     ¬⸨terminated⸩ = true⦄ := by
+    unfold otp_code
     intros p k c l
     unfold hoare_triple_up
     rintro h_inter h_empty s h_code' h_pc
@@ -568,27 +500,7 @@ theorem dec_otp : ∀ (p k c l : UInt64),
 
 
 theorem j_otp : ∀ (p k c l : UInt64),
-mriscx
-  main:
-      la x 0, p
-      la x 1, k
-      la x 2, c
-      li x 3, l
-
-  loop:
-      beqz x 3, finish
-      lw x 5, x 0
-      lw x 6, x 1
-      xor x 7, x 5, x 6
-      sw x 7, x 2
-      inc x 0
-      inc x 1
-      inc x 2
-      dec x 3
-      j loop
-
-  finish:
-  end
+(otp_code p k c l)
 ⦃((∀ i < l - x[3], mem[c + i] = mem[p + i] ^^^ mem[k + i]) ∧
       x[0] = p + (l - x[3]) ∧
         x[1] = k + (l - x[3]) ∧
@@ -604,6 +516,7 @@ mriscx
             x[0] = p + (l - x[3]) ∧ x[1] = k + (l - x[3]) ∧ x[2] = c + (l - x[3]) ∧ x[3] ≤ l ∧ I_pre' p k c l) ∧
           ¬⸨terminated⸩ = true) ∧
         ⸨pc⸩ = 4⦄ := by
+  unfold otp_code
   intros p k c l
   unfold hoare_triple_up
   rintro h_inter h_empty s h_code h_pc ⟨⟨h_cond, h_I, h_x0, h_x1, h_x2, h_x3LtL, h_x5, h_x6, h_x7, h_x3, h_I_pre'⟩, h_terminated⟩
@@ -667,27 +580,7 @@ mriscx
 
 
 theorem beqz_otp: ∀ (p k c l : UInt64),
-  mriscx
-    main:
-        la x 0, p
-        la x 1, k
-        la x 2, c
-        li x 3, l
-
-    loop:
-        beqz x 3, finish
-        lw x 5, x 0
-        lw x 6, x 1
-        xor x 7, x 5, x 6
-        sw x 7, x 2
-        inc x 0
-        inc x 1
-        inc x 2
-        dec x 3
-        j loop
-
-    finish:
-  end
+  (otp_code p k c l)
   ⦃(x[3] > 0 ∧
       (∀ i < l - x[3], mem[c + i] = mem[p + i] ^^^ mem[k + i]) ∧
         x[0] = p + (l - x[3]) ∧ x[1] = k + (l - x[3]) ∧
@@ -701,6 +594,7 @@ theorem beqz_otp: ∀ (p k c l : UInt64),
           x[1] = k + (l - x[3]) ∧
             x[2] = c + (l - x[3]) ∧ x[3] ≤ l ∧ x[3] = x ∧ I_pre' p k c l) ∧
     ¬⸨terminated⸩ = true⦄ := by
+  unfold otp_code
   intros p k c l
   -- apply_spec specification_JumpEqZero_false (l := 4) (r := 3) (label := "finish")
   unfold hoare_triple_up

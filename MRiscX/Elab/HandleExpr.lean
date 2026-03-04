@@ -57,7 +57,7 @@ partial def getStrFromExpr (e : Expr) : MetaM String := do
   | _ => throwError "Expected a string literal"
 
 
-partial def getLabelMapFromExpr (e : Expr): MetaM LabelMap := do
+partial def getLabelMapFromMapExpr (e : Expr): MetaM LabelMap := do
   let e ← Meta.whnf e
   if e.isAppOfArity ``PMap.empty 2 then
     return PMap.empty
@@ -66,16 +66,16 @@ partial def getLabelMapFromExpr (e : Expr): MetaM LabelMap := do
     let labelName ← getStrFromExpr labelNameExpr
     let val ← Meta.whnf <| e.getArg! 3
     let n ← getUInt64FromExpr val
-    return PMap.put labelName n (←getLabelMapFromExpr (e.getArg! 4))
+    return PMap.put labelName n (←getLabelMapFromMapExpr (e.getArg! 4))
   else
     throwError s!"{e} is not a partial map"
 
 
-partial def getLabelMapExpr (e : Expr): MetaM LabelMap := do
+partial def getLabelMapFromCodeExpr (e : Expr): MetaM LabelMap := do
   let e ← Meta.whnf e
   if e.isAppOfArity ``Code.mk 2 then
     let labelMapExpr ← Meta.whnf <| e.getArg! 2
-    return ← getLabelMapFromExpr labelMapExpr
+    return ← getLabelMapFromMapExpr labelMapExpr
   throwError s!"{e} is no Expr of type Code!"
 
 
@@ -184,12 +184,38 @@ partial def getInstrMapFromExpr (e : Expr) : MetaM InstructionMap := do
   else
     throwError s!"{e} is not a partial map"
 
+
 def getInstrMapFromCodeExpr (e : Expr) : MetaM InstructionMap := do
   let e ← Meta.whnf e
   if e.isAppOfArity ``Code.mk 2 then
     return ← getInstrMapFromExpr (e.getArg! 0)
   throwError "Expected an Expr of type Code"
 
+/--
+Each parameter of a lambda function returns the function itself when `bindingBody!`.
+So we traverse those "body's", until we hit the actual body
+-/
+private def getLambdaBody (e : Expr) (fuel : Nat) : MetaM Expr := do
+  let e ← Meta.whnf e
+  if !e.isLambda then
+    return e
+  match fuel with
+  | 0 => throwError "There might be too many arguments in this function or an error occurred
+                        during the extraction of the function body"
+  | Nat.succ n' => do return ← getLambdaBody e.bindingBody! n'
+
+/--
+Return the actual binding body from a lambda function.
+-/
+partial def getCodeExprFromLambda (e : Expr) : MetaM Expr := do
+  let e ← Meta.whnf e
+  let ty ← inferType e
+  if !e.isLambda then
+    throwError m!"{e} is not a function!"
+  else if (ty.getForallBody != (Expr.const `Code [])) then
+    throwError s!"{e} is not a function which returns a Code"
+  let FUEL := 100
+  return ←getLambdaBody e FUEL
 
 /- a function to split conjunction and disjunction into its parts -/
 partial def splitConjDisj (declType : Expr) : MetaM (TSyntax `rcasesPat) := do
