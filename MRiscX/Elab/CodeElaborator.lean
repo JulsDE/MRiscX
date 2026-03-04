@@ -179,16 +179,19 @@ partial def getLabelInstrArr (t: TSyntax `mriscx_label): TermElabM (String × (A
   match t with
   | `(mriscx_label | $name:ident : $seq:mriscx_Instr*
     ) => do
-      let mut expressions : Array Expr ← getInstructionExprArr seq
-      return (name.getId.getString!, expressions)
+      return (name.getId.getString!, (←getInstructionExprArr seq))
+  | `(mriscx_label | .$name:ident : $seq:mriscx_Instr*
+    ) => do
+      return ("." ++ name.getId.getString!, (←getInstructionExprArr seq))
+
   | _ => throwError ("Expected Label")
 
 
 partial def getLabelMapFromSyntax (syn : TSyntax `mriscx_syntax): TermElabM LabelMap := do
   match syn with
   | `(mriscx_syntax | mriscx
-    $lblSyn:mriscx_label*
-    end) => do
+                        $lblSyn:mriscx_label*
+                      end) => do
     let mut counter := 0
     let mut labelInstrArr := #[]
 
