@@ -79,6 +79,46 @@ partial def getLabelMapFromCodeExpr (e : Expr): MetaM LabelMap := do
   throwError s!"{e} is no Expr of type Code!"
 
 
+
+/--
+Recursively search through a TMap Expr to find the Instr at the given line number.
+
+This helper function navigates through the nested TMap.put structure to locate
+the instruction at the specified program counter position.
+-/
+private partial def getInstrExprFromMapExpr (mapExpr : Expr) (pc : UInt64) : MetaM Expr := do
+  let mapExpr ← Meta.whnf mapExpr
+  if mapExpr.isAppOfArity ``TMap.empty 3 then
+    -- Return the panic instruction (default)
+    return mkAppN (mkConst `Instr.Panic []) #[]
+  else if mapExpr.isAppOfArity ``TMap.put 5 then
+    let lineExpr ← Meta.whnf <| mapExpr.getArg! 2
+    let line ← getUInt64FromExpr lineExpr
+    if line = pc then
+      -- Found the instruction at this line
+      return ← Meta.whnf <| mapExpr.getArg! 3
+    else
+      -- Continue searching in the rest of the map
+      return ← getInstrExprFromMapExpr (mapExpr.getArg! 4) pc
+  else
+    throwError s!"Expected a TMap expression, got {mapExpr}"
+
+
+/--
+Extract an Instr from a Code.mk Expr given a program counter value.
+
+This function takes an Expr of type Code.mk and a program counter (UInt64),
+and returns the Expr of the Instr at that program counter position.
+-/
+def getInstrFromCodeExpr (codeExpr : Expr) (pc : UInt64) : MetaM Expr := do
+  let codeExpr ← Meta.whnf codeExpr
+  if codeExpr.isAppOfArity ``Code.mk 2 then
+    let instrMapExpr := codeExpr.getArg! 0
+    return ← getInstrExprFromMapExpr instrMapExpr pc
+  else
+    throwError "Expected an Expr of type Code"
+
+
 def getArgsAsUIntsOrThrow (args : Array Expr) (n : Nat) : MetaM (List UInt64) := do
   if args.size < n then
     throwError "Expected at least {n} arguments, got {args.size}"

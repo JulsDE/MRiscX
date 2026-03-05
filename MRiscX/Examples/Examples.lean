@@ -320,7 +320,6 @@ example (r₀ r₁ p : UInt64):
         exact h₂
         apply Ne.symm
         assumption
-      simp [t_update_eq]
       rw [t_update_neq, t_update_eq]
       assumption
       -- /:
