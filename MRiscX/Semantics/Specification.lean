@@ -19,16 +19,16 @@ With the knowledge of this file it is clear, that the intereprete function
 runOneStep works as intended. Because of this, this assembly language can be
 used to write algorithms and prove their correctness.
 
-For certifying the instruction, the rule of assignment (P ⟦x[r] ← v; pc++⟧) is used.
+For certifying the instruction, the rule of assignment (P ⟦x[dst] ← val; pc++⟧) is used.
 The hoare triples state that if you start in a state where the precondition P holds,
 and you execute the instruction, the precondition P will still
 hold after the execution. The precondition is applied after simulating the
 effects of the instruction.
 -/
-theorem specification_LoadAddress (P: Assertion) (l r v : UInt64):
+theorem specification_LoadAddress (P: Assertion) (pc dst addr : UInt64):
   hoare
-    ⟪la x r, v;⟫
-    ⦃P ⟦x[r] ← v; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪la x dst, addr;⟫
+    ⦃P ⟦x[dst] ← addr; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   unfold hoare_triple_up_1
@@ -65,16 +65,16 @@ theorem specification_LoadAddress (P: Assertion) (l r v : UInt64):
 /--
 Specification for `Instr.LoadImmediate`.
 
-For certifying the instruction, the `rule of assignment` (P ⟦x[r] ← v; pc++⟧) is used.
+For certifying the instruction, the `rule of assignment` (P ⟦x[dst] ← val; pc++⟧) is used.
 The hoare triples state that if you start in a state where the precondition P holds,
 and you execute the instruction, the precondition P will still
 hold after the execution. The precondition is applied after simulating the
 effects of the instruction.
 -/
-theorem specification_LoadImmediate (P: Assertion) (l r v : UInt64):
+theorem specification_LoadImmediate (P: Assertion) (pc dst val : UInt64):
   hoare
-    ⟪li x r, v;⟫
-    ⦃P ⟦x[r] ← v; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪li x dst, val;⟫
+    ⦃P ⟦x[dst] ← val; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
     unfold hoare_triple_up_1
@@ -109,67 +109,67 @@ theorem specification_LoadImmediate (P: Assertion) (l r v : UInt64):
 
 
 
-theorem specification_CopyRegister (P: Assertion) (l r v : UInt64):
+theorem specification_CopyRegister (P: Assertion) (pc dst val : UInt64):
   hoare
-    ⟪mv x r, x v;⟫
-    ⦃P ⟦x[r] ← x[v]; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪mv x dst, x val;⟫
+    ⦃P ⟦x[dst] ← x[val]; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
-theorem specification_AddImmediate (P: Assertion) (l d r v : UInt64):
+theorem specification_AddImmediate (P: Assertion) (pc dst regAddend val : UInt64):
   hoare
-    ⟪addi x d, x r, v;⟫
-    ⦃P ⟦x[d] ← (x[r] + v) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪addi x dst, x regAddend, val;⟫
+    ⦃P ⟦x[dst] ← (x[regAddend] + val) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
-theorem specification_Increment (P: Assertion) (l d : UInt64):
+theorem specification_Increment (P: Assertion) (pc dst : UInt64):
   hoare
-    ⟪inc x d;⟫
-    ⦃P ⟦x[d] ← (x[d] + 1) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪inc x dst;⟫
+    ⦃P ⟦x[dst] ← (x[dst] + 1) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
-theorem specification_AddRegister (P: Assertion) (l d r1 r2 : UInt64):
+theorem specification_AddRegister (P: Assertion) (pc dst regAddend1 regAddend2 : UInt64):
   hoare
-    ⟪add x d, x r1, x r2;⟫
-    ⦃P ⟦x[d] ← (x[r1] + x[r2]) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪add x dst, x regAddend1, x regAddend2;⟫
+    ⦃P ⟦x[dst] ← (x[regAddend1] + x[regAddend2]) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
-theorem specification_SubImmediate (P: Assertion) (l d r : UInt64):
+theorem specification_SubImmediate (P: Assertion) (pc dst regMinuend subtrahend : UInt64):
   hoare
-    ⟪subi x d, x r, l;⟫
-    ⦃P ⟦x[d] ← (x[r] - l) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪subi x dst, x regMinuend, subtrahend;⟫
+    ⦃P ⟦x[dst] ← (x[regMinuend] - subtrahend) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
-theorem specification_Decrement (P: Assertion) (l d : UInt64):
+theorem specification_Decrement (P: Assertion) (pc dst : UInt64):
   hoare
-    ⟪dec x d;⟫
-    ⦃P ⟦x[d] ← (x[d] - 1) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪dec x dst;⟫
+    ⦃P ⟦x[dst] ← (x[dst] - 1) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
-theorem specification_SubRegister (P: Assertion) (l d r1 r2 : UInt64):
+theorem specification_SubRegister (P: Assertion) (pc dst regMinuend regSubtrahend : UInt64):
   hoare
-    ⟪sub x d, x r1, x r2;⟫
-    ⦃P ⟦x[d] ← (x[r1] - x[r2]) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪sub x dst, x regMinuend, x regSubtrahend;⟫
+    ⦃P ⟦x[dst] ← (x[regMinuend] - x[regSubtrahend]) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
 
-theorem specification_XorImmediate (P: Assertion) (l d r : UInt64):
+theorem specification_XorImmediate (P: Assertion) (pc dst reg val : UInt64):
   hoare
-    ⟪xori x d, x r, l;⟫
-    ⦃P ⟦x[d] ← (x[r] ^^^ l) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪xori x dst, x reg, val;⟫
+    ⦃P ⟦x[dst] ← (x[reg] ^^^ val) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   unfold hoare_triple_up_1
@@ -198,10 +198,10 @@ theorem specification_XorImmediate (P: Assertion) (l d r : UInt64):
     rw [h_pc] at pre
     exact ⟨pre, h_terminated⟩
 
-theorem specification_XOR (P: Assertion) (l d r1 r2 : UInt64):
+theorem specification_XOR (P: Assertion) (pc dst reg1 reg2 : UInt64):
   hoare
-    ⟪xor x d, x r1, x r2;⟫
-    ⦃P ⟦x[d] ← (x[r1] ^^^ x[r2]) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪xor x dst, x reg1, x reg2;⟫
+    ⦃P ⟦x[dst] ← (x[reg1] ^^^ x[reg2]) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   unfold hoare_triple_up_1
@@ -230,37 +230,37 @@ theorem specification_XOR (P: Assertion) (l d r1 r2 : UInt64):
     rw [h_pc] at pre
     exact ⟨pre, h_terminated⟩
 
-theorem specification_LoadWordImmediate (P: Assertion) (l d m : UInt64):
+theorem specification_LoadWordImmediate (P: Assertion) (pc dst memAddr : UInt64):
   hoare
-    ⟪lw x d, m;⟫
-    ⦃P ⟦x[d] ← mem[m] ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪lw x dst, memAddr;⟫
+    ⦃P ⟦x[dst] ← mem[memAddr] ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
 
-theorem specification_LoadWordReg (P: Assertion) (l d m : UInt64):
+theorem specification_LoadWordReg (P: Assertion) (pc dst regWithAddr : UInt64):
   hoare
-    ⟪lw x d, x m;⟫
-    ⦃P ⟦x[d] ← mem[x[m]] ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪lw x dst, x regWithAddr;⟫
+    ⦃P ⟦x[dst] ← mem[x[regWithAddr]] ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
 
-theorem specification_StoreWordImmediate (P: Assertion) (l d r : UInt64):
+theorem specification_StoreWordImmediate (P: Assertion) (pc regWithAddr regWithValue : UInt64):
   hoare
-    ⟪sw x r, x d;⟫
-    ⦃P ⟦mem[x[d]] ← x[r] ; pc++⟧ ∧ ¬⸨terminated⸩⦄ l ↦ ⟨{l+1} | {n:UInt64 | n ≠ l+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪sw x regWithValue, x regWithAddr;⟫
+    ⦃P ⟦mem[x[regWithAddr]] ← x[regWithValue] ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
 
-theorem specification_Jump (P : Assertion) (l newPc : UInt64) (label : String):
+theorem specification_Jump (P : Assertion) (pc newPc : UInt64) (label : String):
   hoare
     ⟪j label;⟫
     ⦃P ⟦pc ← newPc⟧ ∧ labels[label] = some newPc ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
+    pc ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -293,11 +293,11 @@ theorem specification_Jump (P : Assertion) (l newPc : UInt64) (label : String):
     simp [h_curr, h_label, pre]
 
 
-theorem specification_Jump' (P : Assertion) (l newPc : UInt64) (label : String):
+theorem specification_Jump' (P : Assertion) (pc newPc : UInt64) (label : String):
   hoare
     ⟪j label;⟫
     ⦃P ⟦pc ← newPc⟧ ∧ labels[label] = some newPc ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
+    pc ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩ ∧ ⸨pc⸩ = newPc⦄
   end := by
   unfold hoare_triple_up_1
@@ -329,11 +329,11 @@ theorem specification_Jump' (P : Assertion) (l newPc : UInt64) (label : String):
     simp [h_curr, h_label, pre]
 
 
-theorem specification_JumpEq_true (P : Assertion) (l newPc r1 r2: UInt64) (s : String):
+theorem specification_JumpEq_true (P : Assertion) (pc newPc reg1 reg2: UInt64) (s : String):
   hoare
-    ⟪beq x r1, x r2, s;⟫
-    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = newPc ∧ x[r1] = x[r2] ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
+    ⟪beq x reg1, x reg2, s;⟫
+    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = newPc ∧ x[reg1] = x[reg2] ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
     ⦃P ⟦⟧ ∧ labels[s] = newPc ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -367,11 +367,11 @@ theorem specification_JumpEq_true (P : Assertion) (l newPc r1 r2: UInt64) (s : S
     simp [h_curr, h_label, h_cond, pre]
 
 
-theorem specification_JumpEq_false (P : Assertion) (l r1 r2: UInt64) (s : String):
+theorem specification_JumpEq_false (P : Assertion) (pc reg1 reg2: UInt64) (s : String):
   hoare
-    ⟪beq x r1, x r2, s;⟫
-    ⦃P ⟦pc++⟧ ∧ x[r1] ≠ x[r2] ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{l + 1} | {n:UInt64 | n ≠ l+1}⟩
+    ⟪beq x reg1, x reg2, s;⟫
+    ⦃P ⟦pc++⟧ ∧ x[reg1] ≠ x[reg2] ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{pc + 1} | {n:UInt64 | n ≠ pc+1}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -406,21 +406,21 @@ theorem specification_JumpEq_false (P : Assertion) (l r1 r2: UInt64) (s : String
     exact pre
 
 
-theorem specification_JumpNeq_true (P : Assertion) (l newPc r1 r2: UInt64) (s : String):
+theorem specification_JumpNeq_true (P : Assertion) (pc newPc reg1 reg2: UInt64) (s : String):
   hoare
-    ⟪bne x r1, x r2, s;⟫
-    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = newPc ∧ x[r1] ≠ x[r2] ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
+    ⟪bne x reg1, x reg2, s;⟫
+    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = newPc ∧ x[reg1] ≠ x[reg2] ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
     ⦃P ⟦⟧ ∧ labels[s] = newPc ∧ ¬⸨terminated⸩⦄
   end
   := by
   simp_jump_spec
 
-theorem specification_JumpNeq_false (P : Assertion) (l r1 r2: UInt64) (s : String):
+theorem specification_JumpNeq_false (P : Assertion) (pc reg1 reg2: UInt64) (s : String):
   hoare
-    ⟪bne x r1, x r2, s;⟫
-    ⦃P ⟦pc++⟧ ∧ x[r1] = x[r2] ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{l + 1} | {n:UInt64 | n ≠ l+1}⟩
+    ⟪bne x reg1, x reg2, s;⟫
+    ⦃P ⟦pc++⟧ ∧ x[reg1] = x[reg2] ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{pc + 1} | {n:UInt64 | n ≠ pc+1}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -428,11 +428,11 @@ theorem specification_JumpNeq_false (P : Assertion) (l r1 r2: UInt64) (s : Strin
 
 
 
-theorem specification_JumpGt_true (P : Assertion) (l newPc r1 r2: UInt64) (s : String):
+theorem specification_JumpGt_true (P : Assertion) (pc newPc reg1 reg2: UInt64) (s : String):
   hoare
-    ⟪bgt x r1, x r2, s;⟫
-    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = newPc ∧ x[r1] > x[r2] ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
+    ⟪bgt x reg1, x reg2, s;⟫
+    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = newPc ∧ x[reg1] > x[reg2] ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
     ⦃P ⟦⟧ ∧ labels[s] = newPc ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -440,11 +440,11 @@ theorem specification_JumpGt_true (P : Assertion) (l newPc r1 r2: UInt64) (s : S
 
 
 
-theorem specification_JumpGt_false (P : Assertion) (l r1 r2: UInt64) (s : String):
+theorem specification_JumpGt_false (P : Assertion) (pc reg1 reg2: UInt64) (s : String):
   hoare
-    ⟪bgt x r1, x r2, s;⟫
-    ⦃P ⟦pc++⟧ ∧ x[r1] ≤ x[r2] ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{l + 1} | {n:UInt64 | n ≠ l+1}⟩
+    ⟪bgt x reg1, x reg2, s;⟫
+    ⦃P ⟦pc++⟧ ∧ x[reg1] ≤ x[reg2] ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{pc + 1} | {n:UInt64 | n ≠ pc+1}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -453,7 +453,7 @@ theorem specification_JumpGt_false (P : Assertion) (l r1 r2: UInt64) (s : String
   simp at h_terminated
   simp at h_cond
   simp at h_curr
-  have h_cond_false: (TMap.get state.registers r2 < TMap.get state.registers r1) ↔ false := by
+  have h_cond_false: (TMap.get state.registers reg2 < TMap.get state.registers reg1) ↔ false := by
     simp
     exact h_cond
   exists state.runOneStep
@@ -484,22 +484,22 @@ theorem specification_JumpGt_false (P : Assertion) (l r1 r2: UInt64) (s : String
     exact pre
 
 
-theorem specification_JumpLe_true (P : Assertion) (l newPc r1 r2: UInt64) (s : String):
+theorem specification_JumpLe_true (P : Assertion) (pc newPc reg1 reg2: UInt64) (s : String):
   hoare
-    ⟪ble x r1, x r2, s;⟫
-    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = newPc ∧ x[r1] ≤ x[r2] ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
+    ⟪ble x reg1, x reg2, s;⟫
+    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = newPc ∧ x[reg1] ≤ x[reg2] ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
     ⦃P ⟦⟧ ∧ labels[s] = newPc ∧ ¬⸨terminated⸩⦄
   end
   := by
   simp_jump_spec
 
 
-theorem specification_JumpLe_false (P : Assertion) (l r1 r2: UInt64) (s : String):
+theorem specification_JumpLe_false (P : Assertion) (pc reg1 reg2: UInt64) (s : String):
   hoare
-    ⟪ble x r1, x r2, s;⟫
-    ⦃P ⟦pc++⟧ ∧ x[r1] > x[r2] ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{l + 1} | {n:UInt64 | n ≠ l+1}⟩
+    ⟪ble x reg1, x reg2, s;⟫
+    ⦃P ⟦pc++⟧ ∧ x[reg1] > x[reg2] ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{pc + 1} | {n:UInt64 | n ≠ pc+1}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -531,11 +531,11 @@ theorem specification_JumpLe_false (P : Assertion) (l r1 r2: UInt64) (s : String
     exact h_terminated
 
 
-theorem specification_JumpEqZero_true (P : Assertion) (l newPc r: UInt64) (label : String):
+theorem specification_JumpEqZero_true (P : Assertion) (pc newPc reg: UInt64) (label : String):
   hoare
-    ⟪beqz x r, label;⟫
-    ⦃P ⟦pc ← newPc⟧ ∧ labels[label] = some newPc ∧ x[r] = 0 ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
+    ⟪beqz x reg, label;⟫
+    ⦃P ⟦pc ← newPc⟧ ∧ labels[label] = some newPc ∧ x[reg] = 0 ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -544,11 +544,11 @@ theorem specification_JumpEqZero_true (P : Assertion) (l newPc r: UInt64) (label
 
 
 
-theorem specification_JumpEqZero_false (P : Assertion) (l r: UInt64) (label : String):
+theorem specification_JumpEqZero_false (P : Assertion) (pc reg: UInt64) (label : String):
   hoare
-    ⟪beqz x r, label;⟫
-    ⦃P ⟦pc++⟧ ∧ x[r] ≠ 0 ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{l + 1} | {n:UInt64 | n ≠ l+1}⟩
+    ⟪beqz x reg, label;⟫
+    ⦃P ⟦pc++⟧ ∧ x[reg] ≠ 0 ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{pc + 1} | {n:UInt64 | n ≠ pc+1}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
@@ -557,11 +557,11 @@ theorem specification_JumpEqZero_false (P : Assertion) (l r: UInt64) (label : St
 
 
 
-theorem specification_JumpNeqZero_true (P : Assertion) (l newPc r: UInt64) (s : String):
+theorem specification_JumpNeqZero_true (P : Assertion) (pc newPc reg: UInt64) (s : String):
   hoare
-    ⟪bnez x r, s;⟫
-    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = some newPc ∧ x[r] ≠ 0 ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
+    ⟪bnez x reg, s;⟫
+    ⦃P ⟦pc ← newPc⟧ ∧ labels[s] = some newPc ∧ x[reg] ≠ 0 ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{newPc} | {n:UInt64 | n ≠ newPc}⟩
     ⦃P ⟦⟧⦄
   end
   := by
@@ -569,11 +569,11 @@ theorem specification_JumpNeqZero_true (P : Assertion) (l newPc r: UInt64) (s : 
 
 
 
-theorem specification_JumpNeqZero_false (P : Assertion) (l r: UInt64) (s : String):
+theorem specification_JumpNeqZero_false (P : Assertion) (pc reg: UInt64) (s : String):
   hoare
-    ⟪bnez x r, s;⟫
-    ⦃P ⟦pc++⟧ ∧ x[r] = 0 ∧ ¬⸨terminated⸩⦄
-    l ↦ ⟨{l + 1} | {n:UInt64 | n ≠ l+1}⟩
+    ⟪bnez x reg, s;⟫
+    ⦃P ⟦pc++⟧ ∧ x[reg] = 0 ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{pc + 1} | {n:UInt64 | n ≠ pc+1}⟩
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by

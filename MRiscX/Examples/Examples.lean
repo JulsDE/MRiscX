@@ -127,10 +127,10 @@ example (p k c l : UInt64) :
           r := The register which is being modified.
           v := The value we want to load into the register.
         The parameters differ to each specification.1 -/
-      . apply_spec specification_LoadAddress (l := 0) (r := 0) (v := p)
-      . apply_spec specification_LoadAddress (l := 1) (r := 1) (v := k)
-    . apply_spec specification_LoadAddress (l := 2) (r := 2) (v := c)
-  . apply_spec specification_LoadImmediate (l := 3) (r := 3) (v := l)
+      . apply_spec specification_LoadAddress (pc := 0) (dst := 0) (addr := p)
+      . apply_spec specification_LoadAddress (pc := 1) (dst := 1) (addr := k)
+    . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := c)
+  . apply_spec specification_LoadImmediate (pc := 3) (dst := 3) (val := l)
 
 /- A function to avoid repetition while writing the hoare-triples -/
 def pairwiseDistinct (r₁ r₂ r₃ r₄ : UInt64) :=
@@ -184,10 +184,10 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
                       L_W' := {2},
                       L_B := ({n:UInt64| n ≠ 1}),
                       L_B' := ({n:UInt64| n ≠ 2})
-      . apply_spec specification_LoadAddress (l := 0) (r := r₁) (v := p)
-      . apply_spec specification_LoadAddress (l := 1) (r := r₂) (v := k)
-    . apply_spec specification_LoadAddress (l := 2) (r := r₃) (v := c)
-  . apply_spec specification_LoadImmediate (l := 3) (r := r₄) (v := l)
+      . apply_spec specification_LoadAddress (pc := 0) (dst := r₁) (addr := p)
+      . apply_spec specification_LoadAddress (pc := 1) (dst := r₂) (addr := k)
+    . apply_spec specification_LoadAddress (pc := 2) (dst := r₃) (addr := c)
+  . apply_spec specification_LoadImmediate (pc := 3) (dst := r₄) (val := l)
 
 
 
@@ -220,10 +220,10 @@ example:
                     L_W' := {2},
                     L_B := ({n:UInt64| n ≠ 1}),
                     L_B' := ({n:UInt64| n ≠ 2})
-    . apply_spec specification_LoadImmediate (l := 0) (r := 0) (v := 2)
-    . apply_spec specification_LoadImmediate (l := 1) (r := 1) (v := 0)
+    . apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
+    . apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
     . simp_set_eq
-  . apply_spec specification_LoadAddress (l := 2) (r := 2) (v := 0x123)
+  . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := 0x123)
 
 
 /-
@@ -257,9 +257,9 @@ example:
                     L_W' := {2},
                     L_B := ({n:UInt64| n ≠ 1}),
                     L_B' := ({n:UInt64| n ≠ 2})
-    . apply_spec specification_LoadImmediate (l := 0) (r := 0) (v := 2)
-    . apply_spec specification_LoadImmediate (l := 1) (r := 1) (v := 0)
-  . apply_spec specification_LoadAddress (l := 2) (r := 2) (v := 0x123)
+    . apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
+    . apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
+  . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := 0x123)
 
 
 
@@ -280,9 +280,9 @@ example:
                 := by
                 simp_set_eq
       rw [this]
-      apply_spec specification_LoadImmediate (l := 0) (r := 0) (v := 2)
-    .apply_spec specification_LoadImmediate (l := 1) (r := 1) (v := 0)
-  . apply_spec specification_LoadAddress (r := 2) (l := 2) (v := 291)
+      apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
+    .apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
+  . apply_spec specification_LoadAddress (dst := 2) (pc := 2) (addr := 291)
 
 
 /--
@@ -308,8 +308,8 @@ example (r₀ r₁ p : UInt64):
                 := by
                 simp_set_eq
       rw [this]
-      apply_spec specification_LoadImmediate (l := 0) (r := r₀) (v := p)
-    . apply_spec specification_LoadImmediate (l := 1) (r := r₁) (v := 0)
+      apply_spec specification_LoadImmediate (pc := 0) (dst := r₀) (val := p)
+    . apply_spec specification_LoadImmediate (pc := 1) (dst := r₁) (val := 0)
       -- TODO automate this:
       have : (r₁ ↦ 0 ; (2 ↦ 291 ; s.registers)).get r₀ = p := by assumption
       .
@@ -324,7 +324,7 @@ example (r₀ r₁ p : UInt64):
       rw [t_update_neq, t_update_eq]
       assumption
       -- /:
-  . apply_spec specification_LoadAddress (r := 2) (l := 2) (v := 291)
+  . apply_spec specification_LoadAddress (dst := 2) (pc := 2) (addr := 291)
 
 
 example:
@@ -377,8 +377,8 @@ example:
                         L_W' := {2},
                         L_B := ({n:UInt64| n ≠ 1}),
                         L_B' := ({n:UInt64| n ≠ 2})
-        . apply_spec specification_LoadImmediate (l := 0) (r := 0) (v := 6)
-        . apply_spec specification_LoadImmediate (l := 1) (r := 1) (v := 123)
-      . apply_spec specification_XOR (l := 2) (d := 2) (r1 := 0) (r2 := 1)
-    . apply_spec specification_LoadAddress (l := 3) (r := 3) (v := 0x321)
-  . apply_spec specification_StoreWordImmediate (l := 4) (r := 2) (d := 3)
+        . apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 6)
+        . apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 123)
+      . apply_spec specification_XOR (pc := 2) (dst := 2) (reg1 := 0) (reg2 := 1)
+    . apply_spec specification_LoadAddress (pc := 3) (dst := 3) (addr := 0x321)
+  . apply_spec specification_StoreWordImmediate (pc := 4) (regWithValue := 2) (regWithAddr := 3)
