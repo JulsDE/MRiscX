@@ -182,7 +182,7 @@ theorem sw_otp : ∀ (p k c l : UInt64),
       simp
     rw [this]
     rw [←h_code']
-    apply specification_StoreWordImmediate (d := 2) (r := 7)
+    apply specification_StoreWordImmediate (regWithAddr := 2) (regWithValue := 7)
     . simp
     . simp
     . simp_currInstr
@@ -310,7 +310,7 @@ theorem inc_otp_0 : ∀ (p k c l : UInt64),
     have: ({10} : Set UInt64)  = {9 + 1}  := by
       simp
     rw [this]
-    apply specification_Increment (d := 0)
+    apply specification_Increment (dst := 0)
     . simp
     . simp
     . simp_currInstr
@@ -360,7 +360,7 @@ theorem inc_otp_1 : ∀ (p k c l : UInt64),
     unfold hoare_triple_up
     rintro h_inter h_empty s h_code' h_pc ⟨⟨h_cond, h_I, h_x0, h_x1, h_x2, h_x3LtL, h_x5, h_x6, h_x7, h_x3, h_I_pre'⟩, h_terminated⟩
     rw [←h_code']
-    apply specification_Increment (d := 1)
+    apply specification_Increment (dst := 1)
     . simp
     . simp
     . simp
@@ -422,7 +422,7 @@ theorem inc_otp_2 {x} : ∀ (p k c l : UInt64),
     have: ({12}: Set UInt64) = {11 + 1}  := by
       simp
     rw [this]
-    apply specification_Increment (d := 2)
+    apply specification_Increment (dst := 2)
     . simp
     . simp
     . simp_currInstr
@@ -473,7 +473,7 @@ theorem dec_otp : ∀ (p k c l : UInt64),
     have: ({13} : Set UInt64) = {12 + 1}  := by
       simp
     rw [this]
-    apply specification_Decrement (d := 3)
+    apply specification_Decrement (dst := 3)
     . simp
     . simp
     . simp_currInstr
@@ -571,7 +571,7 @@ theorem j_otp : ∀ (p k c l : UInt64),
     apply this
     clear this
 
-    apply_spec_basic specification_Jump' (l := 13) (newPc := 4) (label := ".loop")
+    apply_spec_basic specification_Jump' (pc := 13) (newPc := 4) (label := ".loop")
     . repeat (constructor <;> try assumption)
       simp
       rw [h_code']
@@ -631,7 +631,7 @@ theorem beqz_otp: ∀ (p k c l : UInt64),
       contradiction
 
   rw [this]
-  apply_spec_when_ready specification_JumpEqZero_false (l := 4) (r := 3) (label := "finish")
+  apply_spec_when_ready specification_JumpEqZero_false (pc := 4) (reg := 3) (label := "finish")
   .
     apply UInt64.gt_zero_neq_zero
     exact h_cond

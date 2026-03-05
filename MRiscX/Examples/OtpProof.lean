@@ -86,13 +86,13 @@ theorem proof_otp : ∀ (p k c l: UInt64),
         ⦃(x[0] = p ∧ (I_pre p k c l)) ∧ ¬⸨terminated⸩⦄ , {1} , {2},
         {n:UInt64 | n ≠ 1},
         {n:UInt64 | n ≠ 2}
-        . apply_spec specification_LoadAddress (s := s) (l := 0) (r := 0) (v := p)
-        . apply_spec specification_LoadAddress (s := s) (l := 1) (r := 1) (v := k)
+        . apply_spec specification_LoadAddress (s := s) (pc := 0) (dst := 0) (addr := p)
+        . apply_spec specification_LoadAddress (s := s) (pc := 1) (dst := 1) (addr := k)
         . simp_set_eq
-      . apply_spec specification_LoadAddress (s := s) (l := 2) (r := 2) (v := c)
+      . apply_spec specification_LoadAddress (s := s) (pc := 2) (dst := 2) (addr := c)
       .
         simp_set_eq
-    . apply_spec specification_LoadImmediate (s := s) (l := 3) (r := 3) (v := l)
+    . apply_spec specification_LoadImmediate (s := s) (pc := 3) (dst := 3) (val := l)
     . simp_set_eq
 
     -- end 0 → 4 proof
@@ -261,17 +261,17 @@ theorem proof_otp : ∀ (p k c l: UInt64),
                         ({n:UInt64 | n ≠ 6})
                       . apply beqz_otp
                       .
-                        apply_spec specification_LoadWordReg (l := 5) (d := 5) (m := 0)
+                        apply_spec specification_LoadWordReg (pc := 5) (dst := 5) (regWithAddr := 0)
 
                       . simp_set_eq
                     .
-                      apply_spec specification_LoadWordReg (l := 6) (d := 6) (m := 1)
+                      apply_spec specification_LoadWordReg (pc := 6) (dst := 6) (regWithAddr := 1)
                     . simp_set_eq
                   .
                     have: @singleton UInt64 (Set UInt64) Set.instSingletonSet 8  = @singleton UInt64 (Set UInt64) Set.instSingletonSet (7 + 1)  := by
                       simp
                     rw [this]
-                    apply_spec specification_XOR (d := 7) (r1 := 5) (r2 := 6)
+                    apply_spec specification_XOR (dst := 7) (reg1 := 5) (reg2 := 6)
 
                   . simp_set_eq
                 . intros l' h_l'
@@ -329,7 +329,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
       . simp
       .
         -- apply_spec specification_JumpEqZero_true (s := "finish") (newPc := 14)
-        --   (l := 4) (r := 3)
+        --   (pc := 4) (r := 3)
 
 
 
@@ -379,7 +379,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
         apply this
         clear this
         apply specification_JumpEqZero_true (label := "finish") (newPc := 14)
-          (l := 4) (r := 3)
+          (pc := 4) (reg := 3)
           -- (P := ⦃∀ i < l,
           --   mem[c+i] = mem[p + i] ^^^ mem[k + i]⦄)
 
