@@ -3,21 +3,10 @@ import MRiscX.AbstractSyntax.Instr
 import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Elab.HandleNumOrIdent
 import MRiscX.Elab.HandleExpr
+import MRiscX.Tactics.TacticUtil
 import Mathlib.Data.Set.Basic
 open Lean Meta Elab Parser Tactic
 
-
-def findHypTypeM? (ctx : LocalContext) (n : Name) : MetaM (Option Expr) :=
-  ctx.findDeclM? (fun decl =>
-    if decl.userName == n then
-      return some decl.type
-    else
-      return none)
-
-def findHypTypeM (ctx : LocalContext) (n : Name): MetaM (Expr) := do
-  let some res ← (findHypTypeM? ctx n)
-      | throwError s!"Could not find {n} in hypothesis"
-  return res
 
 def extractL_w'AndL_b'' (e : Expr) : MetaM (Expr × Expr) := do
   let whnf ← Meta.whnf e
@@ -45,19 +34,6 @@ def extractQ (arr : PersistentArray (Option LocalDecl)) : MetaM (Expr) := do
         return type.getArg! 1
     | _  => pure ()
   throwError "Could not find a term of hoare_triple_up"
-
-
-def buildL_w'FromExpr (e : Expr) : MetaM (UInt64) := do
-  if e.isAppOfArity ``Singleton.singleton 4 then
-    let nRaw? := ((e.getArg! 3).getArg! 1).rawNatLit?
-    match nRaw? with
-    | some n => return UInt64.ofNat n
-    | none => do throwError s!"Used the wrong argument to get UInt64 from Expr to create L_w' " ++
-                    "from Expr"
-  -- TODO: Solve Addition
-  else
-    throwError s!"It seems like {e} is not in correct shape. Please confirm that the whitelist " ++
-      "consists of only one element like so: {1}"
 
 
 def incPcExpr (state : Expr) : Expr := Expr.app (.const `MState.incPc []) (state)
@@ -174,7 +150,7 @@ elab "peel_last_instr" : tactic => do
     let codeEqExpr ← Meta.whnf (←findHypTypeM ctx `h_code')
     let codeExpr := codeEqExpr.getArg! 2
 
-    let L_w' ← buildL_w'FromExpr L_w'_expr
+    let L_w' ← parseSingletonExpr L_w'_expr
     let L_w_expr := mkSingletonOf (L_w' - 1)
     let L_b'asExpr := getNeSet L_w'
 

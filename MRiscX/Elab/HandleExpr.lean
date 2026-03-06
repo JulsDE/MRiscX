@@ -279,3 +279,16 @@ partial def splitConjDisj (declType : Expr) : MetaM (TSyntax `rcasesPat) := do
       throwError s!"{e} is an implication but theres missing an expr"
 
   return (←`(rcasesPat | _))
+
+
+def parseSingletonExpr (e : Expr) : MetaM (UInt64) := do
+  if e.isAppOfArity ``Singleton.singleton 4 then
+    let nRaw? := ((e.getArg! 3).getArg! 1).rawNatLit?
+    match nRaw? with
+    | some n => return UInt64.ofNat n
+    | none => do throwError s!"Used the wrong argument to get UInt64 from Expr to create L_w' " ++
+                    "from Expr"
+  -- TODO: Solve Addition
+  else
+    throwError s!"It seems like {e} is not in correct shape. Please confirm that the whitelist " ++
+      "consists of only one element like so: {1}"

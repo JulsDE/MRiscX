@@ -1,5 +1,5 @@
 import MRiscX.Basic
-
+import MRiscX.Tactics.ApplySpec
 /-
 New Code Proofs
 -/
@@ -220,7 +220,7 @@ example:
                     L_W' := {2},
                     L_B := ({n:UInt64| n ≠ 1}),
                     L_B' := ({n:UInt64| n ≠ 2})
-    . apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
+    . apply_spec'
     . apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
     . simp_set_eq
   . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := 0x123)
@@ -257,9 +257,9 @@ example:
                     L_W' := {2},
                     L_B := ({n:UInt64| n ≠ 1}),
                     L_B' := ({n:UInt64| n ≠ 2})
-    . apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
-    . apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
-  . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := 0x123)
+    . apply_spec'
+    . apply_spec'
+  . apply_spec'
 
 
 
@@ -280,9 +280,9 @@ example:
                 := by
                 simp_set_eq
       rw [this]
-      apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
-    .apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
-  . apply_spec specification_LoadAddress (dst := 2) (pc := 2) (addr := 291)
+      apply_spec'
+    .apply_spec'
+  . apply_spec'
 
 
 /--

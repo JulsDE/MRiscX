@@ -3,7 +3,7 @@ import MRiscX.AbstractSyntax.Instr
 import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Elab.HandleNumOrIdent
 import MRiscX.Elab.HandleExpr
--- import MRiscX.Tactics.TacticUtil
+import MRiscX.Tactics.TacticUtil
 
 import MRiscX.Basic
 import Mathlib.Data.Set.Basic
@@ -167,29 +167,105 @@ private def getSpecTacFromInstr (i : Instr) (pc : UInt64): TacticM (TSyntax `tac
 
 
 
-elab "apply_spec'" : tactic => do
+private def runSpecAndSolve (instr : Instr) (pc : UInt64) : TacticM Unit := do
+  evalTactic (← getSpecTacFromInstr instr pc)
+  evalTactic (← `(tactic | simp))
+  evalTactic (← `(tactic | simp))
+  evalTactic (← `(tactic | simp_currInstr))
+  evalTactic (← `(tactic | exact $(mkIdent `h_pc)))
+  evalTactic (← `(tactic | simp at *))
+  evalTactic (← `(tactic | try repeat (constructor <;> try assumption)))
+  evalTactic (← `(tactic | repeat assumption))
+
+
+private def getInstrAtPc (ctx : Lean.LocalContext) (pc : UInt64) :
+    TacticM Instr := do
+  let codeEqExpr ← Meta.whnf (← findHypTypeM ctx `h_code')
+  let codeExpr := codeEqExpr.getArg! 2
+  let instrExpr ← getInstrFromCodeExpr codeExpr pc
+  getInstrFromExpr instrExpr
+
+
+
+elab "apply_spec_frst_goal" : tactic => do
+  -- Since the pc in the first goal is (probably) always 0, we can
+  -- just introduce everything and go through everything and, get
+  -- the pc from the hypotheses `h_pc = n ` and apply the specification
+  evalTactic (← `(tactic |
+    intros $(mkIdent `h_inter)
+            $(mkIdent `h_empty)
+            $(mkIdent `s)
+            $(mkIdent `h_code')
+            $(mkIdent `h_pc)
+            $(mkIdent `user_precondition)
+  ))
   Lean.Elab.Tactic.withMainContext do
     let ctx ← Lean.MonadLCtx.getLCtx
-    let pcAs ← Meta.whnf (←findHypTypeM ctx `h_pc)
-    let pcAsExpr := pcAs.getAppArgs[2]!
-    let pc ← getUInt64FromExpr pcAsExpr
-    let codeEqExpr ← Meta.whnf (←findHypTypeM ctx `h_code')
-    let codeExpr := codeEqExpr.getArg! 2
-    let instrToSplit ← getInstrFromCodeExpr codeExpr (pc)
-    let instr ← getInstrFromExpr instrToSplit
-    logInfo s!"{←getSpecTacFromInstr instr pc}"
-  -- TODO
-    evalTactic (← `(tactic | intros $(mkIdent `h_inter) $(mkIdent `h_empty) $(mkIdent `s)
-      $(mkIdent `h_code') $(mkIdent `h_pc) $(mkIdent `user_precondition)))
-    evalTactic (← `(tactic | rw [← $(mkIdent `h_code')] ))
-    evalTactic (← `(tactic | split_condis in $(mkIdent `user_precondition) ))
-    evalTactic (←getSpecTacFromInstr instr pc)
-    evalTactic (← `(tactic | simp ))
-    evalTactic (← `(tactic | simp ))
-    evalTactic (← `(tactic | simp_currInstr ))
-    evalTactic (← `(tactic | exact $(mkIdent `h_pc) ))
-    evalTactic (← `(tactic | try simp_t_update))
 
+    let pcAs ← Meta.whnf (← findHypTypeM ctx `h_pc)
+    let pcExpr := pcAs.getAppArgs[2]!
+    let pc ← getUInt64FromExpr pcExpr
+
+    let instr ← getInstrAtPc ctx pc
+
+
+    evalTactic (← `(tactic | rw [← $(mkIdent `h_code')]))
+    evalTactic (← `(tactic | split_condis in $(mkIdent `user_precondition)))
+
+    runSpecAndSolve instr pc
+
+
+elab "apply_spec_scd_goal" : tactic => do
+
+  -- First phase: determine how we obtain pc
+  let pcFromHyp ← Lean.Elab.Tactic.withMainContext do
+    let ctx ← Lean.MonadLCtx.getLCtx
+    return ((← findHypTypeM? ctx `h_code') == none)
+
+  -- If the code was not introduced, introduce it now
+  if pcFromHyp then
+    evalTactic (← `(tactic | prepare_second_seq))
+
+  -- After introducing new stuff into the hypotheses, we need to update the
+  -- context
+  Lean.Elab.Tactic.withMainContext do
+    let ctx ← Lean.MonadLCtx.getLCtx
+
+    let pc ←
+      -- If we had to introduce the hypotheses' ourlelves, there is only one
+      -- h_pc, which we can just extract and parse
+      if pcFromHyp then
+        let pcEqExpr ← Meta.whnf (← findHypTypeM ctx `h_pc)
+        let pcExpr := pcEqExpr.getAppArgs[2]!
+        getUInt64FromExpr pcExpr
+      -- Else, the hypotheses h_code and so on were already introduced.
+      -- Now we cannot extract the pc from the hypotheses, because there are multiple
+      -- instances of h_pc. In this case, we need to extract the correct value
+      -- from l'
+      else
+        let g ← getMainGoal
+        let goalType ← g.getType
+        -- Since the goal is in the form of `∀ l' ∈ {...} → ...`, we
+        -- just access the value in the Set and hope it is just one.
+        -- (TODO: handle multiple values)
+        let lExpr := goalType.bindingBody!.bindingDomain!.getAppArgs[3]!
+        let pc ← parseSingletonExpr lExpr
+        -- After obtaining the value of pc, we need to introduce the
+        -- rest of the lemma and prepare everything for the application etc.
+        evalTactic (← `(tactic | prepare_second_seq))
+        pure pc
+
+    let instr ← getInstrAtPc ctx pc
+
+    evalTactic (← `(tactic | intros $(mkIdent `user_precondition)))
+    evalTactic (← `(tactic | split_condis in $(mkIdent `user_precondition)))
+
+    runSpecAndSolve instr pc
+
+elab "apply_spec'" : tactic => do
+  evalTactic (← `(tactic | first
+                            | apply_spec_frst_goal
+                            | apply_spec_scd_goal))
 
 example:
     mriscx
@@ -208,12 +284,39 @@ example:
                 := by
                 simp_set_eq
       rw [this]
-      -- intros h_inter h_empty s h_code' h_pc user_precondition
       apply_spec'
-      simp [t_update_neq, t_update_eq]
-      simp
-      simp [t_update_neq, t_update_eq]
-      assumption
-      assumption
-    . apply_spec specification_LoadImmediate (r := 1) (pc := 1) (v := 0)
-  . apply_spec specification_LoadAddress (r := 2) (pc := 2) (v := 0x123)
+    . apply_spec'
+  . apply_spec'
+
+example:
+    mriscx
+      first:  li x 0, 2
+              li x 1, 0
+              la x 2, 0x123
+    end
+    -- Assert assignment of register as precondition
+    ⦃¬⸨terminated⸩ ∧ x[4] = 123⦄
+    "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
+    ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄
+  := by
+  /-
+  apply s_seq with automatically solve set equality
+  -/
+  sapply_s_seq  P := _ ,
+                  R := ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
+                  L_W := {2},
+                  L_W' := {3},
+                  L_B := ({n:UInt64| n > 2} ∪ {0}),
+                  L_B' := ({n:UInt64| n ≠ 3})
+    /-
+    apply s_seq without automatically solve set equality
+    -/
+  . sapply_s_seq''  R := ⦃(x[0] = 2 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
+                    L_W := {1},
+                    L_W' := {2},
+                    L_B := ({n:UInt64| n ≠ 1}),
+                    L_B' := ({n:UInt64| n ≠ 2})
+    . apply_spec_frst_goal
+    . apply_spec_scd_goal
+    . simp_set_eq
+  . apply_spec'
