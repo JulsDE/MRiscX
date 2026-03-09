@@ -144,6 +144,7 @@ This theorem states, when a given map [t] which contains the key [k]
 with the value [v] as last entry, the function `TMap.get` returns the
 corresponding value [v].
 -/
+@[simp]
 theorem t_update_eq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
     (t : TMap α β) (k : α) (v : β),
   (k ↦ v ; t).get k = v
@@ -157,6 +158,7 @@ If a total map [t] is updated with some k ∈ α and v ∈ β (k ↦ v; t),
 and we search for some key [k'] with k ≠ k', we get the same result
 as when we would just search [t] for [k'].
 -/
+@[simp]
 theorem t_update_neq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
     (t : TMap α β) (k k' : α) (v : β),
   k ≠ k' → (k ↦ v ; t).get k' = t.get k'
@@ -187,6 +189,7 @@ This theorem states, when a given map [p] which contains the key [k]
 with the value [v] as last entry, the function `PMap.get` returns the
 corresponding value [v].
 -/
+@[simp]
 theorem p_update_eq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
     (p : PMap α β) (k : α) (v : β),
   p(k ↦ v ; p).get k = v
@@ -200,6 +203,7 @@ If a partial map [p] is updated with some k ∈ α and v ∈ β (k ↦ v; p),
 and we search for some key [k'] with k ≠ k', we get the same result
 as when we would just search [t] for [k'].
 -/
+@[simp]
 theorem p_update_neq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
     (p : PMap α β) (k k' : α) (v : β),
   k ≠ k' → p(k ↦ v ; p).get k' = p.get k'

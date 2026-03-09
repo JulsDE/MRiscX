@@ -143,7 +143,7 @@ soon as possible.**
     Contains the logic behind the tactic `auto_seq`, which tries to 
     "peel off" the last instruction with applying `S-SEQ` and calculating all the missing values.
   
-  - `MRiscX/Tactics/ProofAutomationTacitcs.lean` 
+  - `MRiscX/Tactics/CodeProofTactics.lean` 
     Contains various proof tactics to automate the process of verifying the formal correctness of 
     a program
   

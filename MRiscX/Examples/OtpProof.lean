@@ -388,7 +388,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
         . simp
         . unfold MState.currInstruction
           rw [h_code', h_pc]
-          simp [t_update_neq, t_update_eq]
+          simp
         . exact h_pc
         . rcases pre' with ⟨h_reg_3, h_term, h⟩
           simp at h_reg_3

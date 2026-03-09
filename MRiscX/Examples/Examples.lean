@@ -1,5 +1,5 @@
 import MRiscX.Basic
-
+import MRiscX.Tactics.ApplySpec
 /-
 New Code Proofs
 -/
@@ -186,6 +186,7 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
                       L_B' := ({n:UInt64| n ≠ 2})
       . apply_spec specification_LoadAddress (pc := 0) (dst := r₁) (addr := p)
       . apply_spec specification_LoadAddress (pc := 1) (dst := r₂) (addr := k)
+
     . apply_spec specification_LoadAddress (pc := 2) (dst := r₃) (addr := c)
   . apply_spec specification_LoadImmediate (pc := 3) (dst := r₄) (val := l)
 
@@ -220,7 +221,7 @@ example:
                     L_W' := {2},
                     L_B := ({n:UInt64| n ≠ 1}),
                     L_B' := ({n:UInt64| n ≠ 2})
-    . apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
+    . apply_spec''
     . apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
     . simp_set_eq
   . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := 0x123)
@@ -257,9 +258,9 @@ example:
                     L_W' := {2},
                     L_B := ({n:UInt64| n ≠ 1}),
                     L_B' := ({n:UInt64| n ≠ 2})
-    . apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
-    . apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
-  . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := 0x123)
+    . apply_spec''
+    . apply_spec''
+  . apply_spec' specification_LoadAddress
 
 
 
@@ -280,9 +281,9 @@ example:
                 := by
                 simp_set_eq
       rw [this]
-      apply_spec specification_LoadImmediate (pc := 0) (dst := 0) (val := 2)
-    .apply_spec specification_LoadImmediate (pc := 1) (dst := 1) (val := 0)
-  . apply_spec specification_LoadAddress (dst := 2) (pc := 2) (addr := 291)
+      apply_spec' specification_LoadImmediate
+    .apply_spec''
+  . apply_spec''
 
 
 /--
@@ -320,7 +321,6 @@ example (r₀ r₁ p : UInt64):
         exact h₂
         apply Ne.symm
         assumption
-      simp [t_update_eq]
       rw [t_update_neq, t_update_eq]
       assumption
       -- /:

@@ -221,7 +221,7 @@ theorem sw_otp : ∀ (p k c l : UInt64),
           rw [h_x3] at h_x0 h_x1 h_x2
           rw [v]
           rw [←h_x0, ←h_x1, ←h_x2, ←h_x5, ←h_x6]
-          simp [t_update_eq]
+          simp
           rw [←h_x7]
           rw [t_update_neq]
           .
@@ -317,12 +317,12 @@ theorem inc_otp_0 : ∀ (p k c l : UInt64),
     . exact h_pc
     .
       repeat (constructor <;> try assumption)
-      simp [t_update_eq, t_update_neq]
+      simp
       simp at *
       rw [h_x0, h_x3]
       grind
       repeat (constructor <;> try assumption)
-      simp [t_update_neq, t_update_eq]
+      simp
       exact h_x5
       repeat (constructor <;> try assumption)
 
@@ -366,11 +366,10 @@ theorem inc_otp_1 : ∀ (p k c l : UInt64),
     . simp
       rw [h_code', h_pc]
       unfold otp_code
-      simp[t_update_neq, t_update_eq]
+      simp
     . exact h_pc
     .
       simp at *
-      rw [t_update_eq, t_update_neq]
       repeat (constructor <;> try assumption)
       -- . rw [h_x1, h_x3]
       --   . simp at *
@@ -382,11 +381,6 @@ theorem inc_otp_1 : ∀ (p k c l : UInt64),
       simp
       exact h_cond
       repeat (constructor <;> try assumption)
-      simp [t_update_neq]
-      exact h_x6
-      simp [t_update_neq]
-      exact ⟨h_x7, h_x3, h_I_pre'⟩
-      simp
 
 theorem inc_otp_2 {x} : ∀ (p k c l : UInt64),
 (otp_code p k c l)
@@ -429,7 +423,6 @@ theorem inc_otp_2 {x} : ∀ (p k c l : UInt64),
     . exact h_pc
     .
       simp at *
-      rw [t_update_eq, t_update_neq]
       repeat (constructor <;> try assumption)
       -- . rw [h_x1, h_x3]
       --   . simp at *
@@ -441,7 +434,6 @@ theorem inc_otp_2 {x} : ∀ (p k c l : UInt64),
       simp
       exact h_cond
       repeat (constructor <;> try assumption)
-      simp
 
 
 theorem dec_otp : ∀ (p k c l : UInt64),
@@ -480,7 +472,6 @@ theorem dec_otp : ∀ (p k c l : UInt64),
     . exact h_pc
     .
       simp at *
-      rw [t_update_eq, t_update_neq]
       repeat (constructor <;> try assumption)
       -- . rw [h_x1, h_x3]
       --   . simp at *
@@ -496,7 +487,7 @@ theorem dec_otp : ∀ (p k c l : UInt64),
       . repeat (constructor <;> try assumption)
         rw [←h_x3]
         grind
-      . simp
+
 
 
 theorem j_otp : ∀ (p k c l : UInt64),

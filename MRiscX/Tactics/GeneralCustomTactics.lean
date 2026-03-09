@@ -23,3 +23,8 @@ elab "apply_to_last_goal" t:tacticSeq : tactic => do
     | none => throwError "No goals found while trying to apply {t} to the last goal"
 
   evalTactic (← `(tactic | . $t ))
+
+
+/- A small tactic to prove `∀ (n' : ℕ), 0 < n' → ¬n' = 0`-/
+macro "zero_lt_ne_zero" : tactic =>
+  `(tactic | try (intros n' h ; intro h_eq ; rw [h_eq] at h); simp at h)

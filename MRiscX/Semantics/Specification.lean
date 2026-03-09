@@ -1,5 +1,5 @@
 import MRiscX.Semantics.MsTheory
-import MRiscX.Tactics.ProofAutomationTactics
+import MRiscX.Tactics.SpecificationTactics
 import MRiscX.Elab.HoareElaborator
 import MRiscX.Elab.CodeElaborator
 import MRiscX.Delab.DelabHoare
@@ -109,10 +109,10 @@ theorem specification_LoadImmediate (P: Assertion) (pc dst val : UInt64):
 
 
 
-theorem specification_CopyRegister (P: Assertion) (pc dst val : UInt64):
+theorem specification_CopyRegister (P: Assertion) (pc dst src : UInt64):
   hoare
-    ⟪mv x dst, x val;⟫
-    ⦃P ⟦x[dst] ← x[val]; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪mv x dst, x src;⟫
+    ⦃P ⟦x[dst] ← x[src]; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
@@ -230,10 +230,10 @@ theorem specification_XOR (P: Assertion) (pc dst reg1 reg2 : UInt64):
     rw [h_pc] at pre
     exact ⟨pre, h_terminated⟩
 
-theorem specification_LoadWordImmediate (P: Assertion) (pc dst memAddr : UInt64):
+theorem specification_LoadWordImmediate (P: Assertion) (pc dst addr : UInt64):
   hoare
-    ⟪lw x dst, memAddr;⟫
-    ⦃P ⟦x[dst] ← mem[memAddr] ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⟪lw x dst, addr;⟫
+    ⦃P ⟦x[dst] ← mem[addr] ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification

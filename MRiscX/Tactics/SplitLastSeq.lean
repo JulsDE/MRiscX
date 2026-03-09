@@ -1,23 +1,13 @@
 import Lean
+import MRiscX.Hoare.HoareCore
 import MRiscX.AbstractSyntax.Instr
 import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Elab.HandleNumOrIdent
 import MRiscX.Elab.HandleExpr
+import MRiscX.Tactics.TacticUtil
 import Mathlib.Data.Set.Basic
 open Lean Meta Elab Parser Tactic
 
-
-def findHypTypeM? (ctx : LocalContext) (n : Name) : MetaM (Option Expr) :=
-  ctx.findDeclM? (fun decl =>
-    if decl.userName == n then
-      return some decl.type
-    else
-      return none)
-
-def findHypTypeM (ctx : LocalContext) (n : Name): MetaM (Expr) := do
-  let some res ← (findHypTypeM? ctx n)
-      | throwError s!"Could not find {n} in hypothesis"
-  return res
 
 def extractL_w'AndL_b'' (e : Expr) : MetaM (Expr × Expr) := do
   let whnf ← Meta.whnf e
@@ -45,19 +35,6 @@ def extractQ (arr : PersistentArray (Option LocalDecl)) : MetaM (Expr) := do
         return type.getArg! 1
     | _  => pure ()
   throwError "Could not find a term of hoare_triple_up"
-
-
-def buildL_w'FromExpr (e : Expr) : MetaM (UInt64) := do
-  if e.isAppOfArity ``Singleton.singleton 4 then
-    let nRaw? := ((e.getArg! 3).getArg! 1).rawNatLit?
-    match nRaw? with
-    | some n => return UInt64.ofNat n
-    | none => do throwError s!"Used the wrong argument to get UInt64 from Expr to create L_w' " ++
-                    "from Expr"
-  -- TODO: Solve Addition
-  else
-    throwError s!"It seems like {e} is not in correct shape. Please confirm that the whitelist " ++
-      "consists of only one element like so: {1}"
 
 
 def incPcExpr (state : Expr) : Expr := Expr.app (.const `MState.incPc []) (state)
@@ -103,42 +80,6 @@ def getExprOfInstrForRFromExpr (instr : Expr) (oldState : Expr) : MetaM Expr := 
     throwError s!"Error while building R, the Instruction is not implemented yet for this feature"
 
 
-/--
-Recursively search through a TMap Expr to find the Instr at the given line number.
-
-This helper function navigates through the nested TMap.put structure to locate
-the instruction at the specified program counter position.
--/
-private partial def getInstrExprFromMapExpr (mapExpr : Expr) (pc : UInt64) : MetaM Expr := do
-  let mapExpr ← Meta.whnf mapExpr
-  if mapExpr.isAppOfArity ``TMap.empty 3 then
-    -- Return the panic instruction (default)
-    return mkAppN (mkConst `Instr.Panic []) #[]
-  else if mapExpr.isAppOfArity ``TMap.put 5 then
-    let lineExpr ← Meta.whnf <| mapExpr.getArg! 2
-    let line ← getUInt64FromExpr lineExpr
-    if line = pc then
-      -- Found the instruction at this line
-      return ← Meta.whnf <| mapExpr.getArg! 3
-    else
-      -- Continue searching in the rest of the map
-      return ← getInstrExprFromMapExpr (mapExpr.getArg! 4) pc
-  else
-    throwError s!"Expected a TMap expression, got {mapExpr}"
-
-/--
-Extract an Instr from a Code.mk Expr given a program counter value.
-
-This function takes an Expr of type Code.mk and a program counter (UInt64),
-and returns the Expr of the Instr at that program counter position.
--/
-def getInstrFromCodeExpr (codeExpr : Expr) (pc : UInt64) : MetaM Expr := do
-  let codeExpr ← Meta.whnf codeExpr
-  if codeExpr.isAppOfArity ``Code.mk 2 then
-    let instrMapExpr := codeExpr.getArg! 0
-    return ← getInstrExprFromMapExpr instrMapExpr pc
-  else
-    throwError "Expected an Expr of type Code"
 
 
 def typeSetUInt64 : Expr :=
@@ -210,7 +151,7 @@ elab "peel_last_instr" : tactic => do
     let codeEqExpr ← Meta.whnf (←findHypTypeM ctx `h_code')
     let codeExpr := codeEqExpr.getArg! 2
 
-    let L_w' ← buildL_w'FromExpr L_w'_expr
+    let L_w' ← parseSingletonExpr L_w'_expr
     let L_w_expr := mkSingletonOf (L_w' - 1)
     let L_b'asExpr := getNeSet L_w'
 

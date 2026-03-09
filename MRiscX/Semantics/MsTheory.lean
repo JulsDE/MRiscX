@@ -2,6 +2,7 @@ import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.AbstractSyntax.MState
 import MRiscX.Semantics.Run
 import MRiscX.Util.BasicTheorems
+
 import Mathlib.Data.Set.Basic
 import Lean
 
