@@ -4,6 +4,7 @@ import MRiscX.Delab.DelabCode
 import MRiscX.Elab.HoareElaborator
 import MRiscX.Hoare.HoareRules
 import MRiscX.Util.BasicTheorems
+import MRiscX.Tactics.CodeProofTactics
 -- import Mathlib.Algebra.Order.Sub.Unbundled.Basic
 
 open Lean Elab Parser Meta Tactic
