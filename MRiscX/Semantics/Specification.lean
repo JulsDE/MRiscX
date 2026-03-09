@@ -1,5 +1,5 @@
 import MRiscX.Semantics.MsTheory
-import MRiscX.Tactics.ProofAutomationTactics
+import MRiscX.Tactics.SpecificationTactics
 import MRiscX.Elab.HoareElaborator
 import MRiscX.Elab.CodeElaborator
 import MRiscX.Delab.DelabHoare

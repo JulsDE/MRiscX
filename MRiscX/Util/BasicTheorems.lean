@@ -1,5 +1,4 @@
 import MRiscX.Hoare.HoareCore
-import MRiscX.Tactics.GeneralCustomTactics
 import Mathlib.Tactic.NthRewrite
 import Mathlib.Algebra.Order.Sub.Unbundled.Basic
 import Mathlib.Data.Nat.ModEq
