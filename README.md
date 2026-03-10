@@ -8,6 +8,9 @@ Please keep in mind, this project is still in development and far from finished.
 For any problems and issues you encounter while using this library, I 
 would be happy if you report them!
 
+For more information about this project and how to use it, have a look into the 
+[documentation](https://docs.mriscx.dev)
+
 ## Installation
 
 The project is dependent on mathlib. If mathlib is not present, it will be installed to your project 
@@ -31,6 +34,8 @@ in your project. When finished successfully, restart the `Lean Language Server` 
 import MRiscX.Basic
 ``` 
 into a `.lean` file. After a final `Restart File` you can start using the library. 
+
+
 
 
 ## Verify your own code
@@ -88,8 +93,6 @@ For more examples and explanations, have a look into files inside the
 ⦃**(** x[0] = ∧ x[1] = 1 **)** ∧ ¬⸨terminated⸩⦄), in order to successfully apply the 
 specification. 
 
->**A detailed documentation of this project is currently WIP and will be available as 
-soon as possible.**
 
 ## Structure of the project
 - `MRiscX/`
