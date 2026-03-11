@@ -387,6 +387,15 @@ namespace MState
     unfold MState.runNSteps
     exact IHn'
 
+@[simp] theorem code_remains_same : ∀ (ms ms' : MState) (code : Code) (n : ℕ),
+  ms.code = code →
+  ms.runNSteps n = ms' →
+  ms'.code = code
+  := by
+  intros ms ms' code n h_code h_run
+  rw [←h_run]
+  simp [h_code]
+
 theorem runNSteps_diff : ∀ (s : MState) (n : Nat) (L1 L2 : Set UInt64),
   L2 ⊆ L1 →
   (s.runNSteps n).pc ∉ L1 →
@@ -453,7 +462,42 @@ theorem runNSteps_pc_nin_extra_step : ∀ (s s' : MState) (n : Nat) (L : Set UIn
 
 
 
-theorem run_n_plus_m_intersect :
+theorem run_n_plus_m_pc_not_in_set :
+  ∀ (s s' : MState) (m m' : Nat) (set : Set UInt64),
+  s.runNSteps m = s' →
+  (∀ (n : ℕ), 0 < n ∧ n ≤ m → (s.runNSteps n).pc ∉ set) →
+  (∀ (n' : ℕ), 0 < n' ∧ n' < m' → (s'.runNSteps n').pc ∉ set) →
+  ∀ (n'' : ℕ), 0 < n'' ∧ n'' < m + m' → (s.runNSteps n'').pc ∉ set := by
+
+  intros s s' m m' set h_eq hL_b hL_b' n'' hn
+  rcases hn with ⟨hn0, hnlt⟩
+  by_cases h : n'' ≤ m
+  · have hcond : 0 < n'' ∧ n'' ≤ m := ⟨hn0, h⟩
+    specialize hL_b n'' hcond
+    exact hL_b
+  -- m < n'' < m + m' → n'' = m + n' for some 0 < n' < m'
+  · push_neg at h
+    -- n'' > m ⇒ ∃ n' such that n'' = m + n'
+    let n' := n'' - m
+    have h_pos : 0 < n' := by
+      apply Nat.sub_pos_of_lt h
+    have hn'_lt : n' < m' := by
+      -- n'' < m + m' ⇒ n' = n'' - m < m'
+      dsimp only [n']
+      apply Nat.lt_sub_left <;> try assumption
+    have h_run_eq : s.runNSteps n'' = s'.runNSteps n' := by
+      dsimp only [n']
+      rw [← h_eq]
+      simp
+      rw [← Nat.add_sub_assoc, Nat.add_comm, Nat.add_sub_cancel]
+      apply Nat.le_of_lt h
+    rw [h_run_eq]
+    have hn'_pre : 0 < n' ∧ n' < m' := by
+      constructor <;> try assumption
+    specialize hL_b' n' hn'_pre
+    exact hL_b'
+
+theorem run_n_plus_m_diff_set :
   ∀ (s s' : MState) (m m' : Nat) (L_b L_b' : Set UInt64),
   s.runNSteps m = s' →
   (∀ (n : ℕ), 0 < n ∧ n ≤ m → (s.runNSteps n).pc ∉ L_b) →
@@ -491,7 +535,7 @@ theorem run_n_plus_m_intersect :
     exact hL_b' (Set.mem_of_mem_inter_right h_in)
 
 
-theorem run_n_plus_m_intersect' : ∀ (s : MState) (m m' : Nat) (L_w L_b L_w' L_b' : Set UInt64),
+theorem run_n_plus_m_intersect : ∀ (s s' : MState) (m m' : Nat) (L_w L_b L_w' L_b' : Set UInt64),
   (L_w' ⊆ L_b ∧ L_w ∩ L_w' = ∅) →
   s.runNSteps m = s' →
   s'.pc ∈ L_w →
@@ -500,7 +544,7 @@ theorem run_n_plus_m_intersect' : ∀ (s : MState) (m m' : Nat) (L_w L_b L_w' L_
   (∀ (n' : ℕ), 0 < n' ∧ n' < m' → (s'.runNSteps n').pc ∉ L_w' ∪ L_b') →
   ∀ (n'' : ℕ), 0 < n'' ∧ n'' < m + m' → (s.runNSteps n'').pc ∉ L_w' ∪ L_b ∩ L_b'
 := by
-  intros s m m' L_w L_b L_w' L_b' h_sets h_run1 h_pc_w h_pc_not_b h_safe1 h_safe2 n'' HN''
+  intros s s' m m' L_w L_b L_w' L_b' h_sets h_run1 h_pc_w h_pc_not_b h_safe1 h_safe2 n'' HN''
   rcases HN'' with ⟨h_pos, h_lt⟩
   rcases h_sets with ⟨h_Lw'SubL_b, h_LwInterLw'⟩
   -- n'' ≤ m → s.runNSteps n'' ∉ L_b ∧ s.runNSteps n'' ∈ L_w → s.runNSteps n'' ∉ (L_w' ∪ L_b), da L_w ∩ L_w' = ∅

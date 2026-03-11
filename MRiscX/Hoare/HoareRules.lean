@@ -32,10 +32,10 @@ theorem BL_SUBSET: ∀ (code : Code) (P Q : Assertion) (l: UInt64) (L_w L_b L : 
 := by
   intros c P Q l L_w L_b L T
   unfold hoare_triple_up
-  intros H _ h_LwEmpty s HCode pre HPc
+  intros H _ h_LwEmpty s HCode pre H_pc
   have L_b_sub : L_b \ L ⊆ L_b := by
     apply Set.diff_subset
-  specialize H T h_LwEmpty s HCode pre HPc
+  specialize H T h_LwEmpty s HCode pre H_pc
   rcases H with ⟨s', ⟨H1, H2, H3⟩⟩
   exists s'
   constructor
@@ -61,8 +61,8 @@ theorem BL_TO_WL: ∀ (code : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : 
   := by
   intros c P Q l L_w L_b L TSub TInter TEmpty
   unfold hoare_triple_up
-  intros H _ _ s HCode pre HPc
-  specialize H  TInter TEmpty s HCode pre HPc
+  intros H _ _ s HCode pre H_pc
+  specialize H  TInter TEmpty s HCode pre H_pc
   rcases H with ⟨s', ⟨H1, H2, H3⟩⟩
   exists s'
   unfold weak
@@ -91,8 +91,8 @@ theorem WL_TO_BL: ∀ (c : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : Set
   := by
   intros c P Q l L_w L_b L HLSubL_w HSPost TInter TEmpty
   unfold hoare_triple_up
-  intros H _ _ s HCode  pre HPc
-  specialize H TInter TEmpty s HCode  pre HPc
+  intros H _ _ s HCode  pre H_pc
+  specialize H TInter TEmpty s HCode  pre H_pc
   rcases H with ⟨s', ⟨H1, H2, H3⟩⟩
   unfold weak at H1
   specialize H1 HCode
@@ -145,8 +145,8 @@ theorem S_SEQ': ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b
   := by
   intros P R Q c l L_w L_b L_w' L_b' TInter TEmpty TInter' T
   unfold hoare_triple_up
-  intros HFirst HSecond _ h_empty' s HCode HPc pre
-  specialize HFirst TInter TEmpty s HCode HPc pre
+  intros HFirst HSecond _ h_empty' s HCode H_pc pre
+  specialize HFirst TInter TEmpty s HCode H_pc pre
   rcases HFirst with ⟨s', ⟨HFirstWeak, HFirstPost, HFirstPc⟩⟩
   unfold weak at HFirstWeak
   specialize HFirstWeak HCode
@@ -172,7 +172,7 @@ theorem S_SEQ': ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b
         exact HSW2
       . constructor <;> try assumption
         . intros m'' Hm''
-          apply MState.run_n_plus_m_intersect' <;> assumption
+          apply MState.run_n_plus_m_intersect <;> assumption
   . constructor <;> try assumption
     . simp
       intros _
@@ -203,8 +203,8 @@ theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64
   := by
   intros P R Q c l L_w L_b L_w' L_b' TInter TEmpty TInter' T
   unfold hoare_triple_up
-  intros HFirst HSecond def_L_b'' _ h_empty' s HCode HPc pre
-  specialize HFirst TInter TEmpty s HCode HPc pre
+  intros HFirst HSecond def_L_b'' _ h_empty' s HCode H_pc pre
+  specialize HFirst TInter TEmpty s HCode H_pc pre
   rcases HFirst with ⟨s', ⟨HFirstWeak, HFirstPost, HFirstPc⟩⟩
   unfold weak at HFirstWeak
   specialize HFirstWeak HCode
@@ -231,7 +231,7 @@ theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64
       . constructor <;> try assumption
         . intros m'' Hm''
           rw [def_L_b'']
-          apply MState.run_n_plus_m_intersect' <;> assumption
+          apply MState.run_n_plus_m_intersect <;> assumption
   . constructor <;> try assumption
     .
       rw [def_L_b'']
@@ -254,7 +254,7 @@ theorem PRE_STR : ∀(c : Code) (P1 P2 Q : Assertion) (L_w L_b : Set UInt64) (l 
   := by
   intros c P1 P2 Q L_w L_b l HTaut
   unfold hoare_triple_up
-  intros H HInter HEmpty s HCode HPc pre
+  intros H HInter HEmpty s HCode H_pc pre
   apply H HInter <;> try assumption
   specialize HTaut s HCode
   . apply HTaut
@@ -275,8 +275,8 @@ theorem POST_WEAK : ∀(c : Code) (P Q1 Q2 : Assertion) (L_w L_b : Set UInt64) (
   := by
   intros c P Q1 Q2 L_w L_b l
   unfold hoare_triple_up
-  intros HTaut H HInter HEmpty  s HCode pre HPc
-  specialize H HInter HEmpty s HCode pre HPc
+  intros HTaut H HInter HEmpty  s HCode pre H_pc
+  specialize H HInter HEmpty s HCode pre H_pc
   rcases H with ⟨s', ⟨P1, P2, P3⟩⟩
   exists s'
   constructor ; try assumption
@@ -333,73 +333,123 @@ Requires:
 * An Invariant `I`
 * A Variant `V`
 
-For more information, see the (documentation)[https://docs.mriscx.dev/Fundamentals/#sloop]
+
+  High-level proof idea of S_LOOP
+
+  - Define C v := “for any state s at l with invariant I and variant V s = v, we can reach some s'
+      satisfying Q via weak with the original L_w/L_b.”
+  - Prove C v by well-founded induction on v.
+      - If C s (the loop condition) holds, use the given loop-body triple at variant v to get a next
+          state s' back at l with strictly smaller variant (V s' < v) and still I.
+        Then apply induction hypothesis to V s' to get a final state s'' satisfying Q.
+        Finally, compose the two runs to build weak s s'' ... (this is where we stitch step counts
+          and the “no earlier hit” condition).
+      - If ¬C s, use the given exit triple to get Q directly.
+  - Apply C (V s) to your original starting state s.
+
+  If you want, I can annotate the actual Lean code in MRiscX/Hoare/HoareRules.lean line-by-line
+    with “goal before/after refine” so you can see exactly which subgoals it generates.
 -/
-theorem S_LOOP {α : Type} [Preorder α] [LT α] [WellFoundedLT α] :
+
+ theorem S_LOOP {α : Type} [Preorder α] [LT α] [WellFoundedLT α] :
     ∀ (Q C I : Assertion) (code : Code) (l : UInt64)
-    (L_w L_b : Set UInt64) (V :MState → α),
+    (L_w L_b : Set UInt64) (V : MState → α),
   l ∉ L_w →
   l ∉ L_b →
-  (∀ (x:α),
-  code
-  -- TODO: Introduce a notation for this (?)
-  ⦃fun st => C st ∧ I st ∧ V st = x⦄
-  l ↦ ⟨{l} ∪ L_w | L_b⟩
-  ⦃fun st => V st < x ∧ I st ∧ st.pc = l⦄)
-  →
+  (∀ (x : α),
+    code
+    ⦃fun st => C st ∧ I st ∧ V st = x⦄
+    l ↦ ⟨{l} ∪ L_w | L_b⟩
+    ⦃fun st => V st < x ∧ I st ∧ st.pc = l⦄) →
   code
   ⦃fun st => ¬C st ∧ I st⦄ l ↦ ⟨L_w | L_b⟩ ⦃Q⦄ →
   code
   ⦃I⦄ l ↦ ⟨L_w | L_b⟩ ⦃Q⦄
   := by
-
-  intros Q C I code l L_w L_b x h_lNinLw h_lNinL_b h_RunCondTrue h_RunCondFalse
+  intros Q C I code l L_w L_b V h_l_not_mem_Lw h_l_not_mem_Lb h_true h_false
   unfold hoare_triple_up
-  intros h_inter h_empty s h_code h_pc pre
-  have h_luLwInterLbEmpty:  ({l} ∪ L_w) ∩ L_b = ∅ := by
+  intros h_inter h_nonempty s h_code h_pc hI
+
+  have h_inter' : ({l} ∪ L_w) ∩ L_b = ∅ := by
     rw [Set.union_inter_distrib_right]
     simp
     constructor
-    . exact h_lNinL_b
-    . exact h_inter
-  have h_luLwNeqEmpty: {l} ∪ L_w ≠ ∅  := by
-    rw [<- Set.nonempty_iff_ne_empty, Set.union_nonempty]
+    · exact h_l_not_mem_Lb
+    · exact h_inter
+
+  have h_nonempty' : ({l} ∪ L_w) ≠ ∅ := by
+    rw [← Set.nonempty_iff_ne_empty, Set.union_nonempty]
     right
     rw [Set.nonempty_iff_ne_empty]
-    exact h_empty
-  specialize h_RunCondFalse h_inter h_empty s h_code h_pc
-  specialize h_RunCondTrue
+    exact h_nonempty
 
-  apply excluded_middle_implication (I s) (C s)
-  constructor
-  . intros H
-    have asdf (x_1: α) : x s = x_1  := by sorry
-    /-
-    we know:
-    ∀ (x' : α)
-    C s ∧ I s ∧ x s = x' ∧ s.pc = l
-    (s.runNSteps n) = s'
-    x' < x s'
-    I s'
-    s'.pc = l
+  let P : α → Prop :=
+    fun v =>
+      ∀ s : MState,
+        s.code = code →
+        s.pc = l →
+        I s →
+        V s = v →
+        ∃ s', weak s s' L_w L_b code ∧ Q s' ∧ s'.pc ∉ L_b
 
-    also :
-    α is well ordered
+  have loop_correct_at : ∀ v, P v := by
+    let wf := (inferInstance : WellFoundedLT α).wf
+    intro v0
+    apply wf.induction v0
+    intro v ih s h_code h_pc hI hV
 
-    because of this fact, this triple cannot be true ∀ (x' : α)
-    So an assumption must we false
+    by_cases hC : C s
+    · -- Guard true: run one loop iteration, then recurse on the smaller variant.
+      have hpre : C s ∧ I s ∧ V s = v := by
+        exact ⟨hC, hI, hV⟩
 
-    I s / I s' **must** be true at all times
-    s = x' can always be assigned
-    s.pc = l is also always assignable
-    =>
-    The assumption, C is always true is false
-    -/
-    sorry
-  . rintro ⟨H_I, H_Not_C⟩
-    have : (fun st ↦ (¬C st ∧ I st)) s := by
-      simp
-      exact ⟨H_Not_C, H_I⟩
-    specialize h_RunCondFalse this
-    apply h_RunCondFalse
-  exact pre
+      specialize h_true v h_inter' h_nonempty' s h_code h_pc hpre
+
+      rcases h_true with ⟨s', hweak', ⟨hVlt, hI', hpc'⟩, hnotinLb'⟩
+
+      have h_code' : s'.code = code := by
+        specialize hweak' h_code
+        rcases hweak' with ⟨m, hm_pos, hrun, -, -⟩
+        exact MState.code_remains_same s s' code m h_code hrun
+
+      specialize ih (V s') hVlt s' h_code' hpc' hI' rfl
+
+      rcases ih with ⟨s'', hweak'', hQ'', hnotinLb''⟩
+
+      have hweak : weak s s'' L_w L_b code := by
+        unfold weak
+        intro h_code0
+
+        specialize hweak' h_code0
+        rcases hweak' with ⟨m, hm_pos, hrun, -, hsafe⟩
+
+        specialize hweak'' h_code'
+        rcases hweak'' with ⟨m', hm'_pos, hrun', hpc_in, hsafe'⟩
+
+        refine ⟨m + m', Nat.add_gt_zero _ _ hm_pos, ?_, hpc_in, ?_⟩
+        ·
+          apply MState.runNSteps_add <;> try assumption
+        · intro n hn
+          apply MState.run_n_plus_m_pc_not_in_set (set := (L_w ∪ L_b)) <;> try assumption
+          intro n' hn'
+          rcases hn' with ⟨hn'le, hn'le_m⟩
+          rw [Nat.le_iff_lt_or_eq] at hn'le_m
+          cases hn'le_m with
+          | inl hlt =>
+              specialize hsafe n' ⟨hn'le, hlt⟩
+              simp at hsafe
+              push_neg at hsafe
+              rcases hsafe with ⟨⟨-, hnotLw⟩, hnotLb⟩
+              simp
+              exact ⟨hnotLw, hnotLb⟩
+          | inr heq =>
+              simp
+              rw [heq, hrun, hpc']
+              exact ⟨h_l_not_mem_Lw, h_l_not_mem_Lb⟩
+
+      exact ⟨s'', hweak, hQ'', hnotinLb''⟩
+
+    · -- Guard false: discharge with the exit rule.
+      exact h_false h_inter h_nonempty s h_code h_pc ⟨hC, hI⟩
+
+  exact loop_correct_at (V s) s h_code h_pc hI rfl
