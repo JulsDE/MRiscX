@@ -256,9 +256,12 @@ def CodeUnexpander : Unexpander
           let syntaxInstr := instr
           instrSyntaxes := instrSyntaxes.push (←`(mriscx_Instr | $syntaxInstr))
 
-        let labelName := mkIdent labelWithCode.1.toName
-        syntaxes := syntaxes.push (←`(mriscx_label | $labelName:ident : $instrSyntaxes*))
-
+        if String.Pos.Raw.get labelWithCode.1 0 == '.' then
+          let labelName := mkIdent (labelWithCode.1.drop 1).copy.toName
+          syntaxes := syntaxes.push (←`(mriscx_label | .$labelName:ident : $instrSyntaxes*))
+        else
+          let labelName := mkIdent labelWithCode.1.toName
+          syntaxes := syntaxes.push (←`(mriscx_label | $labelName:ident : $instrSyntaxes*))
       `(mriscx_syntax | mriscx
         $syntaxes*
         end)
