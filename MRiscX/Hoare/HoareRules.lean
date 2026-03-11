@@ -347,8 +347,6 @@ Requires:
       - If ¬C s, use the given exit triple to get Q directly.
   - Apply C (V s) to your original starting state s.
 
-  If you want, I can annotate the actual Lean code in MRiscX/Hoare/HoareRules.lean line-by-line
-    with “goal before/after refine” so you can see exactly which subgoals it generates.
 -/
 
  theorem S_LOOP {α : Type} [Preorder α] [LT α] [WellFoundedLT α] :
