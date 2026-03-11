@@ -353,18 +353,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
                             ¬st.terminated = true)
                       s' ∧
                     s'.pc ∉ {n | n ≠ 14} := by
-              -- intros st
-              -- constructor
-              -- simp
-              -- intros h label term
 
-              -- constructor
-              -- . constructor
-              --   . intros i
-              --     -- specialize h with i
-              --     apply h
-              --   . exact label
-              -- . exact term
               simp
               intros s' h_ex h_fo h_ter h_pc
               exists s'

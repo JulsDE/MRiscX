@@ -324,7 +324,6 @@ theorem S_COND: ∀ (c : Code) (P C Q : Assertion) (l : UInt64)
   exact pre
 
 
--- No formal proof. For informal proof contact me
 /--
 A rule to verify the formal correctness of a loop.
 Requires:
