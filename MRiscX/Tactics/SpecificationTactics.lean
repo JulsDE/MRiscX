@@ -6,6 +6,8 @@ open Lean Elab Tactic
 
 /- The proof for most specifications of instructions -/
 elab "hoare_simp_specification" : tactic => do
+  evalTactic (← `(tactic| intro Hl))
+  evalTactic (← `(tactic| rw [Hl]))
   evalTactic (← `(tactic| unfold $(mkIdent `hoare_triple_up_1)))
   evalTactic (← `(tactic| rintro _ _ s HCurr h_pc ⟨pre, h_terminated⟩))
   evalTactic (← `(tactic| simp at h_terminated))
@@ -44,6 +46,8 @@ elab "hoare_simp_specification" : tactic => do
 /- The proof of correctness for the specification of conditional jump instruction when the condition
 is false -/
 elab "simp_jump_spec_false" : tactic => do
+  evalTactic (← `(tactic| intro HL))
+  evalTactic (← `(tactic| rw [HL]))
   evalTactic (← `(tactic| unfold $(mkIdent `hoare_triple_up_1)))
   evalTactic (← `(tactic| rintro _ _ state h_curr h_pc ⟨pre, h_cond, h_terminated⟩))
   evalTactic (← `(tactic| simp at h_terminated))
@@ -83,6 +87,8 @@ elab "simp_jump_spec_false" : tactic => do
 /- The proof of correctness for the specification of conditional jump instruction when the condition
 is true -/
 elab "simp_jump_spec_true" : tactic => do
+  evalTactic (← `(tactic| intro HL))
+  evalTactic (← `(tactic| rw [HL]))
   evalTactic (← `(tactic| unfold $(mkIdent `hoare_triple_up_1)))
   evalTactic (← `(tactic| rintro _ _ state h_curr h_pc ⟨pre, h_label, h_cond, h_terminated⟩))
   evalTactic (← `(tactic| simp at h_terminated))
