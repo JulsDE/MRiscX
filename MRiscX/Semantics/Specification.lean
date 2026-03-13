@@ -71,12 +71,17 @@ and you execute the instruction, the precondition P will still
 hold after the execution. The precondition is applied after simulating the
 effects of the instruction.
 -/
-theorem specification_LoadImmediate (P: Assertion) (pc dst val : UInt64):
+theorem specification_LoadImmediate (P: Assertion) (pc dst val : UInt64) (L : Set UInt64):
+  L = {n : UInt64 | n ≠ pc + 1} →
   hoare
     ⟪li x dst, val;⟫
-    ⦃P ⟦x[dst] ← val; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+    ⦃P ⟦x[dst] ← val; pc++⟧ ∧ ¬⸨terminated⸩⦄
+    pc ↦ ⟨{pc+1} | L⟩
+    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
+    intros Hl
+    rw [Hl]
     unfold hoare_triple_up_1
     rintro _ _ s HCurr h_pc ⟨pre, h_terminated⟩
     simp at h_terminated

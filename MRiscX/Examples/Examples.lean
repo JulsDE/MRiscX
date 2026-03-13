@@ -186,10 +186,43 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
                       L_B' := ({n:UInt64| n ≠ 2})
       . apply_spec specification_LoadAddress (pc := 0) (dst := r₁) (addr := p)
       . apply_spec specification_LoadAddress (pc := 1) (dst := r₂) (addr := k)
-
     . apply_spec specification_LoadAddress (pc := 2) (dst := r₃) (addr := c)
   . apply_spec specification_LoadImmediate (pc := 3) (dst := r₄) (val := l)
 
+
+example:
+    mriscx
+      first:  li x 0, 2
+              li x 1, 0
+              la x 2, 0x123
+    end
+    -- Assert assignment of register as precondition
+    ⦃¬⸨terminated⸩ ∧ x[4] = 123⦄
+    "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
+    ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄
+  := by
+  /-
+  apply s_seq with automatically solve set equality
+  -/
+  sapply_s_seq  P := _ ,
+                  R := ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
+                  L_W := {2},
+                  L_W' := {3},
+                  L_B := ({n:UInt64| n > 2} ∪ {0}),
+                  L_B' := ({n:UInt64| n ≠ 3})
+    /-
+    apply s_seq without automatically solve set equality
+    -/
+  . sapply_s_seq''  R := ⦃(x[0] = 2 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
+                    L_W := {1},
+                    L_W' := {2},
+                    L_B := ({n:UInt64| n ≠ 1}),
+                    L_B' := ({n:UInt64| n ≠ 2})
+    . apply_spec''
+
+    . apply_spec''
+    . simp_set_eq
+  . apply_spec''
 
 
 
@@ -277,12 +310,8 @@ example:
   -- use tactic `auto_seq` which automatically applies S_SEQ and calcs missing values
   auto_seq
   . auto_seq
-    . have : (({n:UInt64 | n = 0} ∪ {n : UInt64 | n > 3} ∪ {3} ∪ {2}) = {n : UInt64 | n ≠ 1})
-                := by
-                simp_set_eq
-      rw [this]
-      apply_spec' specification_LoadImmediate
-    .apply_spec''
+    . apply_spec''
+    . apply_spec''
   . apply_spec''
 
 
@@ -305,11 +334,7 @@ example (r₀ r₁ p : UInt64):
   intros h₁ h₂ h₃
   auto_seq
   . auto_seq
-    . have : (({n:UInt64 | n = 0} ∪ {n : UInt64 | n > 3} ∪ {3} ∪ {2}) = {n : UInt64 | n ≠ 1})
-                := by
-                simp_set_eq
-      rw [this]
-      apply_spec specification_LoadImmediate (pc := 0) (dst := r₀) (val := p)
+    . apply_spec specification_LoadImmediate (pc := 0) (dst := r₀) (val := p)
     . apply_spec specification_LoadImmediate (pc := 1) (dst := r₁) (val := 0)
       -- TODO automate this:
       have : (r₁ ↦ 0 ; (2 ↦ 291 ; s.registers)).get r₀ = p := by assumption
