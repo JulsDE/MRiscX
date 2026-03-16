@@ -42,6 +42,10 @@ private def getSpecTacFromInstr (i : Instr) (pc : UInt64) (name? : Option Ident 
     check `specification_LoadImmediate (←`(tactic | apply specification_LoadImmediate (pc := $(mkNumLit s!"{pc}"))
                                                           (dst := $(mkNumLit s!"{dst}"))
                                                           (val := $(mkNumLit s!"{val}"))))
+  | Instr.LoadNegImmediate dst val =>
+      check `specification_LoadImmediate (←`(tactic | apply specification_LoadNegImmediate (pc := $(mkNumLit s!"{pc}"))
+                                                            (dst := $(mkNumLit s!"{dst}"))
+                                                            (val := $(mkNumLit s!"{val}"))))
 
   | Instr.CopyRegister dst src =>
     check `specification_CopyRegister (←`(tactic | apply specification_CopyRegister  (pc := $(mkNumLit s!"{pc}"))
@@ -53,7 +57,11 @@ private def getSpecTacFromInstr (i : Instr) (pc : UInt64) (name? : Option Ident 
                                                           (dst := $(mkNumLit s!"{dst}"))
                                                           (regAddend := $(mkNumLit s!"{reg}"))
                                                           (val := $(mkNumLit s!"{val}"))))
-
+  | Instr.AddNegImmediate dst reg val =>
+      check `specification_AddImmediate (←`(tactic | apply specification_AddNegImmediate  (pc := $(mkNumLit s!"{pc}"))
+                                                            (dst := $(mkNumLit s!"{dst}"))
+                                                            (regAddend := $(mkNumLit s!"{reg}"))
+                                                            (val := $(mkNumLit s!"{val}"))))
   | Instr.Increment dst =>
     check `specification_Increment (←`(tactic | apply specification_Increment (pc := $(mkNumLit s!"{pc}"))
                                                       (dst := $(mkNumLit s!"{dst}"))))

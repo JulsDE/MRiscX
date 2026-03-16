@@ -108,6 +108,47 @@ theorem specification_LoadImmediate (P: Assertion) (pc dst val : UInt64):
       exact pre
 
 
+/--
+Specification for `Instr.LoadNegImmediate`.
+
+This is the same as for LoadImmediate but for negative values.
+-/
+theorem specification_LoadNegImmediate (P: Assertion) (pc dst val : UInt64):
+  hoare
+    ⟪li x dst, -val;⟫
+    ⦃P ⟦x[dst] ← val; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  end
+  := by
+  unfold hoare_triple_up_1
+  rintro _ _ s HCurr h_pc ⟨pre, h_terminated⟩
+  simp at h_terminated
+  unfold weak
+  exists s.runOneStep
+  apply And.intro
+  case left =>
+    intros _
+    exists 1
+    apply And.intro
+    simp
+    case right =>
+      simp [<- MState.run_one_step_eq_run_n_1]
+      unfold MState.runOneStep
+      rw [h_terminated, ←h_pc, HCurr]
+      simp
+      zero_lt_ne_zero
+  case right =>
+    -- try rw [xor_iff_notation] at pre
+    simp [- MState.run_one_step_eq_run_n_1]
+    unfold MState.runOneStep
+    rw [HCurr]
+    simp
+    simp [h_terminated, ←h_pc]
+    simp at pre
+    rw [h_terminated] at pre
+    rw [h_pc]
+    rw [h_pc] at pre
+    exact pre
+
 
 theorem specification_CopyRegister (P: Assertion) (pc dst src : UInt64):
   hoare
@@ -121,6 +162,19 @@ theorem specification_AddImmediate (P: Assertion) (pc dst regAddend val : UInt64
   hoare
     ⟪addi x dst, x regAddend, val;⟫
     ⦃P ⟦x[dst] ← (x[regAddend] + val) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  end
+  := by
+  hoare_simp_specification
+
+/--
+Specification for `Instr.AddNegImmediate`.
+
+This is the same as for AddImmediate but for negative values.
+-/
+theorem specification_AddNegImmediate (P: Assertion) (pc dst regAddend val : UInt64):
+  hoare
+    ⟪addi x dst, x regAddend, -val;⟫
+    ⦃P ⟦x[dst] ← (x[regAddend] - val) ; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc+1} | {n:UInt64 | n ≠ pc+1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
   hoare_simp_specification
