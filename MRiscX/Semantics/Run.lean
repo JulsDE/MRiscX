@@ -51,10 +51,15 @@ namespace MState
         (ms.addRegister dst addr).incPc
       | Instr.LoadImmediate (dst:UInt64) (i:UInt64) =>
         (ms.addRegister dst i).incPc
+      | Instr.LoadNegImmediate (dst:UInt64) (i:UInt64) =>
+        let nr : UInt64 := 0 - i
+        (ms.addRegister dst nr).incPc
       | Instr.CopyRegister (dst:UInt64) (src : UInt64) =>
         (ms.addRegister dst (ms.getRegisterAt src)).incPc
       | Instr.AddImmediate (dst:UInt64) (reg:UInt64) (i:UInt64) =>
         (ms.addRegister dst ((ms.getRegisterAt reg) + i)).incPc
+      | Instr.AddNegImmediate (dst:UInt64) (reg:UInt64) (i:UInt64) =>
+        (ms.addRegister dst ((ms.getRegisterAt reg) - i)).incPc
       | Instr.Increment (dst:UInt64) =>
         (ms.addRegister dst (ms.getRegisterAt dst + 1)).incPc
       | Instr.AddRegister (dst:UInt64) (reg1:UInt64) (reg2:UInt64) =>

@@ -27,6 +27,11 @@ def termToInstr (t: TSyntax `term) : UnexpandM (TSyntax `mriscx_Instr) := do
     let iNum  ← numOrIdentToSyntax i
     `(mriscx_Instr | li x$dstNum, $iNum
     )
+  | `(Instr.LoadNegImmediate $dst $i) =>
+    let dstNum ← numOrIdentToSyntax dst
+    let iNum  ← numOrIdentToSyntax i
+    `(mriscx_Instr | li x$dstNum, -$iNum
+    )
   | `(Instr.CopyRegister $dst $src) =>
     let dstNum ← numOrIdentToSyntax dst
     let srcNum ← numOrIdentToSyntax src
@@ -37,6 +42,12 @@ def termToInstr (t: TSyntax `term) : UnexpandM (TSyntax `mriscx_Instr) := do
     let regNum ← numOrIdentToSyntax reg
     let iNum ← numOrIdentToSyntax i
     `(mriscx_Instr | addi x$dstNum, x$regNum, $iNum
+    )
+  | `(Instr.AddNegImmediate $dst $reg $i) =>
+    let dstNum ← numOrIdentToSyntax dst
+    let regNum ← numOrIdentToSyntax reg
+    let iNum ← numOrIdentToSyntax i
+    `(mriscx_Instr | addi x$dstNum, x$regNum, -$iNum
     )
   | `(Instr.Increment $dst) =>
     let dstNum ← numOrIdentToSyntax dst

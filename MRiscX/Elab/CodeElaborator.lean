@@ -34,6 +34,11 @@ def getInstrExpr (t: TSyntax `mriscx_Instr): TermElabM Expr := do
     | `(mriscx_Instr | li x$r:mriscx_num_or_ident, $v:mriscx_num_or_ident;) =>
       let exprs ← parseMriscxNumOrIdentArray #[r, v]
       return (mkAppN (.const `Instr.LoadImmediate []) #[exprs[0]!, exprs[1]!])
+    | `(mriscx_Instr | li x$r:mriscx_num_or_ident, -$v:mriscx_num_or_ident
+    )
+    | `(mriscx_Instr | li x$r:mriscx_num_or_ident, -$v:mriscx_num_or_ident;) =>
+      let exprs ← parseMriscxNumOrIdentArray #[r, v]
+      return (mkAppN (.const `Instr.LoadImmediate []) #[exprs[0]!, exprs[1]!])
     | `(mriscx_Instr | mv x$r:mriscx_num_or_ident, x$v:mriscx_num_or_ident
     )
     | `(mriscx_Instr | mv x$r:mriscx_num_or_ident, x$v:mriscx_num_or_ident;) =>
@@ -46,6 +51,13 @@ def getInstrExpr (t: TSyntax `mriscx_Instr): TermElabM Expr := do
                         $i:mriscx_num_or_ident;) =>
       let exprs ← parseMriscxNumOrIdentArray #[dst, reg, i]
       return (mkAppN (.const `Instr.AddImmediate []) #[exprs[0]!, exprs[1]!, exprs[2]!])
+    | `(mriscx_Instr | addi x$dst:mriscx_num_or_ident, x$reg:mriscx_num_or_ident,
+                        -$i:mriscx_num_or_ident
+    )
+    | `(mriscx_Instr | addi x$dst:mriscx_num_or_ident, x$reg:mriscx_num_or_ident,
+                        -$i:mriscx_num_or_ident;) =>
+      let exprs ← parseMriscxNumOrIdentArray #[dst, reg, i]
+      return (mkAppN (.const `Instr.AddNegImmediate []) #[exprs[0]!, exprs[1]!, exprs[2]!])
     | `(mriscx_Instr | inc x$dst:mriscx_num_or_ident
     )
     | `(mriscx_Instr | inc x$dst:mriscx_num_or_ident;) =>

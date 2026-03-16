@@ -43,9 +43,13 @@ syntax "la " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "li " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "li " &"x" mriscx_num_or_ident &", " &"-" mriscx_num_or_ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "mv " &"x" mriscx_num_or_ident &"," &"x" mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "addi " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "addi " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " &"-" mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "inc " &"x" mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr

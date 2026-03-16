@@ -26,7 +26,17 @@ inductive Instr : Type where
   -/
   | LoadImmediate     : UInt64 → UInt64 → Instr
   /--
-    Copy the contents of an a register into another register
+    Load an immediate value into a register.
+
+    Syntax:
+
+    `mv x dst, x reg`
+
+    where `(dst reg : UInt64)`.
+  -/
+  | LoadNegImmediate     : UInt64 → UInt64 → Instr
+  /--
+    Load a negative value in a register.
 
     Syntax:
 
@@ -47,6 +57,17 @@ inductive Instr : Type where
   | AddImmediate      : UInt64 → UInt64 → UInt64 → Instr
   /--
     Increment the content of a register by one
+
+    Syntax:
+
+    `inc x dst`
+
+    where `(dst : UInt64)`.
+  -/
+  | AddNegImmediate      : UInt64 → UInt64 → UInt64 → Instr
+  /--
+    Decrement the content of a register by one, essentially the same as SubImmediate
+    but necessary for correct delaboration.
 
     Syntax:
 
@@ -250,8 +271,10 @@ instance : ToString Instr where
       let hex := addr.toBitVec.zeroExtend (Nat.log2 addr.toNat + 1)
       s!"la x{dst}, {hex}"
     | Instr.LoadImmediate dst i => s!"li x{dst}, {i}"
+    | Instr.LoadNegImmediate dst i => s!"li x{dst}, -{i}"
     | Instr.CopyRegister dst src => s!"mv x{dst} , x{src}"
     | Instr.AddImmediate dst reg i => s!"addi x{dst}, x{reg}, {i}"
+    | Instr.AddNegImmediate dst reg i => s!"addi x{dst}, x{reg}, -{i}"
     | Instr.Increment dst => s!"inc x{dst}"
     | Instr.AddRegister dst reg1 reg2 => s!"add x{dst}, x{reg1}, x{reg2}"
     | Instr.SubImmediate dst reg i => s!"subi x{dst}, x{reg}, {i}"
