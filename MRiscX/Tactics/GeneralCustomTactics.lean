@@ -10,7 +10,7 @@ this project.
 -/
 
 elab "simp_set_eq" : tactic => do
-  evalTactic (← `(tactic | try (ext; simp; grind)))
+  evalTactic (← `(tactic | (ext; simp; grind)))
 
 
 elab "apply_to_last_goal" t:tacticSeq : tactic => do

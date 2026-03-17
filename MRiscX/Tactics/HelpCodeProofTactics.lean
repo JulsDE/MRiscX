@@ -12,7 +12,7 @@ Tries to solve a `s.currInstr = instr` goal. Requires the s.cdoe and s.pc being 
 as `h_code'` and `h_pc` respectively as hypothesis
 -/
 elab "simp_currInstr" : tactic => do
-  evalTactic (← `(tactic| simp))
+  evalTactic (← `(tactic| try simp))
   evalTactic (← `(tactic| rw [($(mkIdent `h_code')), ($(mkIdent `h_pc))]))
   evalTactic (← `(tactic| simp [t_update_neq, t_update_eq]))
 

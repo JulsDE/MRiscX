@@ -269,24 +269,50 @@ elab "sapply_s_seq'''"  &"R" &" := "  R:term &", "
 
 
 
-/- apply specification and simp some trivial goals. Requires a hypothesis being
-   introduced as `h_pc` -/
-elab "apply_spec_basic" spec:term : tactic => do
-  evalTactic (← `(tactic | apply $spec ))
-  evalTactic (← `(tactic | simp ))
-  evalTactic (← `(tactic | simp ))
+-- /- apply specification and simp some trivial goals. Requires a hypothesis being
+--    introduced as `h_pc` -/
+-- elab "apply_spec_basic" spec:term : tactic => do
+--   evalTactic (← `(tactic | apply $spec ))
+
+
+
+
+elab "cleanup_goals_after_spec" : tactic => do
+  -- evalTactic (← `(tactic | first
+  --                         | simp_set_eq ; simp
+  --                         | simp  ))
+  -- evalTactic (← `(tactic | simp ))
+  -- evalTactic (← `(tactic | simp ))
+  evalTactic (← `(tactic | simp_set_eq))
+  evalTactic (← `(tactic | repeat  simp))
   evalTactic (← `(tactic | simp_currInstr ))
   evalTactic (← `(tactic | exact $(mkIdent `h_pc) ))
-
-
-/- apply specification after all hypothesis are introduced. Solve some trivial goals afterwards -/
-elab "apply_spec_when_ready" spec:term : tactic => do
-  evalTactic (← `(tactic | apply_spec_basic $spec ))
-  evalTactic (← `(tactic | simp at *))
+  evalTactic (← `(tactic | try simp at *))
   evalTactic (← `(tactic | repeat (constructor <;> try assumption)))
   evalTactic (← `(tactic | repeat (constructor <;> try assumption)))
   evalTactic (← `(tactic | try simp))
+  evalTactic (← `(tactic | repeat assumption))
 
+elab "cleanup_after_automation" : tactic => do
+  evalTactic (← `(tactic | try simp_set_eq))
+  evalTactic (← `(tactic | try simp))
+  evalTactic (← `(tactic | try simp))
+  evalTactic (← `(tactic | try simp_currInstr))
+  evalTactic (← `(tactic | try exact $(mkIdent `h_pc)))
+  evalTactic (← `(tactic | try simp at *))
+  evalTactic (← `(tactic | try repeat (constructor <;> try assumption)))
+  evalTactic (← `(tactic | try repeat assumption))
+
+
+elab "cleanup_goals_after_spec_w_set_eq" : tactic => do
+  evalTactic (← `(tactic | try simp_set_eq ))
+  evalTactic (← `(tactic | cleanup_goals_after_spec ))
+
+
+/- apply specification after all hypothesis are introduced. Solve some trivial goals afterwards -/
+elab "apply_spec_and_cleanup" spec:term : tactic => do
+  evalTactic (← `(tactic | apply $spec ))
+  evalTactic (← `(tactic | cleanup_goals_after_spec ))
 
 
 -- TODO unfold any identifier
@@ -296,16 +322,20 @@ elab "apply_spec_default" spec:term : tactic => do
   evalTactic (← `(tactic | intros $(mkIdent `h_inter) $(mkIdent `h_empty) $(mkIdent `s) $(mkIdent `h_code') $(mkIdent `h_pc) $(mkIdent `user_precondition)))
   evalTactic (← `(tactic | rw [← $(mkIdent `h_code')] ))
   evalTactic (← `(tactic | split_condis in $(mkIdent `user_precondition) ))
-  evalTactic (← `(tactic | repeat (apply_spec_when_ready $spec)))
+  evalTactic (← `(tactic | repeat (apply $spec)))
+  -- evalTactic (← `(tactic | repeat (apply_spec_and_cleanup $spec)))
+
+
 
 /- apply specification for the 'second goal' of S_SEQ.-/
 elab "apply_spec_for_second" spec:term : tactic => do
   evalTactic (← `(tactic | prepare_second_seq))
   evalTactic (← `(tactic | intros $(mkIdent `user_precondition)))
   evalTactic (← `(tactic | split_condis in $(mkIdent `user_precondition)))
-  evalTactic (← `(tactic | apply_spec_when_ready $spec ))
-  evalTactic (← `(tactic | try repeat (constructor <;> try assumption)))
-  evalTactic (← `(tactic | try repeat (simp)))
+  evalTactic (← `(tactic | apply $spec))
+  -- evalTactic (← `(tactic | apply_spec_and_cleanup $spec))
+  -- evalTactic (← `(tactic | try repeat (constructor <;> try assumption)))
+  -- evalTactic (← `(tactic | try repeat (simp)))
 
 
 /--
@@ -325,14 +355,15 @@ elab "apply_spec" spec:term : tactic => do
   evalTactic (← `(tactic | first
                           | apply_spec_default $spec
                           | apply_spec_for_second $spec))
+  evalTactic (← `(tactic | cleanup_goals_after_spec))
   evalTactic (← `(tactic | try simp_t_update))
 
 elab "apply_spec'" name:(ident) : tactic => do
   evalTactic (← `(tactic | first
-                          | apply_spec_scd_goal $name
-                          | apply_spec_frst_goal $name))
+                          | (apply_spec_scd_goal $name ; cleanup_after_automation)
+                          | apply_spec_frst_goal $name ; cleanup_after_automation))
 
 elab "apply_spec''" : tactic => do
   evalTactic (← `(tactic | first
-                          | apply_spec_scd_goal
-                          | apply_spec_frst_goal))
+                          | (apply_spec_scd_goal ; cleanup_after_automation)
+                          | apply_spec_frst_goal ; cleanup_after_automation))

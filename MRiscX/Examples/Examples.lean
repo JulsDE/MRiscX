@@ -197,7 +197,6 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
                       L_B' := ({n:UInt64| n ≠ 2})
       . apply_spec specification_LoadAddress (pc := 0) (dst := r₁) (addr := p)
       . apply_spec specification_LoadAddress (pc := 1) (dst := r₂) (addr := k)
-
     . apply_spec specification_LoadAddress (pc := 2) (dst := r₃) (addr := c)
   . apply_spec specification_LoadImmediate (pc := 3) (dst := r₄) (val := l)
 
@@ -338,11 +337,7 @@ example (r₀ r₁ p : UInt64):
   intros h₁ h₂ h₃
   auto_seq
   . auto_seq
-    . have : (({n:UInt64 | n = 0} ∪ {n : UInt64 | n > 3} ∪ {3} ∪ {2}) = {n : UInt64 | n ≠ 1})
-                := by
-                simp_set_eq
-      rw [this]
-      apply_spec specification_LoadImmediate (pc := 0) (dst := r₀) (val := p)
+    . apply_spec specification_LoadImmediate (pc := 0) (dst := r₀) (val := p)
     . apply_spec specification_LoadImmediate (pc := 1) (dst := r₁) (val := 0)
       -- TODO automate this:
       have : (r₁ ↦ 0 ; (2 ↦ 291 ; s.registers)).get r₀ = p := by assumption
