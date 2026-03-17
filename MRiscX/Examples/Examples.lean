@@ -1,5 +1,16 @@
 import MRiscX.Basic
 import MRiscX.Tactics.ApplySpec
+
+
+#check
+    mriscx
+      first: li x 0, 0
+             li x 1, 0
+
+    end
+    ⦃¬⸨terminated⸩⦄
+      "first" ↦ ⟨{"first" + 2} | ({n:UInt64 | n ≠ "first" + 1 ∧ n ≠ 2})⟩
+    ⦃x[0] = 0 ∧ x[1] = 0 ∧ ¬⸨terminated⸩⦄
 /-
 New Code Proofs
 -/
@@ -192,6 +203,31 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
 
 
 
+
+example:
+    mriscx
+      first:  li x 0, 2
+              li x 1, 0
+              la x 2, 0x123
+    end
+    -- Assert assignment of register as precondition
+    ⦃¬⸨terminated⸩ ∧ x[4] = 123⦄
+    "first" ↦ ⟨{3} | ({n:UInt64 | n = "first" ∨ n > 3})⟩
+    ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄
+  := by
+  /-
+  apply s_seq with automatically solve set equality
+  -/
+  auto_seq
+  . sapply_s_seq''  R := ⦃(x[0] = 2 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
+                    L_W := {1},
+                    L_W' := {2},
+                    L_B := ({n:UInt64| n ≠ 1}),
+                    L_B' := ({n:UInt64| n ≠ 2})
+    . apply_spec''
+    . apply_spec''
+    . simp_set_eq
+  . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := 0x123)
 
 example:
     mriscx
