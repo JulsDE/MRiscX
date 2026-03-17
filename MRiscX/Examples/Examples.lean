@@ -300,27 +300,24 @@ example:
 
 
 
-/--
-Usage of auto_seq
--/
-example:
+lemma l:
     code
     ⦃¬⸨terminated⸩⦄
-    "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
-    ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123) ∧ ¬⸨terminated⸩⦄
+    "first" ↦ ⟨{2} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
+    ⦃(x[0] = 2 ∧ x[1] = 0) ∧ ¬⸨terminated⸩⦄
   := by
   unfold code
   -- use tactic `auto_seq` which automatically applies S_SEQ and calcs missing values
-  auto_seq
-  . auto_seq
-    . have : (({n:UInt64 | n = 0} ∪ {n : UInt64 | n > 3} ∪ {3} ∪ {2}) = {n : UInt64 | n ≠ 1})
-                := by
-                simp_set_eq
-      rw [this]
-      apply_spec' specification_LoadImmediate
-    .apply_spec''
+  peel_last_instr <;> try assumption
+  . simp
+  . simp
+  . simp
+  . simp
   . apply_spec''
+  . try (ext; simp; grind)
 
+
+#print l
 
 /--
 Usage of auto_seq with variables
