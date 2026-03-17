@@ -283,6 +283,7 @@ elab "apply_spec_scd_goal" name?:(Lean.Parser.ident)? : tactic => do
         -- Since the goal is in the form of `∀ l' ∈ {...} → ...`, we
         -- just access the value in the Set and hope it is just one.
         -- (TODO: handle multiple values)
+        logInfo s!"{goalType.bindingBody!.bindingDomain!.getAppArgs[3]!} b"
         let lExpr := goalType.bindingBody!.bindingDomain!.getAppArgs[3]!
         let pc ← parseSingletonExpr lExpr
         -- After obtaining the value of pc, we need to introduce the

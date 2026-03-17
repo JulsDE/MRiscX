@@ -67,11 +67,13 @@ def stateFnsDelab : Delab := whenNotPPOption getPPExplicit <| withMDataExpr do
     do throwError "This Expression is not known for delaboration"
 
 
-def hasNestedLambdaBody (e:Expr) : Bool :=
-  if e.isLambda then
-    e.bindingBody!.getAppFn.isLambda
+open Delaborator SubExpr in
+def hasNestedLambdaBody (e:Expr) : DelabM Bool :=
+  if e.isLambda then do
+    logInfo s!"{e.bindingBody!}"
+    return e.bindingBody!.getAppFn.isLambda
   else
-    false
+    return false
 
 /-
 Delaborate Assertions, considering nested lambda functions for applying e.G.
@@ -96,7 +98,7 @@ def mkAssertionAtN
         delab
 
     let stateSyn? : Option Term ← withNaryArg n <| do
-      if hasNestedLambdaBody (←getExpr) then
+      if ←hasNestedLambdaBody (←getExpr) then
         some <$> withBindingBody' stName pure (fun _ =>
           withNaryArg 0 delab)
       else

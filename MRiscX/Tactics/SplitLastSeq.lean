@@ -13,6 +13,7 @@ def extractL_w'AndL_b'' (e : Expr) : MetaM (Expr × Expr) := do
   let whnf ← Meta.whnf e
   if whnf.isAppOf `Eq then
     let lam ← (Meta.whnf <| whnf.getArg! 1)
+    logInfo s!"{lam.bindingBody!} c"
     if lam.isLambda then
       let body ← (Meta.whnf <| lam.bindingBody!)
       let L_w' ← (Meta.whnf <| body.getArg! 0)
@@ -106,6 +107,8 @@ def calcRExprDefault (Q: Expr) (lastInstrExpr : Expr): MetaM Expr := do
   if !hasOneLam then
     throwError s!"Expected postcondition Q {Q} to be a λ-expression"
   let hasScdLam := Q.bindingBody!.getAppFn.isLambda
+  logInfo s!"{Q.bindingBody!} d"
+  logInfo s!"{Q.bindingBody!.getAppFn} f"
 
   let mstateInferredOld := ← match hasScdLam with
                 | true => do
@@ -138,6 +141,7 @@ elab "peel_last_instr" : tactic => do
   Lean.Elab.Tactic.withMainContext do
     let goal ← Lean.Elab.Tactic.getMainGoal
     let f ← Meta.whnf <| ←goal.getType
+    logInfo s!"{((f.getArg! 1).bindingBody!.getAppArgs[1]!.getArg! 0).getAppFn} e"
     let currentQ := ((f.getArg! 1).bindingBody!.getAppArgs[1]!.getArg! 0).getAppFn
 
     let ctx ← Lean.MonadLCtx.getLCtx

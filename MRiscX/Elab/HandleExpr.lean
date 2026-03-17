@@ -242,7 +242,9 @@ private def getLambdaBody (e : Expr) (fuel : Nat) : MetaM Expr := do
   match fuel with
   | 0 => throwError "There might be too many arguments in this function or an error occurred
                         during the extraction of the function body"
-  | Nat.succ n' => do return ← getLambdaBody e.bindingBody! n'
+  | Nat.succ n' => do
+      logInfo s!"{e.bindingBody!} a"
+      return ← getLambdaBody e.bindingBody! n'
 
 /--
 Return the actual binding body from a lambda function.

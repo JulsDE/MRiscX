@@ -317,7 +317,6 @@ lemma l:
   . try (ext; simp; grind)
 
 
-#print l
 
 /--
 Usage of auto_seq with variables
