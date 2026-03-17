@@ -302,7 +302,7 @@ example:
 lemma l:
     code
     ⦃¬⸨terminated⸩⦄
-    "first" ↦ ⟨{2} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
+    "first" ↦ ⟨{2} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 2})⟩
     ⦃(x[0] = 2 ∧ x[1] = 0) ∧ ¬⸨terminated⸩⦄
   := by
   unfold code
@@ -312,6 +312,7 @@ lemma l:
   . simp
   . simp
   . simp
+  . apply_spec''
   . apply_spec''
   . try (ext; simp; grind)
 
