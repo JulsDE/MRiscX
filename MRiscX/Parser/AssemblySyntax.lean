@@ -55,6 +55,7 @@ syntax &"t0" : mriscx_registers
 
 syntax &"x6" : mriscx_registers
 syntax &"t1" : mriscx_registers
+
 syntax &"x7" : mriscx_registers
 syntax &"t2" : mriscx_registers
 
@@ -143,9 +144,13 @@ syntax "la " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "li " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "li " mriscx_registers &", " &"-" mriscx_num_or_ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "mv " mriscx_registers &"," mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "addi " mriscx_registers &", " mriscx_registers &", " mriscx_num_or_ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "addi " mriscx_registers &", " mriscx_registers &", " &"-" mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "inc " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
