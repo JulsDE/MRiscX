@@ -108,40 +108,45 @@ def ofNat! (n : Nat) (d : RegisterNr) : RegisterNr :=
   | 31 => RegisterNr.thirtyone
   | _ => d
 
+
+def toNat
+  | RegisterNr.zero => 0
+  | RegisterNr.one => 1
+  | RegisterNr.two => 2
+  | RegisterNr.three => 3
+  | RegisterNr.four => 4
+  | RegisterNr.five => 5
+  | RegisterNr.six => 6
+  | RegisterNr.seven => 7
+  | RegisterNr.eight => 8
+  | RegisterNr.nine => 9
+  | RegisterNr.ten => 10
+  | RegisterNr.eleven => 11
+  | RegisterNr.twelve => 12
+  | RegisterNr.thirteen => 13
+  | RegisterNr.fourteen => 14
+  | RegisterNr.fifteen => 15
+  | RegisterNr.sixteen => 16
+  | RegisterNr.seventeen => 17
+  | RegisterNr.eighteen => 18
+  | RegisterNr.nineteen => 19
+  | RegisterNr.twenty => 20
+  | RegisterNr.twentyone => 21
+  | RegisterNr.twentytwo => 22
+  | RegisterNr.twentythree => 23
+  | RegisterNr.twentyfour => 24
+  | RegisterNr.twentyfive => 25
+  | RegisterNr.twentysix => 26
+  | RegisterNr.twentyseven => 27
+  | RegisterNr.twentyeight => 28
+  | RegisterNr.twentynine => 29
+  | RegisterNr.thirty => 30
+  | RegisterNr.thirtyone => 31
+
 instance : ToString RegisterNr where
-  toString
-  | RegisterNr.zero => "0"
-  | RegisterNr.one => "1"
-  | RegisterNr.two => "2"
-  | RegisterNr.three => "3"
-  | RegisterNr.four => "4"
-  | RegisterNr.five => "5"
-  | RegisterNr.six => "6"
-  | RegisterNr.seven => "7"
-  | RegisterNr.eight => "8"
-  | RegisterNr.nine => "9"
-  | RegisterNr.ten => "10"
-  | RegisterNr.eleven => "11"
-  | RegisterNr.twelve => "12"
-  | RegisterNr.thirteen => "13"
-  | RegisterNr.fourteen => "14"
-  | RegisterNr.fifteen => "15"
-  | RegisterNr.sixteen => "16"
-  | RegisterNr.seventeen => "17"
-  | RegisterNr.eighteen => "18"
-  | RegisterNr.nineteen => "19"
-  | RegisterNr.twenty => "20"
-  | RegisterNr.twentyone => "21"
-  | RegisterNr.twentytwo => "22"
-  | RegisterNr.twentythree => "23"
-  | RegisterNr.twentyfour => "24"
-  | RegisterNr.twentyfive => "25"
-  | RegisterNr.twentysix => "26"
-  | RegisterNr.twentyseven => "27"
-  | RegisterNr.twentyeight => "28"
-  | RegisterNr.twentynine => "29"
-  | RegisterNr.thirty => "30"
-  | RegisterNr.thirtyone => "31"
+  toString (nr) :=
+  s!"{nr.toNat}"
+
 
   def eq (r1 r2 : RegisterNr) := (r1 == r2)
 

@@ -2,6 +2,25 @@ import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Elab.HandleNumOrIdent
 open Lean Elab
 
+#check @RegisterName.mk
+
+def mkRegisterNr (nr : RegisterNr) :=
+  let n := nr.toNat
+  mkApp
+    (mkConst ``RegisterNr.ofNat! [])
+    (mkNatLit n)
+
+
+#eval mkRegisterNr RegisterNr.eight
+#eval mkConst ``RegisterNr.eight
+
+def mkRegisterName (r : RegisterName) :=
+  let nr := mkRegisterNr r.nr
+  mkApp2
+    (mkConst ``RegisterName.mk [])
+    nr
+    (mkStrLit r.name)
+
 
 def getCorrespondingRegister (r : (TSyntax `mriscx_registers)) : TermElabM Expr :=
   match r with
