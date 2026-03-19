@@ -1,173 +1,22 @@
 import MRiscX.AbstractSyntax.Map
 import MRiscX.AbstractSyntax.Instr
+import MRiscX.AbstractSyntax.Registers
 import MRiscX.Parser.AssemblySyntax
 import Lean
 open Nat
 open Lean Lean.Elab
-/--
+/-
 Purpose of this file:
 This file establishes the syntax of the MRiscX assembly language, encompassing the definition
 of instructions, labels, registers, memory and machine states. Given that the instructionsMap,
 labels, registers, and memory are represented as maps, it may be beneficial to review the contents
 of the file Maps.lean beforehand.
 
-
 Next we define some Datatypes for the map keys.
 This is because it makes it easier to understand which
 map is being processed.
 Firstly a register, which will hold a value
 -/
-
-inductive Register where
-  | zero
-  | one
-  | two
-  | three
-  | four
-  | five
-  | six
-  | seven
-  | eight
-  | nine
-  | ten
-  | eleven
-  | twelve
-  | thirteen
-  | fourteen
-  | fifteen
-  | sixteen
-  | seventeen
-  | eighteen
-  | nineteen
-  | twenty
-  | twentyone
-  | twentytwo
-  | twentythree
-  | twentyfour
-  | twentyfive
-  | twentysix
-  | twentyseven
-  | twentyeight
-  | twentynine
-  | thirty
-  | thirtyone
-
-namespace Register
-
-def ofNat? (n : Nat) : Option Register :=
-  match n with
-  | 0 => some Register.zero
-  | 1 => some Register.one
-  | 2 => some Register.two
-  | 3 => some Register.three
-  | 4 => some Register.four
-  | 5 => some Register.five
-  | 6 => some Register.six
-  | 7 => some Register.seven
-  | 8 => some Register.eight
-  | 9 => some Register.nine
-  | 10 => some Register.ten
-  | 11 => some Register.eleven
-  | 12 => some Register.twelve
-  | 13 => some Register.thirteen
-  | 14 => some Register.fourteen
-  | 15 => some Register.fifteen
-  | 16 => some Register.sixteen
-  | 17 => some Register.seventeen
-  | 18 => some Register.eighteen
-  | 19 => some Register.nineteen
-  | 20 => some Register.twenty
-  | 21 => some Register.twentyone
-  | 22 => some Register.twentytwo
-  | 23 => some Register.twentythree
-  | 24 => some Register.twentyfour
-  | 25 => some Register.twentyfive
-  | 26 => some Register.twentysix
-  | 27 => some Register.twentyseven
-  | 28 => some Register.twentyeight
-  | 29 => some Register.twentynine
-  | 30 => some Register.thirty
-  | 31 => some Register.thirtyone
-  | _ => none
-
-def ofNat! (n : Nat) (d : Register) : Register :=
-  match n with
-  | 0 => Register.zero
-  | 1 => Register.one
-  | 2 => Register.two
-  | 3 => Register.three
-  | 4 => Register.four
-  | 5 => Register.five
-  | 6 => Register.six
-  | 7 => Register.seven
-  | 8 => Register.eight
-  | 9 => Register.nine
-  | 10 => Register.ten
-  | 11 => Register.eleven
-  | 12 => Register.twelve
-  | 13 => Register.thirteen
-  | 14 => Register.fourteen
-  | 15 => Register.fifteen
-  | 16 => Register.sixteen
-  | 17 => Register.seventeen
-  | 18 => Register.eighteen
-  | 19 => Register.nineteen
-  | 20 => Register.twenty
-  | 21 => Register.twentyone
-  | 22 => Register.twentytwo
-  | 23 => Register.twentythree
-  | 24 => Register.twentyfour
-  | 25 => Register.twentyfive
-  | 26 => Register.twentysix
-  | 27 => Register.twentyseven
-  | 28 => Register.twentyeight
-  | 29 => Register.twentynine
-  | 30 => Register.thirty
-  | 31 => Register.thirtyone
-  | _ => d
-
-instance : ToString Register where
-  toString
-  | Register.zero => "0"
-  | Register.one => "1"
-  | Register.two => "2"
-  | Register.three => "3"
-  | Register.four => "4"
-  | Register.five => "5"
-  | Register.six => "6"
-  | Register.seven => "7"
-  | Register.eight => "8"
-  | Register.nine => "9"
-  | Register.ten => "10"
-  | Register.eleven => "11"
-  | Register.twelve => "12"
-  | Register.thirteen => "13"
-  | Register.fourteen => "14"
-  | Register.fifteen => "15"
-  | Register.sixteen => "16"
-  | Register.seventeen => "17"
-  | Register.eighteen => "18"
-  | Register.nineteen => "19"
-  | Register.twenty => "20"
-  | Register.twentyone => "21"
-  | Register.twentytwo => "22"
-  | Register.twentythree => "23"
-  | Register.twentyfour => "24"
-  | Register.twentyfive => "25"
-  | Register.twentysix => "26"
-  | Register.twentyseven => "27"
-  | Register.twentyeight => "28"
-  | Register.twentynine => "29"
-  | Register.thirty => "30"
-  | Register.thirtyone => "31"
-
-end Register
-
-
-
--- instance: Coe Register UInt64 where
---  coe c := (Register.ofNat?)
-
 
 /--
 Next, the memory address. This address will point to a certain
@@ -275,8 +124,49 @@ end Code
 Definiton of the registers
 R := {r_1 ↦ w_1, … , r_k ↦ w_k}
 -/
-def Registers := TMap Register UInt64
+abbrev Registers := TMap RegisterName UInt64
   -- deriving Repr
+
+def Registers.getByRegNr (regs : Registers) (nr : RegisterNr) :=
+  match regs with
+  | TMap.empty d => d
+  | TMap.put k v t =>
+    if k.nr == nr then
+      v
+    else
+      Registers.getByRegNr t nr
+
+@[simp]
+theorem tReg_update_eq : ∀ (name : RegisterName) (nr : RegisterNr) (r t : Registers)
+    (v : UInt64),
+  name.nr = nr →
+  r = (name ↦ v ; t) →
+  r.getByRegNr nr = v
+  := by
+  intros name nr r t v h₁ h₂
+  unfold Registers.getByRegNr
+  simp
+  rw [h₂]
+  simp
+  rw [h₁]
+  simp
+
+@[simp]
+theorem tReg_update_neq : ∀ (name : RegisterName) (nr : RegisterNr) (r t : Registers)
+    (v : UInt64),
+  name.nr ≠ nr →
+  r = (name ↦ v ; t) →
+  r.getByRegNr nr = t.getByRegNr nr
+  := by
+  intros name nr r t v h₁ h₂
+  unfold Registers.getByRegNr
+  simp
+  rw [h₂]
+  simp [h₁]
+  conv =>
+    lhs
+    unfold Registers.getByRegNr
+    simp
 
 /--
 RegisterMap with default value 0

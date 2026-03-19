@@ -1,3 +1,4 @@
+import MRiscX.AbstractSyntax.Registers
 /--
 Definition of the Instructions.
 -/
@@ -14,7 +15,7 @@ inductive Instr : Type where
     Note: Numbers of type UInt64 can be written as hexadecimal
     (e.g. `0xf123`), which might serve as address.
   -/
-  | LoadAddress       : UInt64 → UInt64 → Instr
+  | LoadAddress       : RegisterName → UInt64 → Instr
   /--
     Load an immediate value into a register
 
@@ -24,17 +25,17 @@ inductive Instr : Type where
 
     where `(dst m : UInt64)`.
   -/
-  | LoadImmediate     : UInt64 → UInt64 → Instr
+  | LoadImmediate     : RegisterName → UInt64 → Instr
   /--
     Load an immediate value into a register.
 
     Syntax:
 
-    `mv x dst, x reg`
+    `la x dst, - val`
 
     where `(dst reg : UInt64)`.
   -/
-  | LoadNegImmediate     : UInt64 → UInt64 → Instr
+  | LoadNegImmediate     : RegisterName → UInt64 → Instr
   /--
     Load a negative value in a register.
 
@@ -44,7 +45,7 @@ inductive Instr : Type where
 
     where `(dst reg : UInt64)`.
   -/
-  | CopyRegister      : UInt64 → UInt64 → Instr
+  | CopyRegister      : RegisterName → RegisterName → Instr
   /--
     Add an immediate value and a register, store the result into a register
 
@@ -54,7 +55,7 @@ inductive Instr : Type where
 
     where `(dst reg m : UInt64)`.
   -/
-  | AddImmediate      : UInt64 → UInt64 → UInt64 → Instr
+  | AddImmediate      : RegisterName → RegisterName → UInt64 → Instr
   /--
     Increment the content of a register by one
 
@@ -64,7 +65,7 @@ inductive Instr : Type where
 
     where `(dst : UInt64)`.
   -/
-  | AddNegImmediate      : UInt64 → UInt64 → UInt64 → Instr
+  | AddNegImmediate      : RegisterName → RegisterName → UInt64 → Instr
   /--
     Decrement the content of a register by one, essentially the same as SubImmediate
     but necessary for correct delaboration.
@@ -75,7 +76,7 @@ inductive Instr : Type where
 
     where `(dst : UInt64)`.
   -/
-  | Increment         : UInt64 → Instr
+  | Increment         : RegisterName → Instr
   /--
     Add the contents of two registers and store the value into a register
 
@@ -85,7 +86,7 @@ inductive Instr : Type where
 
     where `(dst reg1 reg2 : UInt64)`.
   -/
-  | AddRegister       : UInt64 → UInt64 → UInt64 → Instr
+  | AddRegister       : RegisterName → RegisterName → RegisterName → Instr
   /--
     Subtract an immediate value form a register, store the result into a
     third register
@@ -96,7 +97,7 @@ inductive Instr : Type where
 
     where `(dst reg n : UInt64)`.
   -/
-  | SubImmediate      : UInt64 → UInt64 → UInt64 → Instr
+  | SubImmediate      : RegisterName → RegisterName → UInt64 → Instr
   /--
     Decrement the content of a register by one
 
@@ -106,7 +107,7 @@ inductive Instr : Type where
 
     where `(dst : UInt64)`.
   -/
-  | Decrement         : UInt64 → Instr
+  | Decrement         : RegisterName → Instr
   /--
     Subtract the value of a register form another register,
     store the result into a third register
@@ -117,7 +118,7 @@ inductive Instr : Type where
 
     where `(dst reg1 reg2 : UInt64)`.
   -/
-  | SubRegister       : UInt64 → UInt64 → UInt64 → Instr
+  | SubRegister       : RegisterName → RegisterName → RegisterName → Instr
   /--
     Bitwise-XOR operation between an immediate value and the content of a
     register, store the result into a register
@@ -128,7 +129,7 @@ inductive Instr : Type where
 
     where `(dst reg n : UInt64)`.
   -/
-  | XorImmediate      : UInt64 → UInt64 → UInt64 → Instr
+  | XorImmediate      : RegisterName → RegisterName → UInt64 → Instr
   /--
     Bitwise-XOR operation between the contents of two registers,
     store the result into a third register
@@ -139,7 +140,7 @@ inductive Instr : Type where
 
     where `(dst reg1 reg2 : UInt64)`.
   -/
-  | XOR               : UInt64 → UInt64 → UInt64 → Instr
+  | XOR               : RegisterName → RegisterName → RegisterName → Instr
   /--
     Load the content of the memory at the address which provided as an
     immedtiate value into a register
@@ -150,7 +151,7 @@ inductive Instr : Type where
 
     where `(dst mem_addr : UInt64)`.
   -/
-  | LoadWordImmediate : UInt64 → UInt64 → Instr
+  | LoadWordImmediate : RegisterName → UInt64 → Instr
   /--
     Load the content of the memory at the address which is stored in a register
     into a register
@@ -161,7 +162,7 @@ inductive Instr : Type where
 
     where `(dst reg_with_mem_addr : UInt64)`.
   -/
-  | LoadWordReg       : UInt64 → UInt64 → Instr
+  | LoadWordReg       : RegisterName → RegisterName → Instr
   /--
     Load the content of a register into the memory at the address which is
     stored in a register
@@ -172,7 +173,7 @@ inductive Instr : Type where
 
     where `(reg_with_value reg_with_mem_addr : UInt64)`.
   -/
-  | StoreWord         : UInt64 → UInt64 → Instr
+  | StoreWord         : RegisterName → RegisterName → Instr
   /--
     Jump to a given labelname.
 
@@ -198,7 +199,7 @@ inductive Instr : Type where
 
     where `(reg1 reg2 : UInt64) (label : ident)`.
   -/
-  | JumpEq            : UInt64 → UInt64 → String → Instr
+  | JumpEq            : RegisterName → RegisterName → String → Instr
   /--
     Jump to a given labelname when the contents of two provided registers are
     not equal
@@ -209,7 +210,7 @@ inductive Instr : Type where
 
     where `(reg1 reg2 : UInt64) (label : ident)`.
   -/
-  | JumpNeq           : UInt64 → UInt64 → String → Instr
+  | JumpNeq           : RegisterName → RegisterName → String → Instr
   /--
     Jump to a given labelname when the content of the first register provided
     is greater than the content of the other register provided.
@@ -220,7 +221,7 @@ inductive Instr : Type where
 
     where `(reg1 reg2 : UInt64) (label : ident)`.
   -/
-  | JumpGt            : UInt64 → UInt64 → String → Instr
+  | JumpGt            : RegisterName → RegisterName → String → Instr
   /--
     Jump to a given labelname when the content of the first register provided
     is less or equal the content of the other register provided.
@@ -231,7 +232,7 @@ inductive Instr : Type where
 
     where `(reg1 reg2 : UInt64) (label : ident)`.
   -/
-  | JumpLe            : UInt64 → UInt64 → String → Instr
+  | JumpLe            : RegisterName → RegisterName → String → Instr
   /--
     Jump to a given labelname when the content of the register provided
     is equal to zero.
@@ -242,7 +243,7 @@ inductive Instr : Type where
 
     where `(reg : UInt64) (label : ident)`.
   -/
-  | JumpEqZero        : UInt64 → String → Instr
+  | JumpEqZero        : RegisterName → String → Instr
   /--
     Jump to a given labelname when the content of the first register provided
     is greater than the content of the other register provided.
@@ -253,12 +254,12 @@ inductive Instr : Type where
 
     where `(reg : UInt64) (label : ident)`.
   -/
-  | JumpNeqZero       : UInt64 → String → Instr
+  | JumpNeqZero       : RegisterName → String → Instr
   /--
     Default instruction, sets the terminated flag to true
   -/
   | Panic             : Instr
-  deriving Repr, BEq, Inhabited
+  deriving BEq, Inhabited
 
 
 /--
@@ -269,32 +270,32 @@ instance : ToString Instr where
     | Instr.LoadAddress dst addr =>
       -- For calculate the amount of zeros after `0x`to cut them off the string
       let hex := addr.toBitVec.zeroExtend (Nat.log2 addr.toNat + 1)
-      s!"la x{dst}, {hex}"
-    | Instr.LoadImmediate dst i => s!"li x{dst}, {i}"
-    | Instr.LoadNegImmediate dst i => s!"li x{dst}, -{i}"
-    | Instr.CopyRegister dst src => s!"mv x{dst} , x{src}"
-    | Instr.AddImmediate dst reg i => s!"addi x{dst}, x{reg}, {i}"
-    | Instr.AddNegImmediate dst reg i => s!"addi x{dst}, x{reg}, -{i}"
-    | Instr.Increment dst => s!"inc x{dst}"
-    | Instr.AddRegister dst reg1 reg2 => s!"add x{dst}, x{reg1}, x{reg2}"
-    | Instr.SubImmediate dst reg i => s!"subi x{dst}, x{reg}, {i}"
-    | Instr.Decrement dst => s!"dec x{dst}"
-    | Instr.SubRegister dst reg1 reg2 => s!"sub x{dst}, x{reg1}, x{reg2}"
-    | Instr.XorImmediate dst reg i => s!"xori x{dst}, x{reg}, {i}"
-    | Instr.XOR dst reg1 reg2 => s!"xor x{dst}, x{reg1}, x{reg2}"
+      s!"la {dst}, {hex}"
+    | Instr.LoadImmediate dst i => s!"li {dst}, {i}"
+    | Instr.LoadNegImmediate dst i => s!"li {dst}, -{i}"
+    | Instr.CopyRegister dst src => s!"mv {dst} , {src}"
+    | Instr.AddImmediate dst reg i => s!"addi {dst}, {reg}, {i}"
+    | Instr.AddNegImmediate dst reg i => s!"addi {dst}, {reg}, -{i}"
+    | Instr.Increment dst => s!"inc {dst}"
+    | Instr.AddRegister dst reg1 reg2 => s!"add {dst}, {reg1}, {reg2}"
+    | Instr.SubImmediate dst reg i => s!"subi {dst}, {reg}, {i}"
+    | Instr.Decrement dst => s!"dec {dst}"
+    | Instr.SubRegister dst reg1 reg2 => s!"sub {dst}, {reg1}, {reg2}"
+    | Instr.XorImmediate dst reg i => s!"xori {dst}, {reg}, {i}"
+    | Instr.XOR dst reg1 reg2 => s!"xor {dst}, {reg1}, {reg2}"
     | Instr.LoadWordImmediate dst addr =>
       -- For calculate the amount of zeros after `0x`to cut them off the string
       let hex := addr.toBitVec.zeroExtend (Nat.log2 addr.toNat + 1)
-      s!"lw x{dst}, {hex}"
-    | Instr.LoadWordReg dst addr => s!"lw x{dst}, x{addr}"
-    | Instr.StoreWord reg dst => s!"sw x{reg}, x{dst}"
+      s!"lw {dst}, {hex}"
+    | Instr.LoadWordReg dst addr => s!"lw {dst}, {addr}"
+    | Instr.StoreWord reg dst => s!"sw {reg}, {dst}"
     | Instr.Jump lbl => s!"j {lbl}"
-    | Instr.JumpEq reg1 reg2 lbl => s!"beq x{reg1}, x{reg2}, {lbl}"
-    | Instr.JumpNeq reg1 reg2 lbl => s!"bne x{reg1}, x{reg2}, {lbl}"
-    | Instr.JumpGt reg1 reg2 lbl => s!"bgt x{reg1}, x{reg2}, {lbl}"
-    | Instr.JumpLe reg1 reg2 lbl => s!"ble x{reg1}, x{reg2}, {lbl}"
-    | Instr.JumpEqZero reg lbl => s!"beqz x{reg}, {lbl}"
-    | Instr.JumpNeqZero reg lbl => s!"bnez x{reg}, {lbl}"
+    | Instr.JumpEq reg1 reg2 lbl => s!"beq {reg1}, {reg2}, {lbl}"
+    | Instr.JumpNeq reg1 reg2 lbl => s!"bne {reg1}, {reg2}, {lbl}"
+    | Instr.JumpGt reg1 reg2 lbl => s!"bgt {reg1}, {reg2}, {lbl}"
+    | Instr.JumpLe reg1 reg2 lbl => s!"ble {reg1}, {reg2}, {lbl}"
+    | Instr.JumpEqZero reg lbl => s!"beqz {reg}, {lbl}"
+    | Instr.JumpNeqZero reg lbl => s!"bnez {reg}, {lbl}"
     | Instr.Panic => "Panic!"
 
 namespace Instr

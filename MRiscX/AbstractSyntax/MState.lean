@@ -37,11 +37,14 @@ namespace MState
   def setRegister (ms:MState) (r:Registers) : MState :=
     {ms with registers := r}
 
-  def addRegister (ms:MState) (i:UInt64) (v:UInt64): MState :=
+  def addRegister (ms:MState) (i : RegisterName) (v:UInt64): MState :=
     {ms with registers := (i ↦ v ; ms.registers)}
 
-  def getRegisterAt (ms:MState) (i:UInt64) : UInt64 :=
-    ms.registers.get (i)
+  def getRegisterAt (ms:MState) (i : RegisterName) : UInt64 :=
+    ms.registers.get i
+
+  def getRegisterAtNr (ms:MState) (i : RegisterNr) : UInt64 :=
+    ms.registers.getByRegNr i
 
   def setMemory (ms:MState) (m:Memory) : MState :=
     {ms with memory := m}
