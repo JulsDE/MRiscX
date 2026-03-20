@@ -2,6 +2,7 @@ import MRiscX.Parser.AssemblySyntax
 import MRiscX.AbstractSyntax.Map
 import MRiscX.AbstractSyntax.Instr
 import MRiscX.AbstractSyntax.AbstractSyntax
+import MRiscX.Elab.HandleRegister
 import MRiscX.Elab.HandleNumOrIdent
 import Lean
 open Lean.Elab Command Term
@@ -11,6 +12,7 @@ open Lean Lean.Expr Lean.Meta Lean.Parser
 /-
 CodeElaborator
 -/
+
 
 /-
 First, we identify the current instruction and extract the relevant
@@ -27,13 +29,16 @@ def getInstrExpr (t: TSyntax `mriscx_Instr): TermElabM Expr := do
     | `(mriscx_Instr | la $r:mriscx_registers, $addr:mriscx_num_or_ident
     )
     | `(mriscx_Instr | la $r:mriscx_registers, $addr:mriscx_num_or_ident;) =>
-      let exprs ← parseMriscxNumOrIdentArray #[r, addr]
-      return (mkAppN (.const `Instr.LoadAddress []) #[exprs[0]!, exprs[1]!])
+      let mut exprOfReg ← getCorrespondingRegister r
+
+      let exprOfAddr ← parseMriscxNumOrIdent addr
+      return (mkAppN (.const `Instr.LoadAddress []) #[exprOfReg, exprOfAddr])
     | `(mriscx_Instr | li $r:mriscx_registers, $v:mriscx_num_or_ident
     )
     | `(mriscx_Instr | li $r:mriscx_registers, $v:mriscx_num_or_ident;) =>
-      let exprs ← parseMriscxNumOrIdentArray #[r, v]
-      return (mkAppN (.const `Instr.LoadImmediate []) #[exprs[0]!, exprs[1]!])
+      let mut exprOfReg ← getCorrespondingRegister r
+      let exprOfVal ← parseMriscxNumOrIdent v
+      return (mkAppN (.const `Instr.LoadImmediate []) #[exprOfReg, exprOfVal])
     | `(mriscx_Instr | li $r:mriscx_registers, -$v:mriscx_num_or_ident
     )
     | `(mriscx_Instr | li $r:mriscx_registers, -$v:mriscx_num_or_ident;) =>
@@ -323,6 +328,12 @@ source code as written by the user, ensuring clarity and ease of understanding.
 elab syn:mriscx_syntax : term => do
   return ←getCodeFromSyntax syn
 
+variable (n : UInt64)
+#check  mriscx
+          first:
+            li x n, n
+            li x0, 1
+        end
 
 /-
 The added term elaboration now lets us write code like this

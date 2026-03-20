@@ -161,7 +161,8 @@ as when we would just search [t] for [k'].
 @[simp]
 theorem t_update_neq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
     (t : TMap α β) (k k' : α) (v : β),
-  k ≠ k' → (k ↦ v ; t).get k' = t.get k'
+  k ≠ k' →
+  (k ↦ v ; t).get k' = t.get k'
   := by
   intros α β HBEq HLawfulBEq t k k' v HNeq
   simp at HNeq

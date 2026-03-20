@@ -2,17 +2,13 @@ import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Elab.HandleNumOrIdent
 open Lean Elab
 
-#check @RegisterName.mk
 
 def mkRegisterNr (nr : RegisterNr) :=
   let n := nr.toNat
   mkApp
-    (mkConst ``RegisterNr.ofNat! [])
+    (mkConst ``RegisterNr.ofNat [])
     (mkNatLit n)
 
-
-#eval mkRegisterNr RegisterNr.eight
-#eval mkConst ``RegisterNr.eight
 
 def mkRegisterName (r : RegisterName) :=
   let nr := mkRegisterNr r.nr
@@ -21,15 +17,30 @@ def mkRegisterName (r : RegisterName) :=
     nr
     (mkStrLit r.name)
 
+def getRegisterNameFromUInt64Expr (r : Expr) : TermElabM Expr := do
+  return mkApp2
+      (mkConst ``RegisterName.mk [])
+      (mkApp
+        (mkConst ``RegisterNr.ofUInt64 [])
+        r)
+      (
+        mkApp3
+        (mkConst ``toString [levelZero])
+        (mkConst ``UInt64 [])
+        (mkConst ``instToStringUInt64 [])
+        r
+      )
 
 def getCorrespondingRegister (r : (TSyntax `mriscx_registers)) : TermElabM Expr :=
   match r with
-  | `(mriscx_registers | x0)
+  | `(mriscx_registers | x0) =>
+    return mkRegisterName (RegisterName.mk RegisterNr.zero "x0")
   | `(mriscx_registers | zero) =>
-    return mkUIntOfNat 0
-  | `(mriscx_registers | x1)
+    return mkRegisterName (RegisterName.mk RegisterNr.zero "zero")
+  | `(mriscx_registers | x1) =>
+    return mkRegisterName (RegisterName.mk RegisterNr.one "x1")
   | `(mriscx_registers | ra) =>
-    return mkUInt64Lit 1
+    return mkRegisterName (RegisterName.mk RegisterNr.one "ra")
   | `(mriscx_registers | x2)
   | `(mriscx_registers | sp) =>
     return mkUInt64Lit 2
@@ -94,5 +105,5 @@ def getCorrespondingRegister (r : (TSyntax `mriscx_registers)) : TermElabM Expr 
   | `(mriscx_registers | t6) =>
     return mkUInt64Lit 0
   | `(mriscx_registers | x $n:mriscx_num_or_ident) =>
-    return ←parseMriscxNumOrIdent n
+    return ← getRegisterNameFromUInt64Expr (← parseMriscxNumOrIdent n)
   | _ => throwError "Unkown sytnax of catergory mriscx_registers"
