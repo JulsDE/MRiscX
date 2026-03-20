@@ -1,5 +1,6 @@
 import Lean
 import MRiscX.Elab.HandleNumOrIdent
+import MRiscX.Elab.HandleRegister
 import MRiscX.Parser.HoareSyntax
 open Lean Elab
 
@@ -55,7 +56,22 @@ where
     return ←`(term | $(mkIdent `MState.terminated) ($curState))
   | _stx@`(x[$r:mriscx_num_or_ident]) => do
     let newR ← parseMriscxNumOrIdentToTerm r
-    return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState) $newR)
+    return ←`(term | $(mkIdent `MState.getRegisterAtNr) ($curState)
+              ($(mkIdent `RegisterNr.ofUInt64) $newR))
+  | _stx@`(x[$r:mriscx_registers]) => do
+    match r with
+    | `(mriscx_registers | $a:mriscx_registers_bare)
+    | `(mriscx_registers | $a:mriscx_registers_abi) =>
+      let some nr := getCorrespondingRegisterNr? ⟨a⟩
+                  | throwError s!"Could not get a valid RegisterNr from {a}"
+
+      let t : Term := (mkIdent (s!"{nr}").toName)
+      return ←`(term | $(mkIdent `MState.getRegisterAtNr) ($curState) $t)
+    | `(mriscx_registers | x $i:mriscx_num_or_ident) =>
+      let newR ← parseMriscxNumOrIdentToTerm i
+      return ←`(term | $(mkIdent `MState.getRegisterAtNr) ($curState)
+                ($(mkIdent `RegisterNr.ofUInt64) $newR))
+    | _ => throwError ""
   | _stx@`(mem[$t:term]) => do
     let et ← replaceKeywords t curState
     return ←`(term | $(mkIdent `MState.getMemoryAt) ($curState) ($(⟨et⟩)))
@@ -87,18 +103,33 @@ partial def getHoareAssignmentArray (stx: TSyntax `hoare_assignment_chain)
     return ←(getHoareAssignmentArray s (curArr.push t))
   | _ => throwError s!"hoare assignment {stx} term not known!"
 
+-- def mkRegisterNameTermFromNumOrIdent (i : TSyntax `mriscx_num_or_ident) :=
+
+
 /-
 Parse the TSyntax to the actual function calls
 -/
+
 def foldTermArray (element: TSyntax `hoare_assignment) (curTerm: TSyntax `term) :
     TermElabM (TSyntax `term) := do
   match element with
   | `(hoare_assignment | x[$r:mriscx_num_or_ident] ← $t:term)
   | `(hoare_assignment | x[$r:mriscx_num_or_ident] <- $t:term) => do
-    let newR ← parseMriscxNumOrIdentToTerm r
+    let valOfNewR ← parseMriscxNumOrIdentToTerm r
+    let name ← `(@toString $(mkIdent `UInt64) $(mkIdent `instToStringUInt64) $valOfNewR)
+
+    let newR ← `($(mkIdent `RegisterName.mk) ($(mkIdent `RegisterNr.ofUInt64) $valOfNewR) $name)
     let newT := ⟨←replaceKeywords t curTerm⟩
     -- let newV := ← parseMriscxNumOrIdentToTerm v
     return ←`(term | $(mkIdent `MState.addRegister) ($curTerm) $newR $newT)
+  -- | `(hoare_assignment | x[$r:mriscx_registers] ← $t:term)
+  -- | `(hoare_assignment | x[$r:mriscx_registers] <- $t:term) => do
+  --   let valOfNewR ← parseMriscxNumOrIdentToTerm r
+  --   let name := Syntax.mkStrLit s!"x{valOfNewR}"
+  --   let newR ← `($(mkIdent `RegisterName.mk) ($(mkIdent `RegisterNr.ofUInt64) $name))
+  --   let newT := ⟨←replaceKeywords t curTerm⟩
+    -- let newV := ← parseMriscxNumOrIdentToTerm v
+    -- return ←`(term | $(mkIdent `MState.addRegister) ($curTerm) $newR $newT)
   | `(hoare_assignment | mem[$m:term] ← $t:term)
   | `(hoare_assignment | mem[$m:term] <- $t:term) => do
     let newM := ⟨←replaceKeywords m curTerm⟩

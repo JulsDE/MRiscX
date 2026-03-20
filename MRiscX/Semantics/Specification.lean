@@ -2,7 +2,7 @@ import MRiscX.Semantics.MsTheory
 import MRiscX.Tactics.SpecificationTactics
 import MRiscX.Elab.HoareElaborator
 import MRiscX.Elab.CodeElaborator
-import MRiscX.Delab.DelabHoare
+-- import MRiscX.Delab.DelabHoare
 open Lean Elab Tactic
 
 /-
@@ -25,7 +25,7 @@ and you execute the instruction, the precondition P will still
 hold after the execution. The precondition is applied after simulating the
 effects of the instruction.
 -/
-theorem specification_LoadAddress (P: Assertion) (pc dst addr : UInt64) (L: Set UInt64):
+theorem specification_LoadAddress (P: Assertion) (pc addr dst: UInt64) (L: Set UInt64):
   L = {n : UInt64 | n ≠ pc + 1} →
   hoare
     ⟪la x dst, addr;⟫

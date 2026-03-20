@@ -14,6 +14,7 @@ syntax "⦃" term "⦄" : term
 
 -- General Hoare Syntax
 syntax "x[" mriscx_num_or_ident "]" : term
+syntax "x[" mriscx_registers "]" : term
 syntax "mem[" term "]" : term
 syntax "labels[" ident "]" : term
 syntax "labels[" &"." ident "]" : term
@@ -33,6 +34,9 @@ declare_syntax_cat hoare_assignment_term
 
 syntax "x[" mriscx_num_or_ident "]" &" ← " term : hoare_assignment
 syntax "x[" mriscx_num_or_ident "]" &" <- " term : hoare_assignment
+syntax "x[" mriscx_registers "]" &" ← " term : hoare_assignment
+syntax "x[" mriscx_registers "]" &" <- " term : hoare_assignment
+
 syntax "mem[" term &"]" &" ← " term : hoare_assignment
 syntax "mem[" term &"]" &" <- " term : hoare_assignment
 syntax &"pc" &"++" : hoare_assignment

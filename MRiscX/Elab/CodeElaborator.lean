@@ -328,13 +328,6 @@ source code as written by the user, ensuring clarity and ease of understanding.
 elab syn:mriscx_syntax : term => do
   return ←getCodeFromSyntax syn
 
-variable (n : UInt64)
-#check  mriscx
-          first:
-            li x n, n
-            li x0, 1
-        end
-
 /-
 The added term elaboration now lets us write code like this
 `

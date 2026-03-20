@@ -84,3 +84,6 @@ namespace MState
 
 
 end MState
+
+
+#eval DefaultMState.getRegisterAtNr (RegisterNr.ofNat 55)

@@ -206,6 +206,7 @@ namespace RegisterName
 
   def beq_regNr (n₁ n₂ : RegisterName) := n₁.nr  == n₂.nr
 
+
 end RegisterName
 
 instance: BEq RegisterName where

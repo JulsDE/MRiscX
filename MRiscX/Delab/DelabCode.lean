@@ -14,163 +14,183 @@ deriving Repr, Inhabited
 
 
 
+
 -- Turn term of function of mriscx_Instr syntax
 def termToInstr (t: TSyntax `term) : UnexpandM (TSyntax `mriscx_Instr) := do
   match t with
-  | `(Instr.LoadAddress $dst $addr) =>
-    let dstNum ← numOrIdentToSyntax dst
+  | `(Instr.LoadAddress $dst $addr) => do
+
+    let some dstName := (← match dst with
+              | `(RegisterName.mk (RegisterNr.ofNat $n) $name) =>
+                  return some (getRegisterTerm name)
+              | `({nr := $n, name := $name : RegisterName}) =>
+                  return some (getRegisterTerm name)
+              | `(UInt64.ofNat $n:num)
+              | `($n:num) =>
+                  return some (←`(mriscx_registers | x $n:num))
+              | `($i:ident) => do
+                  let ident ← numOrIdentToSyntax i
+                  return some (←`(mriscx_registers | x $ident))
+              | _ => return none)
+              | throw Unit.unit
+
     let addrNum ← numOrIdentToSyntax addr
-    `(mriscx_Instr | la x$dstNum, $addrNum
+
+    `(mriscx_Instr | la $dstName, $addrNum
     )
   | `(Instr.LoadImmediate $dst $i) =>
     let dstNum ← numOrIdentToSyntax dst
     let iNum  ← numOrIdentToSyntax i
     `(mriscx_Instr | li x$dstNum, $iNum
     )
-  | `(Instr.LoadNegImmediate $dst $i) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let iNum  ← numOrIdentToSyntax i
-    `(mriscx_Instr | li x$dstNum, -$iNum
-    )
-  | `(Instr.CopyRegister $dst $src) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let srcNum ← numOrIdentToSyntax src
-    `(mriscx_Instr | mv x$dstNum, x$srcNum
-    )
-  | `(Instr.AddImmediate $dst $reg $i) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let regNum ← numOrIdentToSyntax reg
-    let iNum ← numOrIdentToSyntax i
-    `(mriscx_Instr | addi x$dstNum, x$regNum, $iNum
-    )
-  | `(Instr.AddNegImmediate $dst $reg $i) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let regNum ← numOrIdentToSyntax reg
-    let iNum ← numOrIdentToSyntax i
-    `(mriscx_Instr | addi x$dstNum, x$regNum, -$iNum
-    )
-  | `(Instr.Increment $dst) =>
-    let dstNum ← numOrIdentToSyntax dst
-    `(mriscx_Instr | inc x$dstNum
-    )
-  | `(Instr.AddRegister $dst $reg1 $reg2) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | add x$dstNum, x$reg1Num, x$reg2Num
-    )
-  | `(Instr.SubImmediate $dst $reg $i) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let regNum ← numOrIdentToSyntax reg
-    let iNum ← numOrIdentToSyntax i
-    `(mriscx_Instr | subi x$dstNum, x$regNum, $iNum
-    )
-  | `(Instr.Decrement $dst) =>
-    let dstNum ← numOrIdentToSyntax dst
-    `(mriscx_Instr | dec x$dstNum
-    )
-  | `(Instr.SubRegister $dst $reg1 $reg2) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | sub x$dstNum, x$reg1Num, x$reg2Num
-    )
+  -- | `(Instr.LoadNegImmediate $dst $i) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let iNum  ← numOrIdentToSyntax i
+  --   `(mriscx_Instr | li x$dstNum, -$iNum
+  --   )
+  -- | `(Instr.CopyRegister $dst $src) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let srcNum ← numOrIdentToSyntax src
+  --   `(mriscx_Instr | mv x$dstNum, x$srcNum
+  --   )
+  -- | `(Instr.AddImmediate $dst $reg $i) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let regNum ← numOrIdentToSyntax reg
+  --   let iNum ← numOrIdentToSyntax i
+  --   `(mriscx_Instr | addi x$dstNum, x$regNum, $iNum
+  --   )
+  -- | `(Instr.AddNegImmediate $dst $reg $i) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let regNum ← numOrIdentToSyntax reg
+  --   let iNum ← numOrIdentToSyntax i
+  --   `(mriscx_Instr | addi x$dstNum, x$regNum, -$iNum
+  --   )
+  -- | `(Instr.Increment $dst) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   `(mriscx_Instr | inc x$dstNum
+  --   )
+  -- | `(Instr.AddRegister $dst $reg1 $reg2) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | add x$dstNum, x$reg1Num, x$reg2Num
+  --   )
+  -- | `(Instr.SubImmediate $dst $reg $i) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let regNum ← numOrIdentToSyntax reg
+  --   let iNum ← numOrIdentToSyntax i
+  --   `(mriscx_Instr | subi x$dstNum, x$regNum, $iNum
+  --   )
+  -- | `(Instr.Decrement $dst) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   `(mriscx_Instr | dec x$dstNum
+  --   )
+  -- | `(Instr.SubRegister $dst $reg1 $reg2) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | sub x$dstNum, x$reg1Num, x$reg2Num
+  --   )
 
-  | `(Instr.XorImmediate $dst $reg $i) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let regNum ← numOrIdentToSyntax reg
-    let iNum ← numOrIdentToSyntax i
-    `(mriscx_Instr | xori x$dstNum, x$regNum, $iNum
-    )
+  -- | `(Instr.XorImmediate $dst $reg $i) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let regNum ← numOrIdentToSyntax reg
+  --   let iNum ← numOrIdentToSyntax i
+  --   `(mriscx_Instr | xori x$dstNum, x$regNum, $iNum
+  --   )
 
-  | `(Instr.XOR $dst $reg1 $reg2) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | xor x$dstNum, x$reg1Num, x$reg2Num
-    )
+  -- | `(Instr.XOR $dst $reg1 $reg2) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | xor x$dstNum, x$reg1Num, x$reg2Num
+  --   )
 
-  | `(Instr.LoadWordImmediate $dst $addr) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let addrNum ← numOrIdentToSyntax addr
-    `(mriscx_Instr | lw x$dstNum, $addrNum
-    )
+  -- | `(Instr.LoadWordImmediate $dst $addr) => do
+  --   let dstNum  ← numOrIdentToSyntax dst
+  --   let addrNum ← numOrIdentToSyntax addr
+  --   let dstReg  : TSyntax `mriscx_registers ← `(mriscx_registers| x$dstNum)
+  --   `(mriscx_Instr| lw $dstReg, x $addrNum
+  --   )
 
-  | `(Instr.LoadWordReg $dst $addr) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let addrNum ← numOrIdentToSyntax addr
-    `(mriscx_Instr | lw x$dstNum, x$addrNum
-    )
+  -- | `(Instr.LoadWordReg $dst $addr) => do
+  --   let dstNum  ← numOrIdentToSyntax dst
+  --   let addrNum ← numOrIdentToSyntax addr
+  --   let dstReg  : TSyntax `mriscx_registers ← `(mriscx_registers| x$dstNum)
+  --   -- TODO
+  --   `(mriscx_Instr| lw $dstReg, x $addrNum
+  --   )
 
-  | `(Instr.StoreWord $reg $dst) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let regNum ← numOrIdentToSyntax reg
-    `(mriscx_Instr | sw x$regNum, x$dstNum
-    )
+  -- | `(Instr.StoreWord $reg $dst) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let regNum ← numOrIdentToSyntax reg
+  --   `(mriscx_Instr | sw x$regNum, x$dstNum
+  --   )
 
-  | `(Instr.Jump $lbl:ident) => `(mriscx_Instr | j $(mkIdent s!"{lbl}".toName)
-  )
-  | `(Instr.Jump $lbl:str) => `(mriscx_Instr | j $(mkIdent lbl.getString.toName)
-  )
-  | `(Instr.JumpEq $reg1 $reg2 $lbl:ident) =>
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | beq x$reg1Num, x$reg2Num, $(mkIdent s!"{lbl}".toName)
-    )
-  | `(Instr.JumpEq $reg1 $reg2 $lbl:str) =>
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | beq x$reg1Num, x$reg2Num, $(mkIdent lbl.getString.toName)
-    )
+  -- | `(Instr.Jump $lbl:ident) => `(mriscx_Instr | j $(mkIdent s!"{lbl}".toName)
+  -- )
+  -- | `(Instr.Jump $lbl:str) => `(mriscx_Instr | j $(mkIdent lbl.getString.toName)
+  -- )
+  -- | `(Instr.JumpEq $reg1 $reg2 $lbl:ident) =>
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | beq x$reg1Num, x$reg2Num, $(mkIdent s!"{lbl}".toName)
+  --   )
+  -- | `(Instr.JumpEq $reg1 $reg2 $lbl:str) =>
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | beq x$reg1Num, x$reg2Num, $(mkIdent lbl.getString.toName)
+  --   )
 
-  | `(Instr.JumpNeq $reg1 $reg2 $lbl:ident) =>
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | bne x$reg1Num, x$reg2Num, $(mkIdent s!"{lbl}".toName)
-    )
-  | `(Instr.JumpNeq $reg1 $reg2 $lbl:str) =>
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | bne x$reg1Num, x$reg2Num, $(mkIdent lbl.getString.toName)
-    )
-  | `(Instr.JumpGt $reg1 $reg2 $lbl:ident) =>
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | bgt x$reg1Num, x$reg2Num, $(mkIdent s!"{lbl}".toName)
-    )
-  | `(Instr.JumpGt $reg1 $reg2 $lbl:str) =>
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | bgt x$reg1Num, x$reg2Num, $(mkIdent lbl.getString.toName)
-    )
-  | `(Instr.JumpLe $reg1 $reg2 $lbl:ident) =>
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | ble x$reg1Num, x$reg2Num, $(mkIdent s!"{lbl}".toName)
-    )
-  | `(Instr.JumpLe $reg1 $reg2 $lbl:str) =>
-    let reg1Num ← numOrIdentToSyntax reg1
-    let reg2Num ← numOrIdentToSyntax reg2
-    `(mriscx_Instr | ble x$reg1Num, x$reg2Num, $(mkIdent lbl.getString.toName)
-    )
-  | `(Instr.JumpEqZero $reg $lbl:ident) =>
-    let regNum ← numOrIdentToSyntax reg
-    `(mriscx_Instr | beqz x$regNum, $(mkIdent s!"{lbl}".toName)
-    )
-  | `(Instr.JumpEqZero $reg $lbl:str) =>
-    let regNum ← numOrIdentToSyntax reg
-    `(mriscx_Instr | beqz x$regNum, $(mkIdent lbl.getString.toName)
-    )
-  | `(Instr.JumpNeqZero $reg $lbl:ident) =>
-    let regNum ← numOrIdentToSyntax reg
-    `(mriscx_Instr | bnez x$regNum, $(mkIdent s!"{lbl}".toName)
-    )
-  | `(Instr.JumpNeqZero $reg $lbl:str) =>
-    let regNum ← numOrIdentToSyntax reg
-    `(mriscx_Instr | bnez x$regNum, $(mkIdent lbl.getString.toName)
-    )
+  -- | `(Instr.JumpNeq $reg1 $reg2 $lbl:ident) =>
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | bne x$reg1Num, x$reg2Num, $(mkIdent s!"{lbl}".toName)
+  --   )
+  -- | `(Instr.JumpNeq $reg1 $reg2 $lbl:str) =>
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | bne x$reg1Num, x$reg2Num, $(mkIdent lbl.getString.toName)
+  --   )
+  -- | `(Instr.JumpGt $reg1 $reg2 $lbl:ident) =>
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | bgt x$reg1Num, x$reg2Num, $(mkIdent s!"{lbl}".toName)
+  --   )
+  -- | `(Instr.JumpGt $reg1 $reg2 $lbl:str) =>
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | bgt x$reg1Num, x$reg2Num, $(mkIdent lbl.getString.toName)
+  --   )
+  -- | `(Instr.JumpLe $reg1 $reg2 $lbl:ident) =>
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | ble x$reg1Num, x$reg2Num, $(mkIdent s!"{lbl}".toName)
+  --   )
+  -- | `(Instr.JumpLe $reg1 $reg2 $lbl:str) =>
+  --   let reg1Num ← numOrIdentToSyntax reg1
+  --   let reg2Num ← numOrIdentToSyntax reg2
+  --   `(mriscx_Instr | ble x$reg1Num, x$reg2Num, $(mkIdent lbl.getString.toName)
+  --   )
+  -- | `(Instr.JumpEqZero $reg $lbl:ident) =>
+  --   let regNum ← numOrIdentToSyntax reg
+  --   `(mriscx_Instr | beqz x$regNum, $(mkIdent s!"{lbl}".toName)
+  --   )
+  -- | `(Instr.JumpEqZero $reg $lbl:str) =>
+  --   let regNum ← numOrIdentToSyntax reg
+  --   `(mriscx_Instr | beqz x$regNum, $(mkIdent lbl.getString.toName)
+  --   )
+  -- | `(Instr.JumpNeqZero $reg $lbl:ident) =>
+  --   let regNum ← numOrIdentToSyntax reg
+  --   `(mriscx_Instr | bnez x$regNum, $(mkIdent s!"{lbl}".toName)
+  --   )
+  -- | `(Instr.JumpNeqZero $reg $lbl:str) =>
+  --   let regNum ← numOrIdentToSyntax reg
+  --   `(mriscx_Instr | bnez x$regNum, $(mkIdent lbl.getString.toName)
+  --   )
   | _ => return ←`(mriscx_Instr | PANIC!
   )
+
 
 partial def termToInstrMap (t: TSyntax `term) : UnexpandM SyntaxInstrMap := do
   match t with
@@ -181,6 +201,7 @@ partial def termToInstrMap (t: TSyntax `term) : UnexpandM SyntaxInstrMap := do
     return ((UInt64.ofNat k.getNat) ↦ (←termToInstr v) ; (←termToInstrMap m))
   | `(($k:num ↦ $v ; $m)) =>
     return ((UInt64.ofNat k.getNat) ↦ (←termToInstr v) ; (←termToInstrMap m))
+
   | _ => return TMap.empty (⟨t⟩)
 
 
@@ -280,3 +301,7 @@ def CodeUnexpander : Unexpander
       throw Unit.unit
 
   | _ => throw Unit.unit
+
+#check mriscx
+        first: li x1, 3
+        end

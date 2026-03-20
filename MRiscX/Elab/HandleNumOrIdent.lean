@@ -29,7 +29,9 @@ def parseMriscxNumOrIdentToTerm (s : Syntax) : TermElabM Term := do
           throwError "Expected type UInt64 for identifier"
       else
         throwError s!"Identifier {a} not found in context"
-  | _ => throwError "Unexpected syntax"
+  | _ => throwError "Unexpected syntax {s}"
+
+
 
 def parseTermToMriscxNumOrIdent (s : TSyntax `term) : TSyntax `mriscx_num_or_ident :=
   match s with
@@ -66,7 +68,7 @@ def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
           throwError "Expected type UInt64 for identifier"
       else
         throwError s!"Identifier {a} not found in context"
-  | _ => throwError "Unexpected syntax"
+  | _ => throwError "Unexpected syntax {s}"
 
 /--
 Apply `parseMriscxNumOrIdent` on all elements inside an array
