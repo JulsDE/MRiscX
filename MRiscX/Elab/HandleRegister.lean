@@ -269,8 +269,13 @@ def getRegisterSyntaxFromStr (s : String) : UnexpandM (TSyntax `mriscx_registers
 
 def getRegisterNameTerm (t : TSyntax `term) : UnexpandM (TSyntax `mriscx_registers) := do
   match t with
-  | `(term | toString (UInt64.ofNat $u:num)) =>
-    return (←`(mriscx_registers | x $u:num))
+  | `(term | toString $arg) =>
+    match arg with
+    | `(term | UInt64.ofNat $n:num) =>
+      return (←`(mriscx_registers | x $n:num))
+    | _ =>
+      dbg_trace s!"{t}"
+      throw ()
   | `(term | $s:str) =>
     let regNameStr := s.getString
     let regName ← getRegisterSyntaxFromStr regNameStr
@@ -284,7 +289,6 @@ def getRegisterTerm (t : TSyntax `term): UnexpandM (TSyntax `mriscx_registers) :
   match t with
   | `(RegisterName.mk (RegisterNr.ofNat $n) $name)
   | `({ nr := $n, name := $name }) =>
-      dbg_trace "123"
       return (← getRegisterNameTerm name)
   | `(UInt64.ofNat $n:num)
   | `($n:num) =>

@@ -290,7 +290,7 @@ def CodeUnexpander : Unexpander
 
 #check mriscx
         first:
-              la x 0, 3
+              la x 0123, 3
               la zero, 3
               la x0, 3
       end
