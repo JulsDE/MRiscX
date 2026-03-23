@@ -16,26 +16,13 @@ deriving Repr, Inhabited
 
 
 -- Turn term of function of mriscx_Instr syntax
+-- def termToInstr (t: TSyntax `term) : UnexpandM (TSyntax `mriscx_Instr) := do
 def termToInstr (t: TSyntax `term) : UnexpandM (TSyntax `mriscx_Instr) := do
   match t with
   | `(Instr.LoadAddress $dst $addr) => do
 
-    let some dstName := (← match dst with
-              | `(RegisterName.mk (RegisterNr.ofNat $n) $name) =>
-                  return some (getRegisterTerm name)
-              | `({nr := $n, name := $name : RegisterName}) =>
-                  return some (getRegisterTerm name)
-              | `(UInt64.ofNat $n:num)
-              | `($n:num) =>
-                  return some (←`(mriscx_registers | x $n:num))
-              | `($i:ident) => do
-                  let ident ← numOrIdentToSyntax i
-                  return some (←`(mriscx_registers | x $ident))
-              | _ => return none)
-              | throw Unit.unit
-
+    let dstName ← getRegisterTerm dst
     let addrNum ← numOrIdentToSyntax addr
-
     `(mriscx_Instr | la $dstName, $addrNum
     )
   | `(Instr.LoadImmediate $dst $i) =>
@@ -201,7 +188,6 @@ partial def termToInstrMap (t: TSyntax `term) : UnexpandM SyntaxInstrMap := do
     return ((UInt64.ofNat k.getNat) ↦ (←termToInstr v) ; (←termToInstrMap m))
   | `(($k:num ↦ $v ; $m)) =>
     return ((UInt64.ofNat k.getNat) ↦ (←termToInstr v) ; (←termToInstrMap m))
-
   | _ => return TMap.empty (⟨t⟩)
 
 
@@ -303,5 +289,8 @@ def CodeUnexpander : Unexpander
   | _ => throw Unit.unit
 
 #check mriscx
-        first: li x1, 3
-        end
+        first:
+              la x 0, 3
+              la zero, 3
+              la x0, 3
+      end

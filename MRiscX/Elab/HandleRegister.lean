@@ -1,6 +1,6 @@
 import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Elab.HandleNumOrIdent
-open Lean Elab
+open Lean Elab PrettyPrinter
 
 
 def mkRegisterNr (nr : RegisterNr) :=
@@ -179,10 +179,121 @@ def getCorrespondingRegisterNr? (r : (TSyntax `mriscx_registers)) :=
 def getCorrespondingRegisterNameAsTerm (r : (TSyntax `mriscx_registers)) : Term :=
   ⟨r⟩
 
+open Lean Macro
 
-def getRegisterTerm (t : TSyntax `term) : TSyntax `mriscx_registers :=
+def getRegisterNameAbiAsTerm
+    (r : String) :  UnexpandM (Option (TSyntax `mriscx_registers_abi)) := do
+  match r with
+  | "zero" => return some (←`(mriscx_registers_abi| zero))
+  | "ra" => return some (←`(mriscx_registers_abi| ra))
+  | "sp" => return some (←`(mriscx_registers_abi| sp))
+  | "gp" => return some (←`(mriscx_registers_abi| gp))
+  | "tp" => return some (←`(mriscx_registers_abi| tp))
+  | "t0" => return some (←`(mriscx_registers_abi| t0))
+  | "t1" => return some (←`(mriscx_registers_abi| t1))
+  | "t2" => return some (←`(mriscx_registers_abi| t2))
+  | "s0" => return some (←`(mriscx_registers_abi| s0))
+  | "fp" => return some (←`(mriscx_registers_abi| fp))
+  | "s1" => return some (←`(mriscx_registers_abi| s1))
+  | "a0" => return some (←`(mriscx_registers_abi| a0))
+  | "a1" => return some (←`(mriscx_registers_abi| a1))
+  | "a2" => return some (←`(mriscx_registers_abi| a2))
+  | "a3" => return some (←`(mriscx_registers_abi| a3))
+  | "a4" => return some (←`(mriscx_registers_abi| a4))
+  | "a5" => return some (←`(mriscx_registers_abi| a5))
+  | "a6" => return some (←`(mriscx_registers_abi| a6))
+  | "a7" => return some (←`(mriscx_registers_abi| a7))
+  | "s2" => return some (←`(mriscx_registers_abi| s2))
+  | "s3" => return some (←`(mriscx_registers_abi| s3))
+  | "s4" => return some (←`(mriscx_registers_abi| s4))
+  | "s5" => return some (←`(mriscx_registers_abi| s5))
+  | "s6" => return some (←`(mriscx_registers_abi| s6))
+  | "s7" => return some (←`(mriscx_registers_abi| s7))
+  | "s8" => return some (←`(mriscx_registers_abi| s8))
+  | "s9" => return some (←`(mriscx_registers_abi| s9))
+  | "s10" => return some (←`(mriscx_registers_abi| s10))
+  | "s11" => return some (←`(mriscx_registers_abi| s11))
+  | "t3" => return some (←`(mriscx_registers_abi| t3))
+  | "t4" => return some (←`(mriscx_registers_abi| t4))
+  | "t5" => return some (←`(mriscx_registers_abi| t5))
+  | "t6" => return some (←`(mriscx_registers_abi| t6))
+  | _ => return none
+
+def getRegisterNameBareAsTerm
+    (r : String) :  UnexpandM (Option (TSyntax `mriscx_registers_bare)) := do
+  match r with
+  | "x0" => return some (←`(mriscx_registers_bare | x0))
+  | "x1" => return some (←`(mriscx_registers_bare | x1))
+  | "x2" => return some (←`(mriscx_registers_bare | x2))
+  | "x3" => return some (←`(mriscx_registers_bare | x3))
+  | "x4" => return some (←`(mriscx_registers_bare | x4))
+  | "x5" => return some (←`(mriscx_registers_bare | x5))
+  | "x6" => return some (←`(mriscx_registers_bare | x6))
+  | "x7" => return some (←`(mriscx_registers_bare | x7))
+  | "x8" => return some (←`(mriscx_registers_bare | x8))
+  | "x9" => return some (←`(mriscx_registers_bare | x9))
+  | "x10" => return some (←`(mriscx_registers_bare | x10))
+  | "x11" => return some (←`(mriscx_registers_bare | x11))
+  | "x12" => return some (←`(mriscx_registers_bare | x12))
+  | "x13" => return some (←`(mriscx_registers_bare | x13))
+  | "x14" => return some (←`(mriscx_registers_bare | x14))
+  | "x15" => return some (←`(mriscx_registers_bare | x15))
+  | "x16" => return some (←`(mriscx_registers_bare | x16))
+  | "x17" => return some (←`(mriscx_registers_bare | x17))
+  | "x18" => return some (←`(mriscx_registers_bare | x18))
+  | "x19" => return some (←`(mriscx_registers_bare | x19))
+  | "x20" => return some (←`(mriscx_registers_bare | x20))
+  | "x21" => return some (←`(mriscx_registers_bare | x21))
+  | "x22" => return some (←`(mriscx_registers_bare | x22))
+  | "x23" => return some (←`(mriscx_registers_bare | x23))
+  | "x24" => return some (←`(mriscx_registers_bare | x24))
+  | "x25" => return some (←`(mriscx_registers_bare | x25))
+  | "x26" => return some (←`(mriscx_registers_bare | x26))
+  | "x27" => return some (←`(mriscx_registers_bare | x27))
+  | "x28" => return some (←`(mriscx_registers_bare | x28))
+  | "x29" => return some (←`(mriscx_registers_bare | x29))
+  | "x30" => return some (←`(mriscx_registers_bare | x30))
+  | "x31" => return some (←`(mriscx_registers_bare | x31))
+  | _ => return none
+
+
+
+def getRegisterSyntaxFromStr (s : String) : UnexpandM (TSyntax `mriscx_registers) := do
+  match (← getRegisterNameAbiAsTerm s) with
+  | none =>
+    match (← getRegisterNameBareAsTerm s) with
+    | none => throw Unit.unit
+    | some h => return ⟨h⟩
+  | some l => return ⟨l⟩
+
+
+def getRegisterNameTerm (t : TSyntax `term) : UnexpandM (TSyntax `mriscx_registers) := do
   match t with
-  | `(mriscx_registers | $r:mriscx_registers) => ⟨r⟩
+  | `(term | toString (UInt64.ofNat $u:num)) =>
+    return (←`(mriscx_registers | x $u:num))
+  | `(term | $s:str) =>
+    let regNameStr := s.getString
+    let regName ← getRegisterSyntaxFromStr regNameStr
+    return (←`(mriscx_registers | $regName))
+  | _ =>
+    dbg_trace s!"{t}"
+    throw ()
+
+
+def getRegisterTerm (t : TSyntax `term): UnexpandM (TSyntax `mriscx_registers) := do
+  match t with
+  | `(RegisterName.mk (RegisterNr.ofNat $n) $name)
+  | `({ nr := $n, name := $name }) =>
+      dbg_trace "123"
+      return (← getRegisterNameTerm name)
+  | `(UInt64.ofNat $n:num)
+  | `($n:num) =>
+      return (←`(mriscx_registers | x $n:num))
+  | `($i:ident) => do
+      let ident ← numOrIdentToSyntax i
+      return  (←`(mriscx_registers | x $ident))
+  | _ => throw Unit.unit
+
 
 def getCorrespondingRegister (r : (TSyntax `mriscx_registers)) : TermElabM Expr :=
   match r with
