@@ -79,11 +79,11 @@ def termToInstr (t: TSyntax `term) : UnexpandM (TSyntax `mriscx_Instr) := do
     `(mriscx_Instr | xor x$dstNum, x$reg1Num, x$reg2Num
     )
 
-  | `(Instr.LoadWordImmediate $dst $addr) =>
-    let dstNum ← numOrIdentToSyntax dst
-    let addrNum ← numOrIdentToSyntax addr
-    `(mriscx_Instr | lw x$dstNum, $addrNum
-    )
+  -- | `(Instr.LoadWordImmediate $dst $addr) =>
+  --   let dstNum ← numOrIdentToSyntax dst
+  --   let addrNum ← numOrIdentToSyntax addr
+  --   `(mriscx_Instr | lw x$dstNum, $addrNum
+  --   )
 
   | `(Instr.LoadWordReg $dst $addr) =>
     let dstNum ← numOrIdentToSyntax dst
