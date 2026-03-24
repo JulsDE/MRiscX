@@ -1,5 +1,5 @@
 import MRiscX.Hoare.HoareTheory
-import MRiscX.Delab.DelabHoare
+-- import MRiscX.Delab.DelabHoare
 import Mathlib.Data.Set.BooleanAlgebra
 
 /-

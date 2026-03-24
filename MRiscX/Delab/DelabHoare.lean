@@ -38,6 +38,18 @@ def hoare_termToTerm (t : TSyntax `hoare_term) : Delaborator.DelabM Term :=
 
 
 /-
+
+hoare_triple_up (fun st => ¬st.terminated = true)
+  (fun st => (sorry = p ∧ sorry = k ∧ sorry = c ∧ sorry = l) ∧ ¬st.terminated = true) 0 {0 + 4}
+  ({n | n = 0} ∪ {n | n > 0 + 4})
+  (Code.mk
+    ((3 ↦ Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 3), name := toString (UInt64.ofNat 3) } l ;
+      (2 ↦ Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 2), name := toString (UInt64.ofNat 2) } c ;
+        (1 ↦ Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 1), name := toString (UInt64.ofNat 1) } k ;
+          (0 ↦ Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 0), name := toString (UInt64.ofNat 0) } p ;
+            TMap.empty Instr.Panic)))))
+    (p("first" ↦ 0 ; PMap.empty)))
+
 Delaborate Expr of abstract syntax back to Term
 -/
 open Delaborator SubExpr in
@@ -48,7 +60,9 @@ def stateFnsDelab : Delab := whenNotPPOption getPPExplicit <| withMDataExpr do
   else if (← getExpr).isAppOfArity ``MState.getRegisterAt 2 then
     let n ← withAppArg delab
     let newN := parseTermToMriscxNumOrIdent n
-    `(x[$newN])
+    logInfo s!"adf {n}"
+    `(x[x 0])
+    -- `(x[$newN])
   else if (← getExpr).isAppOfArity ``MState.getMemoryAt 2 then
     whenPPOption getPPNotation <| whenNotPPOption getPPExplicit <| withOverApp 2 do
       withNaryArg 1 do
@@ -126,6 +140,7 @@ def hoareTripleDelab : Delab :=
         let e := annotateStateFns (← getExpr)
         withTheReader SubExpr (fun s => { s with expr := e }) d
 
+    let codeExpr := (← getExpr).getAppArgs[5]!
     let preSyn ← mkAssertionAtN 0 stName withAnnotatedBody
     let postSyn ← mkAssertionAtN 1 stName withAnnotatedBody
 
@@ -182,9 +197,9 @@ def AddRegUnexpander : Unexpander
   | `($_ $s $rTerm:term $vTerm:term) => do
     let r ← numOrIdentToSyntax rTerm
     if isOnlyStateIdent s then
-      `(hoare_assignment_chain | x[$r] ← $vTerm)
+      `(hoare_assignment_chain | x[x $r] ← $vTerm)
     else
-      `(hoare_assignment_chain | x[$r] ← $vTerm ; $s:term)
+      `(hoare_assignment_chain | x[x $r] ← $vTerm ; $s:term)
   | _ => throw Unit.unit
 
 @[app_unexpander MState.addMemory]

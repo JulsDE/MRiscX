@@ -53,10 +53,10 @@ def getExprOfInstForR (instr : Instr) (oldState : Expr): MetaM Expr := do
   | Instr.LoadAddress r v
   | Instr.LoadImmediate r v =>
     return mkAppN (.const `MState.addRegister [])
-      #[(incPcExpr oldState), mkUInt64Lit r, mkUInt64Lit v]
+      #[(incPcExpr oldState), mkRegisterName r, mkUInt64Lit v]
   | Instr.StoreWord reg dst =>
     return mkAppN (.const `MState.addMemory [])
-      #[(incPcExpr oldState), mkUInt64Lit reg, mkUInt64Lit dst]
+      #[(incPcExpr oldState), mkRegisterName reg, mkRegisterName dst]
   | _ => throwError "Error while building R, the Instruction is not implemented yet
       for this feature"
 

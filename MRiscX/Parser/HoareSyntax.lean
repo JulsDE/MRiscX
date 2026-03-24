@@ -13,7 +13,6 @@ syntax ident withPosition(linebreak ppDedent(ppLine))
 syntax "⦃" term "⦄" : term
 
 -- General Hoare Syntax
-syntax "x[" mriscx_num_or_ident "]" : term
 syntax "x[" mriscx_registers "]" : term
 syntax "mem[" term "]" : term
 syntax "labels[" ident "]" : term

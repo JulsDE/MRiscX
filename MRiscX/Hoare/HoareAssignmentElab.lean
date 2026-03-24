@@ -54,24 +54,27 @@ where
   go : Syntax → TermElabM Syntax
   | _stx@`(⸨terminated⸩) =>
     return ←`(term | $(mkIdent `MState.terminated) ($curState))
-  | _stx@`(x[$r:mriscx_num_or_ident]) => do
-    let newR ← parseMriscxNumOrIdentToTerm r
-    return ←`(term | $(mkIdent `MState.getRegisterAtNr) ($curState)
-              ($(mkIdent `RegisterNr.ofUInt64) $newR))
   | _stx@`(x[$r:mriscx_registers]) => do
     match r with
     | `(mriscx_registers | $a:mriscx_registers_bare)
     | `(mriscx_registers | $a:mriscx_registers_abi) =>
-      let some nr := getCorrespondingRegisterNr? ⟨a⟩
+      let some nr := getCorrespondingRegisterName? ⟨a⟩
                   | throwError s!"Could not get a valid RegisterNr from {a}"
 
-      let t : Term := (mkIdent (s!"{nr}").toName)
-      return ←`(term | $(mkIdent `MState.getRegisterAtNr) ($curState) $t)
+      let t : TSyntax `term := Syntax.mkNumLit s!"{nr.nr}"
+      return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
+              ($(mkIdent `RegisterName.mk)
+              ($(mkIdent `RegisterNr.ofUInt64) $t) $(Syntax.mkStrLit nr.name)))
     | `(mriscx_registers | x $i:mriscx_num_or_ident) =>
+
       let newR ← parseMriscxNumOrIdentToTerm i
-      return ←`(term | $(mkIdent `MState.getRegisterAtNr) ($curState)
-                ($(mkIdent `RegisterNr.ofUInt64) $newR))
-    | _ => throwError ""
+      let name := s!"{i}"
+      logInfo (s!"sa" ++ name)
+
+      return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
+              ($(mkIdent `RegisterName.mk)
+              ($(mkIdent `RegisterNr.ofUInt64) $newR) $newR))
+    | _ => throwError "fail haha"
   | _stx@`(mem[$t:term]) => do
     let et ← replaceKeywords t curState
     return ←`(term | $(mkIdent `MState.getMemoryAt) ($curState) ($(⟨et⟩)))
