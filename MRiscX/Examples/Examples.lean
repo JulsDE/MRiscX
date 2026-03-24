@@ -169,7 +169,7 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
       ∧ ¬⸨terminated⸩
     ⦄
     "first" ↦ ⟨{"first" + 4} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > ("first" + 4)})⟩
-    ⦃((x[r₁] = p ∧ x[r₂] = k ∧ x[r₃] = c ∧ x[r₄] = l))
+    ⦃((x[x r₁] = p ∧ x[x r₂] = k ∧ x[x r₃] = c ∧ x[x r₄] = l))
       ∧ ¬⸨terminated⸩⦄
   := by
   sapply_s_seq

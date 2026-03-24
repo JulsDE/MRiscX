@@ -273,7 +273,7 @@ namespace RegisterName
       "t4",
       "t5",
       "t6"
-      ]
+    ]
 
   def beq (n₁ n₂ : RegisterName) := n₁.nr == n₂.nr
 

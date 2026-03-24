@@ -68,8 +68,14 @@ where
     | `(mriscx_registers | x $i:mriscx_num_or_ident) =>
 
       let newR ← parseMriscxNumOrIdentToTerm i
-      let name := s!"{i}"
-      logInfo (s!"sa" ++ name)
+      let isNat? := newR.raw.isNatLit?
+      -- let mut name := ""
+      -- match isNat? with
+      -- | some n => name := s!"{n}"
+      -- | none =>
+      if newR.raw.isIdent then
+        let name : Ident := ⟨newR.raw⟩
+        logInfo (s!"sa" ++ name)
 
       return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
               ($(mkIdent `RegisterName.mk)
