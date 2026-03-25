@@ -136,8 +136,6 @@ def Registers.getByRegNr (regs : Registers) (nr : RegisterNr) :=
     else
       Registers.getByRegNr t nr
 
-#check ({nr:=RegisterNr.zero, name := "a" : RegisterName} ↦ 12 ; TMap.empty 0)
-#check ((RegisterName.mk (RegisterNr.zero) "x0") ↦ 12 ; TMap.empty 0)
 
 @[simp]
 theorem tReg_update_eq : ∀ (name : RegisterName) (nr : RegisterNr) (r t : Registers)

@@ -288,9 +288,10 @@ def CodeUnexpander : Unexpander
 
   | _ => throw Unit.unit
 
+variable (qer:UInt64)
 #check mriscx
         first:
-              la x 0123, 3
+              la x qer, 3
               la zero, 3
               la x0, 3
       end
