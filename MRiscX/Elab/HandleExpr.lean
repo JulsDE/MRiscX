@@ -52,7 +52,8 @@ partial def getUInt64FromExpr (e : Expr) : MetaM UInt64 := do
 
 partial def getRegisterNameFromExpr (e : Expr) : MetaM RegisterName := do
   let e ← Meta.whnf e
-  return {nr := RegisterNr.zero, name := ""}
+
+  return {nr := 0, name := ""}
 
 partial def getStrFromExpr (e : Expr) : MetaM String := do
   let e ← Meta.whnf e

@@ -34,7 +34,7 @@ the functioncalls should be made.
 These HoareAssignments are used for the specification of the instruction.
 -/
 
-
+#eval ("num('4'z".drop 4).copy
 
 /-
 This function is similar to expandCDot?.
@@ -68,18 +68,18 @@ where
     | `(mriscx_registers | x $i:mriscx_num_or_ident) =>
 
       let newR ← parseMriscxNumOrIdentToTerm i
-      let isNat? := newR.raw.isNatLit?
-      -- let mut name := ""
-      -- match isNat? with
-      -- | some n => name := s!"{n}"
-      -- | none =>
-      if newR.raw.isIdent then
-        let name : Ident := ⟨newR.raw⟩
-        logInfo (s!"sa" ++ name)
-
-      return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
+      match newR with
+      | `(term | $n:num) =>
+        let name := s!"{n.getNat}"
+        return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
               ($(mkIdent `RegisterName.mk)
-              ($(mkIdent `RegisterNr.ofUInt64) $newR) $newR))
+              ($(mkIdent `RegisterNr.ofUInt64) $newR) $(Syntax.mkStrLit name)))
+      | `(term | $i:ident) =>
+        let name := i.getId.getString!
+        return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
+              ($(mkIdent `RegisterName.mk)
+              ($(mkIdent `RegisterNr.ofUInt64) $newR) $(Syntax.mkStrLit name)))
+      | _ => throwError "no plan"
     | _ => throwError "fail haha"
   | _stx@`(mem[$t:term]) => do
     let et ← replaceKeywords t curState

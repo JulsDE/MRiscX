@@ -237,9 +237,9 @@ example:
               la x 2, 0x123
     end
     -- Assert assignment of register as precondition
-    ⦃¬⸨terminated⸩ ∧ x[4] = 123⦄
+    ⦃¬⸨terminated⸩ ∧ x[x 4] = 123⦄
     "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
-    ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄
+    ⦃(x[x0] = 2 ∧ x[x 1] = 0 ∧ x[x 2] = 0x123 ∧ x[x 4] = 123) ∧ ¬⸨terminated⸩⦄
   := by
   /-
   apply s_seq with automatically solve set equality
