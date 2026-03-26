@@ -71,7 +71,7 @@ namespace TMap
 
   def toStringAux {α : Type} {β : Type} [ToString α][ToString β] (t : TMap α β) : String :=
     match t with
-    | TMap.empty d => s!"{d}"
+    | TMap.empty d => s!"Default: {d}"
     | TMap.put k v t' => s!"{k} ↦ {v} ; " ++ t'.toStringAux ++ ""
 
   def toString {α : Type} {β : Type} [ToString α][ToString β] (t : TMap α β) : String :=

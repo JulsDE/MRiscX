@@ -1,7 +1,7 @@
 import MRiscX.AbstractSyntax.Map
 
 import Lean
-open Lean
+open Lean Nat
 
 
 def MRISCX_REG_SIZE := 32
@@ -19,7 +19,7 @@ def RegisterNr.ofUInt64 (n:UInt64) : RegisterNr := Fin.mk (n.toNat % MRISCX_REG_
                             unfold MRISCX_REG_SIZE
                             simp)
 
-instance : OfNat RegisterNr n where
+instance InstRegisterNrOfNat (n : Nat) : OfNat RegisterNr n where
   ofNat := RegisterNr.ofNat n
 
 
@@ -125,12 +125,14 @@ end RegisterName
 instance: BEq RegisterName where
   beq n1 n2 := RegisterName.beq n1 n2
 
+
 /--
 In this type, only the RegisterNr matters. The name is only for delaboration.
 This is why we need this axiom to be able to implement the LawfulBEq typeclass
 -/
 axiom register_name_equality : ∀ (n₁ n₂ : RegisterName),
   n₁.nr = n₂.nr → n₁ = n₂
+
 
 instance: LawfulBEq RegisterName where
   rfl := by
@@ -144,6 +146,7 @@ instance: LawfulBEq RegisterName where
     simp at h
     apply register_name_equality
     exact h
+
 
 instance: ToString RegisterName where
    toString n := n.name
@@ -198,7 +201,57 @@ theorem tReg_update_neq : ∀ (name : RegisterName) (nr : RegisterNr) (r t : Reg
     unfold Registers.getByRegNr
     simp
 
+example: ∀ (u : UInt64),
+  (u.toNat).toUInt64 = u := by
+  intros u
+  simp
 
+theorem UInt64.same_nat_mod_same_eq_same : ∀ (u m r : UInt64) (n v : Nat),
+  r.toNat = v →
+  m.toNat = n →
+  u % m = r →
+  (u.toNat % n) = v := by
+  intros u m r n v h1 h2 h3
+  rw [←h1, ←h2]
+  rw [←UInt64.toNat_mod]
+  rw [UInt64.toNat_inj]
+  exact h3
+
+theorem UInt64.same_nat_mod_same_neq_same : ∀ (u m r : UInt64) (n v : Nat),
+  r.toNat = v →
+  m.toNat = n →
+  u % m ≠ r →
+  (u.toNat % n) ≠ v := by
+  intros u m r n v h1 h2 h3
+  rw [←h1, ←h2]
+  rw [←UInt64.toNat_mod]
+  intros neq
+  rw [UInt64.toNat_inj] at neq
+  contradiction
+
+theorem adsfas : ∀ (u : UInt64),
+  u % MRISCX_REG_SIZE.toUInt64 = 0 →
+  u.toNat % MRISCX_REG_SIZE = 0 := by
+  intros u H
+  unfold MRISCX_REG_SIZE at *
+  apply UInt64.same_nat_mod_same_eq_same u 32 0 32 0
+  simp
+  unfold UInt64.toNat
+  simp
+  exact H
+
+
+@[simp]
+theorem n_not_zero_registerNr_not_zero : ∀ (n : UInt64),
+  n % MRISCX_REG_SIZE.toUInt64 ≠ 0 →
+  RegisterNr.ofUInt64 n ≠ 0 := by
+  intros n H
+  unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE
+  unfold MRISCX_REG_SIZE at H
+  simp at *
+  intros neq
+  apply UInt64.same_nat_mod_same_neq_same <;> try assumption
+  repeat simp
 
 /--
 RegisterMap with default value 0

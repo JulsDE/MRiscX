@@ -36,6 +36,7 @@ namespace MState
   intros ms r
   unfold MState.addRegister MState.incPc
   simp
+  by_cases h: r.nr = 0 <;> simp [h]
 
 @[simp] theorem addMem_incPc_comm: ∀(ms:MState) (r v: UInt64),
   (ms.addMemory r v).incPc = ms.incPc.addMemory r v:= by
@@ -61,6 +62,8 @@ namespace MState
   intros ms r v
   unfold MState.addRegister
   simp
+  by_cases h: r.nr = 0 <;> simp [h]
+
 
 @[simp] theorem addMem_terminated: ∀(ms:MState) (r v: UInt64),
   (ms.addMemory r v).terminated = ms.terminated := by
@@ -87,41 +90,52 @@ namespace MState
   intros ms r1 r2 v H
   unfold MState.addRegister MState.getRegisterAt
   simp
+  by_cases h: r1.nr = 0 <;> simp [h]
   rw [t_update_neq]; simp at H
   simp [H]
 
 @[simp] theorem addRegister_getRegisterAtNr_neq:
   ∀(ms:MState) (regNr1 regNr2 : RegisterNr) (name  : RegisterName) (v : UInt64),
   name.nr = regNr1 →
+  regNr1 ≠ 0 →
   regNr1 ≠ regNr2 →
   ((ms.addRegister name v).getRegisterAtNr regNr2) = (ms.getRegisterAtNr regNr2)
   := by
-  intros ms nr1 nr2 name v nrInName H
+  intros ms nr1 nr2 name v nrInName neq_z H
   unfold MState.addRegister MState.getRegisterAtNr
   simp
   rw [tReg_update_neq] <;> try assumption
   simp [nrInName, H]
-  rfl
+  rw [nrInName]
+  simp [neq_z]
 
 @[simp] theorem addRegister_getRegister_eq:
   ∀(ms:MState) (r1 r2 : RegisterName) (v : UInt64),
+  r1.nr ≠ 0 →
   r1 = r2 →
   ((ms.addRegister r1 v).getRegisterAt r2) = v
   := by
-  intros ms r1 r2 v H
+  intros ms r1 r2 v neq_z H
   unfold MState.addRegister MState.getRegisterAt
-  simp
+  -- rw [←H, t_update_eq]
+  by_cases h: r1.nr = 0 <;> simp [h]
+  rw [h] at neq_z
+  contradiction
   rw [H, t_update_eq]
 
 @[simp] theorem addRegister_getRegisterAtNr_eq:
   ∀(ms:MState) (name : RegisterName) (nr : RegisterNr) (v : UInt64),
+  nr ≠ 0 →
   name.nr = nr →
   ((ms.addRegister name v).getRegisterAtNr nr) = v
   := by
-  intros ms name nr v H
+  intros ms name nr v neq_z H
   unfold MState.addRegister MState.getRegisterAtNr Registers.getByRegNr
   rw [H]
-  simp
+  simp [neq_z]
+  rw [H]
+  intros
+  contradiction
 
 
 @[simp] theorem setPc_getRegister_indep:
@@ -213,11 +227,11 @@ namespace MState
 
 
 @[simp] theorem addRegister_unfold (ms:MState) : ∀ (r : RegisterName) (v : UInt64),
-  ms.addRegister r v = {ms with registers :=
-    ((r) ↦ v ; ms.registers)} := by
-  intros r val_toUnits_apply
+  r.nr ≠ 0 →
+  ms.addRegister r v = {ms with registers := ((r) ↦ v ; ms.registers)} := by
+  intros r val_toUnits_apply H
   unfold MState.addRegister
-  simp
+  simp [H]
 
 @[simp] theorem addMemory_unfold (ms:MState) : ∀ (a v:UInt64),
   ms.addMemory a v = {ms with memory :=
@@ -300,6 +314,7 @@ namespace MState
   intros ms r v
   unfold MState.addRegister
   simp
+  by_cases h : r.nr = 0 <;> simp [h]
 
 @[simp] theorem add_mem_code_no_change : ∀ (ms:MState) (r v:UInt64),
   (ms.addMemory r v).code = ms.code := by

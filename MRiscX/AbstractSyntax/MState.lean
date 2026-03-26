@@ -42,8 +42,12 @@ namespace MState
   def setRegister (ms:MState) (r:Registers) : MState :=
     {ms with registers := r}
 
-  def addRegister (ms:MState) (i : RegisterName) (v:UInt64): MState :=
-    {ms with registers := (i ↦ v ; ms.registers)}
+  def addRegister (ms:MState) (i : RegisterName) (v:UInt64) : MState :=
+    -- Register zero is always zero
+    if i.nr == 0 then
+      ms
+    else
+      {ms with registers := (i ↦ v ; ms.registers)}
 
   def getRegisterAt (ms:MState) (i : RegisterName) : UInt64 :=
     ms.registers.get i
