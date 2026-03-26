@@ -1,7 +1,26 @@
-abbrev RegisterNr := Fin 32
+import MRiscX.AbstractSyntax.Map
 
-def RegisterNr.ofNat (n:Nat) : RegisterNr := Fin.mk (n % 32) (by apply Nat.mod_lt;simp)
-def RegisterNr.ofUInt64 (n:UInt64) : RegisterNr := Fin.mk (n.toNat % 32) (by apply Nat.mod_lt;simp)
+import Lean
+open Lean
+
+
+def MRISCX_REG_SIZE := 32
+
+abbrev RegisterNr := Fin MRISCX_REG_SIZE
+
+def RegisterNr.ofNat (n:Nat) : RegisterNr := Fin.mk (n % MRISCX_REG_SIZE)
+                      (by
+                        apply Nat.mod_lt
+                        unfold MRISCX_REG_SIZE
+                        simp)
+def RegisterNr.ofUInt64 (n:UInt64) : RegisterNr := Fin.mk (n.toNat % MRISCX_REG_SIZE)
+                          (by
+                            apply Nat.mod_lt
+                            unfold MRISCX_REG_SIZE
+                            simp)
+
+instance : OfNat RegisterNr n where
+  ofNat := RegisterNr.ofNat n
 
 
 structure RegisterName where
@@ -128,3 +147,64 @@ instance: LawfulBEq RegisterName where
 
 instance: ToString RegisterName where
    toString n := n.name
+
+
+/--
+Definiton of the registers
+R := {r_1 ↦ w_1, … , r_k ↦ w_k}
+-/
+abbrev Registers := TMap RegisterName UInt64
+  -- deriving Repr
+
+def Registers.getByRegNr (regs : Registers) (nr : RegisterNr) :=
+  match regs with
+  | TMap.empty d => d
+  | TMap.put k v t =>
+    if k.nr == nr then
+      v
+    else
+      Registers.getByRegNr t nr
+
+
+@[simp]
+theorem tReg_update_eq : ∀ (name : RegisterName) (nr : RegisterNr) (r t : Registers)
+    (v : UInt64),
+  name.nr = nr →
+  r = (name ↦ v ; t) →
+  r.getByRegNr nr = v
+  := by
+  intros name nr r t v h₁ h₂
+  unfold Registers.getByRegNr
+  simp
+  rw [h₂]
+  simp
+  rw [h₁]
+  simp
+
+@[simp]
+theorem tReg_update_neq : ∀ (name : RegisterName) (nr : RegisterNr) (r t : Registers)
+    (v : UInt64),
+  name.nr ≠ nr →
+  r = (name ↦ v ; t) →
+  r.getByRegNr nr = t.getByRegNr nr
+  := by
+  intros name nr r t v h₁ h₂
+  unfold Registers.getByRegNr
+  simp
+  rw [h₂]
+  simp [h₁]
+  conv =>
+    lhs
+    unfold Registers.getByRegNr
+    simp
+
+
+
+/--
+RegisterMap with default value 0
+
+R := {r_1 ↦ w_1, … , r_k ↦ w_k ; 0}
+-/
+def EmptyRegisters : Registers := TMap.empty 0
+
+#check RegisterName.mk 1 ""

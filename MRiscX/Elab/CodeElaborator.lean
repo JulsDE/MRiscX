@@ -1,7 +1,7 @@
 import MRiscX.Parser.AssemblySyntax
 import MRiscX.AbstractSyntax.Map
 import MRiscX.AbstractSyntax.Instr
-import MRiscX.AbstractSyntax.AbstractSyntax
+import MRiscX.AbstractSyntax.MState
 import MRiscX.Elab.HandleRegister
 import MRiscX.Elab.HandleNumOrIdent
 import Lean

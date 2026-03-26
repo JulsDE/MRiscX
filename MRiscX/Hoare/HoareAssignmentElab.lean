@@ -146,9 +146,9 @@ def foldTermArray (element: TSyntax `hoare_assignment) (curTerm: TSyntax `term) 
     -- let newV := ← parseMriscxNumOrIdentToTerm v
     return ←`(term | $(mkIdent `MState.addMemory) ($curTerm) $newM $newT)
   | `(hoare_assignment | pc++) =>
-    return ←`(term | $(mkIdent `MState.incPc) ($curTerm))
+    return ←`(term | $(mkIdent `MState.incInstrCounter) ($(mkIdent `MState.incPc) ($curTerm)))
   | `(hoare_assignment | pc ← $i:term) => do
-    return ←`(term | $(mkIdent `MState.setPc) ($curTerm) $i)
+    return ←`(term | $(mkIdent `MState.incInstrCounter) ($(mkIdent `MState.setPc) ($curTerm) $i))
   | _ => throwError s!"{element}"
 
 /-

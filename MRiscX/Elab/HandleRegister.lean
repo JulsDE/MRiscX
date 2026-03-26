@@ -1,6 +1,7 @@
-import MRiscX.AbstractSyntax.AbstractSyntax
+import MRiscX.AbstractSyntax.Registers
 import MRiscX.Elab.HandleNumOrIdent
-open Lean Elab PrettyPrinter
+import Lean
+open Lean Nat Elab PrettyPrinter
 
 
 def mkRegisterName (r : RegisterName) :=

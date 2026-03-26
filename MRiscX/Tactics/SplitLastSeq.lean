@@ -1,7 +1,6 @@
 import Lean
 import MRiscX.Hoare.HoareCore
 import MRiscX.AbstractSyntax.Instr
-import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Elab.HandleNumOrIdent
 import MRiscX.Elab.HandleExpr
 import MRiscX.Tactics.TacticUtil

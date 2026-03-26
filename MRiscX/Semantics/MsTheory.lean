@@ -1,4 +1,3 @@
-import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.AbstractSyntax.MState
 import MRiscX.Semantics.Run
 import MRiscX.Util.BasicTheorems
@@ -330,18 +329,18 @@ namespace MState
   . simp
 
 @[simp] theorem get_register_only_register: ∀ (m:Memory) (regs:Registers) (c:Code)
-    (terminated:Bool) (regName : RegisterName) (p:UInt64),
+    (terminated:Bool) (regName : RegisterName) (p:UInt64) (ic : Nat),
   {registers := regs, memory := m, code := c, pc := p,
-    terminated := terminated : MState}.getRegisterAt regName =
+    terminated := terminated, instrCounter := ic: MState}.getRegisterAt regName =
   TMap.get regs regName := by
   intros r m _ terminated i p
   unfold MState.getRegisterAt
   simp
 
 @[simp] theorem get_register_at_nr_only_register: ∀ (m:Memory) (regs:Registers) (c:Code)
-    (terminated:Bool) (regNr : RegisterNr) (p:UInt64),
+    (terminated:Bool) (regNr : RegisterNr) (p:UInt64) (ic : Nat),
   {registers := regs, memory := m, code := c, pc := p,
-    terminated := terminated : MState}.getRegisterAtNr regNr =
+    terminated := terminated, instrCounter := ic : MState}.getRegisterAtNr regNr =
   regs.getByRegNr regNr := by
   intros r m _ terminated i p
   unfold MState.getRegisterAtNr
@@ -368,7 +367,7 @@ namespace MState
 @[simp] theorem get_register_only_memory: ∀ (m:Memory) (r:Registers) (c:Code) (terminated:Bool)
     (i p:UInt64),
   {registers := r, memory := m, code := c, pc := p,
-    terminated := terminated : MState}.getMemoryAt i =
+    terminated := terminated, instrCounter := ic : MState}.getMemoryAt i =
   TMap.get m i := by
   intros r m _ terminated i p
   unfold MState.getMemoryAt
@@ -421,6 +420,43 @@ namespace MState
     (ms.getRegisterAtNr r ≤ 0) = (ms.getRegisterAtNr r = 0) := by
   simp
 
+@[simp] theorem incInstrCounter_no_change_in_code: ∀ (ms : MState),
+  ms.incInstrCounter.code = ms.code
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp] theorem incInstrCounter_no_change_in_pc: ∀ (ms : MState),
+  ms.incInstrCounter.pc = ms.pc
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp] theorem incInstrCounter_incPc_comm: ∀ (ms : MState),
+  ms.incInstrCounter.incPc = ms.incPc.incInstrCounter
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+
+@[simp] theorem incInstrCounter_no_change_mem: ∀ (ms : MState),
+  ms.incInstrCounter.memory = ms.memory
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp] theorem incInstrCounter_no_change_registers: ∀ (ms : MState),
+  ms.incInstrCounter.registers = ms.registers
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp] theorem incInstrCounter_no_change_terminated: ∀ (ms : MState),
+  ms.incInstrCounter.terminated = ms.terminated
+  := by
+  unfold MState.incInstrCounter
+  simp
+
 @[simp] theorem runOneSteps_code_remains : ∀ (ms:MState),
   (ms.runOneStep).code = ms.code
   := by
@@ -432,7 +468,7 @@ namespace MState
     simp
     cases TMap.get ms.code.instructionMap ms.pc <;> simp
     case Jump s =>
-      unfold MState.jump
+      unfold MState.incInstrCounter MState.jump
       cases PMap.get ms.code.labels s <;> simp
     case JumpEq reg1 reg2 lbl | JumpNeq reg1 reg2 lbl
       | JumpGt reg1 reg2 lbl | JumpLe reg1 reg2 lbl =>

@@ -2,7 +2,7 @@ import MRiscX.AbstractSyntax.MState
 import MRiscX.Semantics.Run
 import MRiscX.Hoare.EvalLabelInHoare
 import MRiscX.Hoare.HoareAssignmentElab
-import MRiscX.AbstractSyntax.AbstractSyntax
+import MRiscX.AbstractSyntax.MState
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.BooleanAlgebra
 

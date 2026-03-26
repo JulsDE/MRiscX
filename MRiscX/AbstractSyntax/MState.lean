@@ -1,4 +1,4 @@
-import MRiscX.AbstractSyntax.AbstractSyntax
+import MRiscX.AbstractSyntax.Code
 
 
 /-
@@ -14,14 +14,19 @@ structure MState where
   pc: ProgramCounter
   code: Code
   terminated: Bool
+  instrCounter : Nat
 
 def DefaultMState : MState :=
   {registers := EmptyRegisters, memory := EmptyMemory, pc := 0,
-    terminated := false, code := DefaultCode}
+    terminated := false, code := DefaultCode, instrCounter := 0}
 
 /-
 To perform the operations on the MState like we want to, we need to implement some
 functions.
+
+
+Those function do not functions implemented here to avoid unfolding the functions and
+have a better experience while simping in proofs. Might be refactored.
 -/
 namespace MState
 
@@ -66,6 +71,9 @@ namespace MState
 
   def setTerminated (ms:MState) (bool:Bool) : MState :=
     {ms with terminated := bool}
+
+  def incInstrCounter (ms : MState) :=
+    {ms with instrCounter := ms.instrCounter + 1}
 
   def getLabelAt (ms:MState) (s:String) : Option UInt64 :=
     ms.code.labels.get s

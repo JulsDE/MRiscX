@@ -1,4 +1,4 @@
-import MRiscX.AbstractSyntax.AbstractSyntax
+import MRiscX.AbstractSyntax.MState
 import MRiscX.Parser.AssemblySyntax
 import MRiscX.Elab.CodeElaborator
 import MRiscX.AbstractSyntax.Instr
@@ -114,8 +114,14 @@ def termToInstr (t: TSyntax `term) : UnexpandM (TSyntax `mriscx_Instr) := do
 
   | `(Instr.Jump $lbl:ident) => `(mriscx_Instr | j $(mkIdent s!"{lbl}".toName)
   )
-  | `(Instr.Jump $lbl:str) => `(mriscx_Instr | j $(mkIdent lbl.getString.toName)
-  )
+  | `(Instr.Jump $lbl:str) =>
+    let labelStr := lbl.getString
+    if String.Pos.Raw.get labelStr 0 == '.' then
+      `(mriscx_Instr | j .$(mkIdent (labelStr.drop 1).copy.toName)
+      )
+    else
+      `(mriscx_Instr | j $(mkIdent lbl.getString.toName)
+      )
   | `(Instr.JumpEq $reg1 $reg2 $lbl:ident) =>
     let reg1Num ← getRegisterTerm reg1
     let reg2Num ← getRegisterTerm reg2

@@ -1,29 +1,6 @@
-import MRiscX.AbstractSyntax.Map
-import MRiscX.AbstractSyntax.Instr
 import MRiscX.AbstractSyntax.Registers
-import MRiscX.Parser.AssemblySyntax
-import Lean
-open Nat
-open Lean Lean.Elab
-/-
-Purpose of this file:
-This file establishes the syntax of the MRiscX assembly language, encompassing the definition
-of instructions, labels, registers, memory and machine states. Given that the instructionsMap,
-labels, registers, and memory are represented as maps, it may be beneficial to review the contents
-of the file Maps.lean beforehand.
-
-Next we define some Datatypes for the map keys.
-This is because it makes it easier to understand which
-map is being processed.
-Firstly a register, which will hold a value
--/
-
-/--
-Next, the memory address. This address will point to a certain
-address in the memory which holds some value
--/
-abbrev MemoryAddress := UInt64
-
+import MRiscX.AbstractSyntax.Memory
+import MRiscX.AbstractSyntax.Instr
 /--
 The InstructionIndex is a serial number which points
 to a instruction in the stack
@@ -116,77 +93,3 @@ namespace Code
 
   def getInstrAt (m : Code) (l : UInt64): Instr := m.instructionMap.get l
 end Code
-
-
-
-
-/--
-Definiton of the registers
-R := {r_1 ↦ w_1, … , r_k ↦ w_k}
--/
-abbrev Registers := TMap RegisterName UInt64
-  -- deriving Repr
-
-def Registers.getByRegNr (regs : Registers) (nr : RegisterNr) :=
-  match regs with
-  | TMap.empty d => d
-  | TMap.put k v t =>
-    if k.nr == nr then
-      v
-    else
-      Registers.getByRegNr t nr
-
-
-@[simp]
-theorem tReg_update_eq : ∀ (name : RegisterName) (nr : RegisterNr) (r t : Registers)
-    (v : UInt64),
-  name.nr = nr →
-  r = (name ↦ v ; t) →
-  r.getByRegNr nr = v
-  := by
-  intros name nr r t v h₁ h₂
-  unfold Registers.getByRegNr
-  simp
-  rw [h₂]
-  simp
-  rw [h₁]
-  simp
-
-@[simp]
-theorem tReg_update_neq : ∀ (name : RegisterName) (nr : RegisterNr) (r t : Registers)
-    (v : UInt64),
-  name.nr ≠ nr →
-  r = (name ↦ v ; t) →
-  r.getByRegNr nr = t.getByRegNr nr
-  := by
-  intros name nr r t v h₁ h₂
-  unfold Registers.getByRegNr
-  simp
-  rw [h₂]
-  simp [h₁]
-  conv =>
-    lhs
-    unfold Registers.getByRegNr
-    simp
-
-/--
-RegisterMap with default value 0
-
-R := {r_1 ↦ w_1, … , r_k ↦ w_k ; 0}
--/
-def EmptyRegisters : Registers := TMap.empty 0
-
-/--
-Definiton of the memory
-M := {m_1 ↦ w_1, … , m_k ↦ w_k}
--/
-def Memory := TMap MemoryAddress UInt64
-  deriving Repr
-
-
-/--
-MemoryMap with default value 0
-
-M := {m_1 ↦ w_1, … , m_k ↦ w_k ; 0}
--/
-def EmptyMemory : Memory := TMap.empty 0

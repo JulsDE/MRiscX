@@ -1,6 +1,5 @@
 import Lean
 import MRiscX.AbstractSyntax.Instr
-import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Semantics.Specification
 import MRiscX.Elab.HandleNumOrIdent
 import MRiscX.Elab.HandleExpr

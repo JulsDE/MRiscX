@@ -1,4 +1,6 @@
-import MRiscX.AbstractSyntax.AbstractSyntax
+import MRiscX.AbstractSyntax.Instr
+import MRiscX.AbstractSyntax.Code
+
 import Lean
 open Lean Meta Elab
 
