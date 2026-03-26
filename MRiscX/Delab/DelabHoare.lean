@@ -39,15 +39,26 @@ def hoare_termToTerm (t : TSyntax `hoare_term) : Delaborator.DelabM Term :=
 
 /-
 
-hoare_triple_up (fun st => ¬st.terminated = true)
-  (fun st => (sorry = p ∧ sorry = k ∧ sorry = c ∧ sorry = l) ∧ ¬st.terminated = true) 0 {0 + 4}
-  ({n | n = 0} ∪ {n | n > 0 + 4})
+hoare_triple_up
+  (fun st => ¬st.terminated = true ∧ st.getRegisterAt { nr := RegisterNr.ofUInt64 xq, name := "xq" } = 123)
+  (fun st =>
+    (st.getRegisterAt { nr := RegisterNr.ofUInt64 5, name := "x5" } = 2 ∧
+        st.getRegisterAt { nr := RegisterNr.ofUInt64 1, name := "1" } = 0 ∧
+          st.getRegisterAt { nr := RegisterNr.ofUInt64 2, name := "2" } = 291 ∧
+            st.getRegisterAt { nr := RegisterNr.ofUInt64 4, name := "4" } = 123) ∧
+      ¬st.terminated = true)
+  0 {3} {n | n = 0 ∨ n > 3}
   (Code.mk
-    ((3 ↦ Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 3), name := toString (UInt64.ofNat 3) } l ;
-      (2 ↦ Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 2), name := toString (UInt64.ofNat 2) } c ;
-        (1 ↦ Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 1), name := toString (UInt64.ofNat 1) } k ;
-          (0 ↦ Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 0), name := toString (UInt64.ofNat 0) } p ;
-            TMap.empty Instr.Panic)))))
+    ((2 ↦
+      Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 2), name := toString (UInt64.ofNat 2) }
+        (UInt64.ofNat 291) ;
+      (1 ↦
+        Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 1), name := toString (UInt64.ofNat 1) }
+          (UInt64.ofNat 0) ;
+        (0 ↦
+          Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 0), name := toString (UInt64.ofNat 0) }
+            (UInt64.ofNat 2) ;
+          TMap.empty Instr.Panic))))
     (p("first" ↦ 0 ; PMap.empty)))
 
 Delaborate Expr of abstract syntax back to Term
@@ -210,3 +221,26 @@ def AddMemUnexpander : Unexpander
     else
       `(hoare_assignment_chain | mem[$rTerm] ← $vTerm ; $s:term)
   | _ => throw Unit.unit
+
+
+#check hoare_triple_up
+  (fun st => ¬st.terminated = true ∧ st.getRegisterAt { nr := RegisterNr.ofUInt64 1, name := "xq" } = 123)
+  (fun st =>
+    (st.getRegisterAt { nr := RegisterNr.ofUInt64 5, name := "x5" } = 2 ∧
+        st.getRegisterAt { nr := RegisterNr.ofUInt64 1, name := "1" } = 0 ∧
+          st.getRegisterAt { nr := RegisterNr.ofUInt64 2, name := "2" } = 291 ∧
+            st.getRegisterAt { nr := RegisterNr.ofUInt64 4, name := "4" } = 123) ∧
+      ¬st.terminated = true)
+  0 {3} {n | n = 0 ∨ n > 3}
+  (Code.mk
+    ((2 ↦
+      Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 2), name := toString (UInt64.ofNat 2) }
+        (UInt64.ofNat 291) ;
+      (1 ↦
+        Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 1), name := toString (UInt64.ofNat 1) }
+          (UInt64.ofNat 0) ;
+        (0 ↦
+          Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 0), name := toString (UInt64.ofNat 0) }
+            (UInt64.ofNat 2) ;
+          TMap.empty Instr.Panic))))
+    (p("first" ↦ 0 ; PMap.empty)))

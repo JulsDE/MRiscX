@@ -2,7 +2,7 @@ import MRiscX.Semantics.MsTheory
 import MRiscX.Tactics.SpecificationTactics
 import MRiscX.Elab.HoareElaborator
 import MRiscX.Elab.CodeElaborator
--- import MRiscX.Delab.DelabHoare
+import MRiscX.Delab.DelabHoare
 open Lean Elab Tactic
 
 /-
