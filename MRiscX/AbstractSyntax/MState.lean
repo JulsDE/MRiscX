@@ -50,7 +50,10 @@ namespace MState
       {ms with registers := (i ↦ v ; ms.registers)}
 
   def getRegisterAt (ms:MState) (i : RegisterName) : UInt64 :=
-    ms.registers.get i
+    if i.nr == 0 then
+      0
+    else
+      ms.registers.get i
 
   def getRegisterAtNr (ms:MState) (i : RegisterNr) : UInt64 :=
     ms.registers.getByRegNr i

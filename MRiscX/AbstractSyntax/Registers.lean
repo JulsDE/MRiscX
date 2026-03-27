@@ -122,7 +122,7 @@ namespace RegisterName
 
 end RegisterName
 
-instance: BEq RegisterName where
+instance : BEq RegisterName where
   beq n1 n2 := RegisterName.beq n1 n2
 
 
@@ -229,16 +229,15 @@ theorem UInt64.same_nat_mod_same_neq_same : ∀ (u m r : UInt64) (n v : Nat),
   rw [UInt64.toNat_inj] at neq
   contradiction
 
-theorem adsfas : ∀ (u : UInt64),
-  u % MRISCX_REG_SIZE.toUInt64 = 0 →
-  u.toNat % MRISCX_REG_SIZE = 0 := by
-  intros u H
-  unfold MRISCX_REG_SIZE at *
-  apply UInt64.same_nat_mod_same_eq_same u 32 0 32 0
-  simp
-  unfold UInt64.toNat
-  simp
-  exact H
+
+@[simp]
+theorem register_nr_symm (name1 name2 : RegisterName) (nr : RegisterNr) :
+  name1.nr = nr →
+  name1 = name2 →
+  name2.nr = nr := by
+  intros h_nr h_eq
+  rw [←h_nr]
+  rw [h_eq]
 
 
 @[simp]
