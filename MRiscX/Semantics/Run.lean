@@ -74,11 +74,17 @@ namespace MState
       | Instr.XOR (dst) (reg1) (reg2) =>
         (ms.addRegister dst ((ms.getRegisterAt reg1).xor (ms.getRegisterAt reg2))).incPc.incInstrCounter
       | Instr.LoadWordImmediate (dst) (addr) =>
-        (ms.addRegister dst (ms.getMemoryAt addr)).incPc.incInstrCounter
-      | Instr.LoadWordReg (dst) (addr) =>
-        (ms.addRegister dst (ms.getMemoryAt (ms.getRegisterAt addr))).incPc.incInstrCounter
-      | Instr.StoreWord (reg) (dst) =>
-        (ms.addMemory (ms.getRegisterAt dst) (ms.getRegisterAt reg)).incPc.incInstrCounter
+        let content := UInt64.ofBitVec ((ms.loadWord (addr)).setWidth 64)
+        (ms.addRegister dst (content)).incPc.incInstrCounter
+      | Instr.LoadWordReg (dst) off (regWithAddr) =>
+        let addr := ms.getRegisterAt regWithAddr
+        let content := UInt64.ofBitVec ((ms.loadWord (addr + off)).setWidth 64)
+        (ms.addRegister dst (content)).incPc.incInstrCounter
+      | Instr.StoreWord (reg) off (dst) =>
+        let regCont := (ms.getRegisterAt reg).toBitVec.extractLsb' 0 32
+        let addr := (ms.getRegisterAt dst)
+        (ms.storeWord (regCont) (addr + off))
+        -- (ms.addMemory (ms.getRegisterAt dst) (ms.getRegisterAt reg)).incPc.incInstrCounter
       | Instr.Jump (lbl:String) =>
         ms.incInstrCounter.jump lbl
       | Instr.JumpEq (reg1) (reg2) (lbl:String) =>

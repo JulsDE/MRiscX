@@ -162,7 +162,7 @@ inductive Instr : Type where
 
     where `(dst reg_with_mem_addr : UInt64)`.
   -/
-  | LoadWordReg       : RegisterName → RegisterName → Instr
+  | LoadWordReg       : RegisterName → UInt64 → RegisterName → Instr
   /--
     Load the content of a register into the memory at the address which is
     stored in a register
@@ -173,7 +173,7 @@ inductive Instr : Type where
 
     where `(reg_with_value reg_with_mem_addr : UInt64)`.
   -/
-  | StoreWord         : RegisterName → RegisterName → Instr
+  | StoreWord         : RegisterName → UInt64 → RegisterName → Instr
   /--
     Jump to a given labelname.
 
@@ -287,8 +287,8 @@ instance : ToString Instr where
       -- For calculate the amount of zeros after `0x`to cut them off the string
       let hex := addr.toBitVec.zeroExtend (Nat.log2 addr.toNat + 1)
       s!"lw {dst}, {hex}"
-    | Instr.LoadWordReg dst addr => s!"lw {dst}, {addr}"
-    | Instr.StoreWord reg dst => s!"sw {reg}, {dst}"
+    | Instr.LoadWordReg dst off addr => s!"lw {dst}, {off}({addr})"
+    | Instr.StoreWord reg off dst => s!"sw {reg}, {off}({dst})"
     | Instr.Jump lbl => s!"j {lbl}"
     | Instr.JumpEq reg1 reg2 lbl => s!"beq {reg1}, {reg2}, {lbl}"
     | Instr.JumpNeq reg1 reg2 lbl => s!"bne {reg1}, {reg2}, {lbl}"

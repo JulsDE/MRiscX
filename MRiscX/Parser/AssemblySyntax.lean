@@ -142,7 +142,6 @@ syntax "xori " mriscx_registers &", " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "xor " mriscx_registers &", " mriscx_registers &", " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-
 /-
 Operations on memory
 -/
@@ -150,11 +149,11 @@ Operations on memory
 syntax "lw " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 -- Load word from address stored in register
-syntax "lw " mriscx_registers &", " mriscx_registers
+syntax "lw " mriscx_registers &", " num &"(" mriscx_registers &")"
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 -- Store word stored in register
 -- The first register is the source, the second holds the destination address
-syntax "sw " mriscx_registers &", " mriscx_registers
+syntax "sw " mriscx_registers &", " num &"(" mriscx_registers &")"
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 
 /-

@@ -61,10 +61,74 @@ namespace MState
   def setMemory (ms:MState) (m:Memory) : MState :=
     {ms with memory := m}
 
-  def addMemory (ms:MState) (i:UInt64) (v:UInt64) : MState :=
+  def storeByte (ms : MState) (i : MemoryAddress) (v : Byte) : MState :=
     {ms with memory := (i ↦ v ; ms.memory)}
 
-  def getMemoryAt (ms:MState) (i:UInt64) : UInt64 :=
+  def storeHalfword (ms : MState) (i : MemoryAddress) (v : Halfword) : MState :=
+    let b0 := v.extractLsb' 0 8
+    let b1 := v.extractLsb' 8 8
+    {ms with memory :=  (i ↦ b0 ;
+                        ((i + 1) ↦ b1 ;
+                        ms.memory))}
+
+  def storeWord (ms : MState) (v : Word) (i : MemoryAddress) : MState :=
+    let b0 := v.extractLsb' 0 8
+    let b1 := v.extractLsb' 8 8
+    let b2 := v.extractLsb' 16 8
+    let b3 := v.extractLsb' 24 8
+    {ms with memory :=  (i ↦ b0 ;
+                        ((i + 1) ↦ b1 ;
+                        ((i + 2) ↦ b2 ;
+                        ((i + 3) ↦ b3 ;
+                        ms.memory))))}
+
+  def storeDoubleword (ms : MState) (i : MemoryAddress) (v : Doubleword) : MState :=
+    let b0 := v.extractLsb' 0 8
+    let b1 := v.extractLsb' 8 8
+    let b2 := v.extractLsb' 16 8
+    let b3 := v.extractLsb' 24 8
+    let b4 := v.extractLsb' 32 8
+    let b5 := v.extractLsb' 40 8
+    let b6 := v.extractLsb' 48 8
+    let b7 := v.extractLsb' 56 8
+    {ms with memory := (i ↦ b0 ;
+                       ((i + 1) ↦ b1 ;
+                       ((i + 2) ↦ b2 ;
+                       ((i + 3) ↦ b3 ;
+                       ((i + 4) ↦ b4 ;
+                       ((i + 5) ↦ b5 ;
+                       ((i + 6) ↦ b6 ;
+                       ((i + 7) ↦ b7 ;
+                        ms.memory))))))))}
+
+  def loadByte  (ms : MState) (a : MemoryAddress) : Byte :=
+    ms.memory.get a
+
+  def loadHalfword (ms : MState) (addr : MemoryAddress) : Halfword :=
+    let b0 := ms.memory.get addr
+    let b1 := ms.memory.get (addr + 1)
+    b1 ++ b0
+
+  def loadWord (ms : MState) (addr : MemoryAddress) : Word :=
+    let b0 := ms.memory.get addr
+    let b1 := ms.memory.get (addr + 1)
+    let b2 := ms.memory.get (addr + 2)
+    let b3 := ms.memory.get (addr + 3)
+    b3 ++ b2 ++ b1 ++ b0
+
+  def loadDoubleword (ms : MState) (addr : MemoryAddress) : Doubleword :=
+    let b0 := ms.memory.get addr
+    let b1 := ms.memory.get (addr + 1)
+    let b2 := ms.memory.get (addr + 2)
+    let b3 := ms.memory.get (addr + 3)
+    let b4 := ms.memory.get (addr + 4)
+    let b5 := ms.memory.get (addr + 5)
+    let b6 := ms.memory.get (addr + 6)
+    let b7 := ms.memory.get (addr + 7)
+    b7 ++ b6 ++ b5 ++ b4 ++ b3 ++ b2 ++ b1 ++ b0
+
+
+  def getMemoryAt (ms:MState) (i:MemoryAddress) : Byte :=
     ms.memory.get (i)
 
   def setInstructionMap (ms:MState) (sc:InstructionMap) : MState :=
@@ -99,6 +163,3 @@ namespace MState
 
 
 end MState
-
-
-#eval DefaultMState.getRegisterAtNr (RegisterNr.ofNat 55)
