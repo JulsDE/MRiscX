@@ -34,8 +34,6 @@ the functioncalls should be made.
 These HoareAssignments are used for the specification of the instruction.
 -/
 
-#eval ("num('4'z".drop 4).copy
-
 /-
 This function is similar to expandCDot?.
 It traverses the given syntax and searches for patterns to replace the keywords

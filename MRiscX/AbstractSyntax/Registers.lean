@@ -4,16 +4,16 @@ import Lean
 open Lean Nat
 
 
-def MRISCX_REG_SIZE := 32
+def MRISCX_REG_SIZE : UInt64 := 32
 
-abbrev RegisterNr := Fin MRISCX_REG_SIZE
+abbrev RegisterNr := Fin (MRISCX_REG_SIZE.toNat)
 
-def RegisterNr.ofNat (n:Nat) : RegisterNr := Fin.mk (n % MRISCX_REG_SIZE)
+def RegisterNr.ofNat (n:Nat) : RegisterNr := Fin.mk (n % MRISCX_REG_SIZE.toNat)
                       (by
                         apply Nat.mod_lt
                         unfold MRISCX_REG_SIZE
                         simp)
-def RegisterNr.ofUInt64 (n:UInt64) : RegisterNr := Fin.mk (n.toNat % MRISCX_REG_SIZE)
+def RegisterNr.ofUInt64 (n:UInt64) : RegisterNr := Fin.mk (n.toNat % MRISCX_REG_SIZE.toNat)
                           (by
                             apply Nat.mod_lt
                             unfold MRISCX_REG_SIZE
@@ -242,7 +242,7 @@ theorem register_nr_symm (name1 name2 : RegisterName) (nr : RegisterNr) :
 
 @[simp]
 theorem n_not_zero_registerNr_not_zero : ∀ (n : UInt64),
-  n % MRISCX_REG_SIZE.toUInt64 ≠ 0 →
+  n % MRISCX_REG_SIZE ≠ 0 →
   RegisterNr.ofUInt64 n ≠ 0 := by
   intros n H
   unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE

@@ -28,7 +28,7 @@ hold after the execution. The precondition is applied after simulating the
 effects of the instruction.
 -/
 theorem specification_LoadAddress (P: Assertion) (pc addr dst: UInt64) (L: Set UInt64):
-  dst % MRISCX_REG_SIZE.toUInt64 ≠ 0 →
+  dst % MRISCX_REG_SIZE ≠ 0 →
   L = {n : UInt64 | n ≠ pc + 1} →
   hoare
     ⟪la x dst, addr;⟫
@@ -83,6 +83,7 @@ hold after the execution. The precondition is applied after simulating the
 effects of the instruction.
 -/
 theorem specification_LoadImmediate (P: Assertion) (pc dst val : UInt64) (L : Set UInt64):
+  dst % MRISCX_REG_SIZE ≠ 0 →
   L = {n : UInt64 | n ≠ pc + 1} →
   hoare
     ⟪li x dst, val;⟫
@@ -91,15 +92,22 @@ theorem specification_LoadImmediate (P: Assertion) (pc dst val : UInt64) (L : Se
     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   end
   := by
-    intros Hl
-    rw [Hl]
-    unfold hoare_triple_up_1
-    rintro _ _ s HCurr h_pc ⟨pre, h_terminated⟩
-    simp at h_terminated
-    unfold weak
-    exists s.runOneStep
-    apply And.intro
-    case left =>
+  intros neq_z Hl
+  rw [Hl]
+  unfold hoare_triple_up_1
+  rintro _ _ s HCurr h_pc ⟨pre, h_terminated⟩
+  -- rw [pre2] at pre1
+  simp at h_terminated
+  unfold MState.addRegister at pre
+  simp at pre
+  have: RegisterNr.ofUInt64 dst ≠ 0 := by
+      apply n_not_zero_registerNr_not_zero
+      exact neq_z
+  simp [this] at pre
+  unfold weak
+  exists s.runOneStep
+  apply And.intro
+  case left =>
       intros _
       exists 1
       apply And.intro
@@ -108,16 +116,15 @@ theorem specification_LoadImmediate (P: Assertion) (pc dst val : UInt64) (L : Se
         simp [<- MState.run_one_step_eq_run_n_1]
         unfold MState.runOneStep
         rw [h_terminated, ←h_pc, HCurr]
-        simp
+        simp [this]
         zero_lt_ne_zero
-    case right =>
-      -- try rw [xor_iff_notation] at pre
+  case right =>
       simp [- MState.run_one_step_eq_run_n_1]
-      unfold MState.runOneStep
+      unfold MState.runOneStep MState.getRegisterAt
       rw [HCurr]
-      simp
+      simp [this]
       simp [h_terminated, ←h_pc]
-      simp at pre
+      -- simp at pre
       rw [h_terminated] at pre
       rw [h_pc]
       rw [h_pc] at pre
