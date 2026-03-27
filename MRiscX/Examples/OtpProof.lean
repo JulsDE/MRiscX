@@ -373,6 +373,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
           --   mem[c+i] = mem[p + i] ^^^ mem[k + i]⦄)
 
         . simp
+        . simp
 
         . simp
         . unfold MState.currInstruction

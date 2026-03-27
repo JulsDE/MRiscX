@@ -186,6 +186,7 @@ theorem sw_otp : ∀ (p k c l : UInt64),
     apply specification_StoreWordImmediate (regWithAddr := 2) (regWithValue := 7)
     . simp
     . simp
+    . simp
     . simp_currInstr
     . assumption
     . simp
@@ -314,6 +315,7 @@ theorem inc_otp_0 : ∀ (p k c l : UInt64),
     apply specification_Increment (dst := 0)
     . simp
     . simp
+    . simp
     . simp_currInstr
     . exact h_pc
     .
@@ -362,6 +364,7 @@ theorem inc_otp_1 : ∀ (p k c l : UInt64),
     rintro h_inter h_empty s h_code' h_pc ⟨⟨h_cond, h_I, h_x0, h_x1, h_x2, h_x3LtL, h_x5, h_x6, h_x7, h_x3, h_I_pre'⟩, h_terminated⟩
     rw [←h_code']
     apply specification_Increment (dst := 1)
+    . simp
     . simp
     . simp
     . simp
@@ -420,6 +423,7 @@ theorem inc_otp_2 {x} : ∀ (p k c l : UInt64),
     apply specification_Increment (dst := 2)
     . simp
     . simp
+    . simp
     . simp_currInstr
     . exact h_pc
     .
@@ -467,6 +471,7 @@ theorem dec_otp : ∀ (p k c l : UInt64),
       simp
     rw [this]
     apply specification_Decrement (dst := 3)
+    . simp
     . simp
     . simp
     . simp_currInstr
@@ -563,11 +568,18 @@ theorem j_otp : ∀ (p k c l : UInt64),
     apply this
     clear this
 
-    apply_spec_basic specification_Jump' (pc := 13) (newPc := 4) (label := ".loop")
-    . repeat (constructor <;> try assumption)
-      simp
+    apply specification_Jump' (pc := 13) (newPc := 4) (label := ".loop")
+    . simp
+    . simp
+    . simp
+    . simp_currInstr
+    . assumption
+    .
+      repeat (constructor <;> try assumption)
+      unfold MState.getLabelAt
       rw [h_code']
-      simp [p_update_eq, p_update_neq]
+      simp
+
   . (repeat constructor <;> try assumption)
 
 
@@ -623,7 +635,12 @@ theorem beqz_otp: ∀ (p k c l : UInt64),
       contradiction
 
   rw [this]
-  apply_spec_when_ready specification_JumpEqZero_false (pc := 4) (reg := 3) (label := "finish")
-  .
+  apply specification_JumpEqZero_false (pc := 4) (reg := 3) (label := "finish")
+  . simp
+  . simp
+  . simp
+  . simp_currInstr
+  . assumption
+  . repeat (constructor <;> try assumption)
     apply UInt64.gt_zero_neq_zero
     exact h_cond
