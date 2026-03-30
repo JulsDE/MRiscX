@@ -27,6 +27,7 @@ structure RegisterName where
   nr : RegisterNr
   name : String
 -- deriving DecidableEq
+deriving Repr
 
 namespace RegisterName
 

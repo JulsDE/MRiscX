@@ -1,5 +1,9 @@
-import MRiscX.AbstractSyntax.Code
+-- import MRiscX.AbstractSyntax.Code
+import MRiscX.AbstractSyntax.Registers
+import MRiscX.AbstractSyntax.Memory
 
+
+abbrev ProgramCounter := UInt64
 
 /-
 Everything is now brought together in a single structure called MState, which represents
@@ -12,13 +16,13 @@ structure MState where
   memory: Memory
   registers: Registers
   pc: ProgramCounter
-  code: Code
+
   terminated: Bool
   instrCounter : Nat
 
 def DefaultMState : MState :=
   {registers := EmptyRegisters, memory := EmptyMemory, pc := 0,
-    terminated := false, code := DefaultCode, instrCounter := 0}
+    terminated := false, instrCounter := 0}
 
 /-
 To perform the operations on the MState like we want to, we need to implement some
@@ -30,8 +34,8 @@ have a better experience while simping in proofs. Might be refactored.
 -/
 namespace MState
 
-  def currInstruction (ms:MState) : Instr :=
-    ms.code.instructionMap.get (ms.pc)
+  -- def currInstruction (ms:MState) (code : Code): Instr :=
+  --   code.instructionMap.get (ms.pc)
 
   def incPc (ms:MState) : MState :=
     {ms with pc := ms.pc + 1}
@@ -131,14 +135,14 @@ namespace MState
   def getMemoryAt (ms:MState) (i:MemoryAddress) : Byte :=
     ms.memory.get (i)
 
-  def setInstructionMap (ms:MState) (sc:InstructionMap) : MState :=
-    {ms with code.instructionMap := sc}
+  -- def setInstructionMap (ms:MState) (sc:InstructionMap) : MState :=
+  --   {ms with code.instructionMap := sc}
 
-  def setCode (ms: MState) (code: Code) : MState :=
-    {ms with code := code}
+  -- def setCode (ms: MState) (code: Code) : MState :=
+  --   {ms with code := code}
 
-  def setLabels (ms:MState) (l:LabelMap) : MState :=
-    {ms with code.labels := l}
+  -- def setLabels (ms:MState) (l:LabelMap) : MState :=
+  --   {ms with code.labels := l}
 
   def setTerminated (ms:MState) (bool:Bool) : MState :=
     {ms with terminated := bool}
@@ -146,18 +150,20 @@ namespace MState
   def incInstrCounter (ms : MState) :=
     {ms with instrCounter := ms.instrCounter + 1}
 
-  def getLabelAt (ms:MState) (s:String) : Option UInt64 :=
-    ms.code.labels.get s
+  -- def getLabelAt (ms:MState) (s:String) : Option UInt64 :=
+  --   ms.code.labels.get s
 
-  def createStandardState (c : Code): MState :=
-    {DefaultMState with code := c}
+  -- def createStandardState (c : Code): MState :=
+  --   {DefaultMState with code := c}
 
+def LabelMap := PMap String UInt64
+deriving Repr, Inhabited
   /-
   This creates a Machine state with the pointer which the label [s] points to.
   If there is no label [s] in code.labels, terminated is set to true.
   -/
-  def jump (ms:MState) (s:String) : MState :=
-    match ms.code.labels.get s with
+  def jump (ms:MState) (labels: LabelMap) (s:String) : MState :=
+    match labels.get s with
     | some i => {ms with pc := i}
     | none => {ms with terminated := true}
 
