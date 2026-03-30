@@ -71,7 +71,7 @@ namespace TMap
 
   def toStringAux {α : Type} {β : Type} [ToString α][ToString β] (t : TMap α β) : String :=
     match t with
-    | TMap.empty d => s!"{d}"
+    | TMap.empty d => s!"Default: {d}"
     | TMap.put k v t' => s!"{k} ↦ {v} ; " ++ t'.toStringAux ++ ""
 
   def toString {α : Type} {β : Type} [ToString α][ToString β] (t : TMap α β) : String :=
@@ -161,7 +161,8 @@ as when we would just search [t] for [k'].
 @[simp]
 theorem t_update_neq : forall (α : Type) (β : Type) [BEq α] [LawfulBEq α]
     (t : TMap α β) (k k' : α) (v : β),
-  k ≠ k' → (k ↦ v ; t).get k' = t.get k'
+  k ≠ k' →
+  (k ↦ v ; t).get k' = t.get k'
   := by
   intros α β HBEq HLawfulBEq t k k' v HNeq
   simp at HNeq

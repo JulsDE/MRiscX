@@ -10,6 +10,7 @@ def mkUIntOfNat (n:Nat):= Expr.app (.const `UInt64.ofNat []) (mkNatLit n)
 def mkUintOfNat (n:UInt64):= Expr.app (.const `OfNat.ofNat []) (mkNatLit n.toNat)
 
 
+
 def mkUInt64Lit (n : UInt64) : Expr :=
   mkApp3
     (mkConst ``OfNat.ofNat [levelZero])
@@ -29,7 +30,9 @@ def parseMriscxNumOrIdentToTerm (s : Syntax) : TermElabM Term := do
           throwError "Expected type UInt64 for identifier"
       else
         throwError s!"Identifier {a} not found in context"
-  | _ => throwError "Unexpected syntax"
+  | _ => throwError "Unexpected syntax {s}"
+
+
 
 def parseTermToMriscxNumOrIdent (s : TSyntax `term) : TSyntax `mriscx_num_or_ident :=
   match s with
@@ -66,7 +69,8 @@ def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
           throwError "Expected type UInt64 for identifier"
       else
         throwError s!"Identifier {a} not found in context"
-  | _ => throwError "Unexpected syntax"
+  | _ => throwError "Unexpected syntax {s}"
+
 
 /--
 Apply `parseMriscxNumOrIdent` on all elements inside an array

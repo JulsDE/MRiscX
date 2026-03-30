@@ -38,6 +38,29 @@ def hoare_termToTerm (t : TSyntax `hoare_term) : Delaborator.DelabM Term :=
 
 
 /-
+
+hoare_triple_up
+  (fun st => ¬st.terminated = true ∧ st.getRegisterAt { nr := RegisterNr.ofUInt64 xq, name := "xq" } = 123)
+  (fun st =>
+    (st.getRegisterAt { nr := RegisterNr.ofUInt64 5, name := "x5" } = 2 ∧
+        st.getRegisterAt { nr := RegisterNr.ofUInt64 1, name := "1" } = 0 ∧
+          st.getRegisterAt { nr := RegisterNr.ofUInt64 2, name := "2" } = 291 ∧
+            st.getRegisterAt { nr := RegisterNr.ofUInt64 4, name := "4" } = 123) ∧
+      ¬st.terminated = true)
+  0 {3} {n | n = 0 ∨ n > 3}
+  (Code.mk
+    ((2 ↦
+      Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 2), name := toString (UInt64.ofNat 2) }
+        (UInt64.ofNat 291) ;
+      (1 ↦
+        Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 1), name := toString (UInt64.ofNat 1) }
+          (UInt64.ofNat 0) ;
+        (0 ↦
+          Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 0), name := toString (UInt64.ofNat 0) }
+            (UInt64.ofNat 2) ;
+          TMap.empty Instr.Panic))))
+    (p("first" ↦ 0 ; PMap.empty)))
+
 Delaborate Expr of abstract syntax back to Term
 -/
 open Delaborator SubExpr in
@@ -48,7 +71,9 @@ def stateFnsDelab : Delab := whenNotPPOption getPPExplicit <| withMDataExpr do
   else if (← getExpr).isAppOfArity ``MState.getRegisterAt 2 then
     let n ← withAppArg delab
     let newN := parseTermToMriscxNumOrIdent n
-    `(x[$newN])
+    logInfo s!"adf {n}"
+    `(x[x 0])
+    -- `(x[$newN])
   else if (← getExpr).isAppOfArity ``MState.getMemoryAt 2 then
     whenPPOption getPPNotation <| whenNotPPOption getPPExplicit <| withOverApp 2 do
       withNaryArg 1 do
@@ -67,11 +92,13 @@ def stateFnsDelab : Delab := whenNotPPOption getPPExplicit <| withMDataExpr do
     do throwError "This Expression is not known for delaboration"
 
 
-def hasNestedLambdaBody (e:Expr) : Bool :=
-  if e.isLambda then
-    e.bindingBody!.getAppFn.isLambda
+open Delaborator SubExpr in
+def hasNestedLambdaBody (e:Expr) : DelabM Bool :=
+  if e.isLambda then do
+    logInfo s!"{e.bindingBody!}"
+    return e.bindingBody!.getAppFn.isLambda
   else
-    false
+    return false
 
 /-
 Delaborate Assertions, considering nested lambda functions for applying e.G.
@@ -96,7 +123,7 @@ def mkAssertionAtN
         delab
 
     let stateSyn? : Option Term ← withNaryArg n <| do
-      if hasNestedLambdaBody (←getExpr) then
+      if ←hasNestedLambdaBody (←getExpr) then
         some <$> withBindingBody' stName pure (fun _ =>
           withNaryArg 0 delab)
       else
@@ -124,6 +151,7 @@ def hoareTripleDelab : Delab :=
         let e := annotateStateFns (← getExpr)
         withTheReader SubExpr (fun s => { s with expr := e }) d
 
+    let codeExpr := (← getExpr).getAppArgs[5]!
     let preSyn ← mkAssertionAtN 0 stName withAnnotatedBody
     let postSyn ← mkAssertionAtN 1 stName withAnnotatedBody
 
@@ -180,9 +208,9 @@ def AddRegUnexpander : Unexpander
   | `($_ $s $rTerm:term $vTerm:term) => do
     let r ← numOrIdentToSyntax rTerm
     if isOnlyStateIdent s then
-      `(hoare_assignment_chain | x[$r] ← $vTerm)
+      `(hoare_assignment_chain | x[x $r] ← $vTerm)
     else
-      `(hoare_assignment_chain | x[$r] ← $vTerm ; $s:term)
+      `(hoare_assignment_chain | x[x $r] ← $vTerm ; $s:term)
   | _ => throw Unit.unit
 
 @[app_unexpander MState.addMemory]
@@ -193,3 +221,26 @@ def AddMemUnexpander : Unexpander
     else
       `(hoare_assignment_chain | mem[$rTerm] ← $vTerm ; $s:term)
   | _ => throw Unit.unit
+
+
+#check hoare_triple_up
+  (fun st => ¬st.terminated = true ∧ st.getRegisterAt { nr := RegisterNr.ofUInt64 1, name := "xq" } = 123)
+  (fun st =>
+    (st.getRegisterAt { nr := RegisterNr.ofUInt64 5, name := "x5" } = 2 ∧
+        st.getRegisterAt { nr := RegisterNr.ofUInt64 1, name := "1" } = 0 ∧
+          st.getRegisterAt { nr := RegisterNr.ofUInt64 2, name := "2" } = 291 ∧
+            st.getRegisterAt { nr := RegisterNr.ofUInt64 4, name := "4" } = 123) ∧
+      ¬st.terminated = true)
+  0 {3} {n | n = 0 ∨ n > 3}
+  (Code.mk
+    ((2 ↦
+      Instr.LoadAddress { nr := RegisterNr.ofUInt64 (UInt64.ofNat 2), name := toString (UInt64.ofNat 2) }
+        (UInt64.ofNat 291) ;
+      (1 ↦
+        Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 1), name := toString (UInt64.ofNat 1) }
+          (UInt64.ofNat 0) ;
+        (0 ↦
+          Instr.LoadImmediate { nr := RegisterNr.ofUInt64 (UInt64.ofNat 0), name := toString (UInt64.ofNat 0) }
+            (UInt64.ofNat 2) ;
+          TMap.empty Instr.Panic))))
+    (p("first" ↦ 0 ; PMap.empty)))

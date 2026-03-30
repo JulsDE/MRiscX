@@ -1,6 +1,5 @@
 import Lean
 import MRiscX.AbstractSyntax.Instr
-import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.Semantics.Specification
 import MRiscX.Elab.HandleNumOrIdent
 import MRiscX.Elab.HandleExpr
@@ -42,6 +41,10 @@ private def getSpecTacFromInstr (i : Instr) (pc : UInt64) (name? : Option Ident 
     check `specification_LoadImmediate (←`(tactic | apply specification_LoadImmediate (pc := $(mkNumLit s!"{pc}"))
                                                           (dst := $(mkNumLit s!"{dst}"))
                                                           (val := $(mkNumLit s!"{val}"))))
+  | Instr.LoadNegImmediate dst val =>
+      check `specification_LoadImmediate (←`(tactic | apply specification_LoadNegImmediate (pc := $(mkNumLit s!"{pc}"))
+                                                            (dst := $(mkNumLit s!"{dst}"))
+                                                            (val := $(mkNumLit s!"{val}"))))
 
   | Instr.CopyRegister dst src =>
     check `specification_CopyRegister (←`(tactic | apply specification_CopyRegister  (pc := $(mkNumLit s!"{pc}"))
@@ -53,7 +56,11 @@ private def getSpecTacFromInstr (i : Instr) (pc : UInt64) (name? : Option Ident 
                                                           (dst := $(mkNumLit s!"{dst}"))
                                                           (regAddend := $(mkNumLit s!"{reg}"))
                                                           (val := $(mkNumLit s!"{val}"))))
-
+  | Instr.AddNegImmediate dst reg val =>
+      check `specification_AddImmediate (←`(tactic | apply specification_AddNegImmediate  (pc := $(mkNumLit s!"{pc}"))
+                                                            (dst := $(mkNumLit s!"{dst}"))
+                                                            (regAddend := $(mkNumLit s!"{reg}"))
+                                                            (val := $(mkNumLit s!"{val}"))))
   | Instr.Increment dst =>
     check `specification_Increment (←`(tactic | apply specification_Increment (pc := $(mkNumLit s!"{pc}"))
                                                       (dst := $(mkNumLit s!"{dst}"))))
@@ -275,6 +282,7 @@ elab "apply_spec_scd_goal" name?:(Lean.Parser.ident)? : tactic => do
         -- Since the goal is in the form of `∀ l' ∈ {...} → ...`, we
         -- just access the value in the Set and hope it is just one.
         -- (TODO: handle multiple values)
+        logInfo s!"{goalType.bindingBody!.bindingDomain!.getAppArgs[3]!} b"
         let lExpr := goalType.bindingBody!.bindingDomain!.getAppArgs[3]!
         let pc ← parseSingletonExpr lExpr
         -- After obtaining the value of pc, we need to introduce the

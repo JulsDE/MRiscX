@@ -1,5 +1,16 @@
 import MRiscX.Basic
 import MRiscX.Tactics.ApplySpec
+
+
+#check
+    mriscx
+      first: li x 0, 0
+             li x 1, 0
+
+    end
+    ⦃¬⸨terminated⸩⦄
+      "first" ↦ ⟨{"first" + 2} | ({n:UInt64 | n ≠ "first" + 1 ∧ n ≠ 2})⟩
+    ⦃x[0] = 0 ∧ x[1] = 0 ∧ ¬⸨terminated⸩⦄
 /-
 New Code Proofs
 -/
@@ -94,8 +105,9 @@ example (p k c l : UInt64) :
     ⦃**(** x[0] = ∧ x[1] = 1 **)** ∧ ¬⸨terminated⸩⦄), in order to successfully apply the
     specification.
     -/
-    ⦃(x[0] = p ∧ x[1] = k ∧ x[2] = c ∧ x[3] = l) ∧ ¬⸨terminated⸩⦄
+    ⦃(x[x0] = 2 ∧ x[1] = k ∧ x[2] = c ∧ x[3] = l) ∧ ¬⸨terminated⸩⦄
   := by
+  unfold hoare_triple_up
   /- Too peel off the last instruction in order to be able to inspect that individually, we
     apply s_apply_seq''', a custom tactic which applies the rule `S-SEQ` and automatically
     solves some trivial goals. -/
@@ -157,7 +169,7 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
       ∧ ¬⸨terminated⸩
     ⦄
     "first" ↦ ⟨{"first" + 4} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > ("first" + 4)})⟩
-    ⦃((x[r₁] = p ∧ x[r₂] = k ∧ x[r₃] = c ∧ x[r₄] = l))
+    ⦃((x[x r₁] = p ∧ x[x r₂] = k ∧ x[x r₃] = c ∧ x[x r₄] = l))
       ∧ ¬⸨terminated⸩⦄
   := by
   sapply_s_seq
@@ -190,41 +202,33 @@ example (r₁ r₂ r₃ r₄ : UInt64) (p k c l : UInt64) :
   . apply_spec specification_LoadImmediate (pc := 3) (dst := r₄) (val := l)
 
 
-example:
+
+
+example (xq : UInt64):
     mriscx
       first:  li x 0, 2
               li x 1, 0
               la x 2, 0x123
     end
     -- Assert assignment of register as precondition
-    ⦃¬⸨terminated⸩ ∧ x[4] = 123⦄
-    "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
-    ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄
+    ⦃¬⸨terminated⸩ ∧ x[x xq] = 123⦄
+    "first" ↦ ⟨{3} | ({n:UInt64 | n = "first" ∨ n > 3})⟩
+    ⦃(x[x5] = 2 ∧ x[x 1] = 0 ∧ x[x 2] = 0x123 ∧ x[x 4] = 123) ∧ ¬⸨terminated⸩⦄
   := by
+  sorry
   /-
   apply s_seq with automatically solve set equality
   -/
-  sapply_s_seq  P := _ ,
-                  R := ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
-                  L_W := {2},
-                  L_W' := {3},
-                  L_B := ({n:UInt64| n > 2} ∪ {0}),
-                  L_B' := ({n:UInt64| n ≠ 3})
-    /-
-    apply s_seq without automatically solve set equality
-    -/
-  . sapply_s_seq''  R := ⦃(x[0] = 2 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
-                    L_W := {1},
-                    L_W' := {2},
-                    L_B := ({n:UInt64| n ≠ 1}),
-                    L_B' := ({n:UInt64| n ≠ 2})
-    . apply_spec''
-
-    . apply_spec''
-    . simp_set_eq
-  . apply_spec''
-
-
+  -- auto_seq
+  -- . sapply_s_seq''  R := ⦃(x[0] = 2 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄,
+  --                   L_W := {1},
+  --                   L_W' := {2},
+  --                   L_B := ({n:UInt64| n ≠ 1}),
+  --                   L_B' := ({n:UInt64| n ≠ 2})
+  --   . apply_spec''
+  --   . apply_spec''
+  --   . simp_set_eq
+  -- . apply_spec specification_LoadAddress (pc := 2) (dst := 2) (addr := 0x123)
 
 example:
     mriscx
@@ -233,9 +237,9 @@ example:
               la x 2, 0x123
     end
     -- Assert assignment of register as precondition
-    ⦃¬⸨terminated⸩ ∧ x[4] = 123⦄
+    ⦃¬⸨terminated⸩ ∧ x[x 4] = 123⦄
     "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
-    ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123 ∧ x[4] = 123) ∧ ¬⸨terminated⸩⦄
+    ⦃(x[x0] = 2 ∧ x[x 1] = 0 ∧ x[x 2] = 0x123 ∧ x[x 4] = 123) ∧ ¬⸨terminated⸩⦄
   := by
   /-
   apply s_seq with automatically solve set equality
@@ -297,22 +301,23 @@ example:
 
 
 
-/--
-Usage of auto_seq
--/
-example:
+lemma l:
     code
     ⦃¬⸨terminated⸩⦄
-    "first" ↦ ⟨{3} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 3})⟩
-    ⦃(x[0] = 2 ∧ x[1] = 0 ∧ x[2] = 0x123) ∧ ¬⸨terminated⸩⦄
+    "first" ↦ ⟨{2} | ({n:UInt64 | n = "first"} ∪ {n:UInt64 | n > 2})⟩
+    ⦃(x[0] = 2 ∧ x[1] = 0) ∧ ¬⸨terminated⸩⦄
   := by
   unfold code
   -- use tactic `auto_seq` which automatically applies S_SEQ and calcs missing values
-  auto_seq
-  . auto_seq
-    . apply_spec''
-    . apply_spec''
+  peel_last_instr <;> try assumption
+  . simp
+  . simp
+  . simp
+  . simp
   . apply_spec''
+  . apply_spec''
+  . try (ext; simp; grind)
+
 
 
 /--

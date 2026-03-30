@@ -15,6 +15,9 @@ First of all, we define some syntax categories
 declare_syntax_cat mriscx_label
  -- behaviour := both controls the behavior whether lean parser
  -- wants to parse func name as token / ident
+declare_syntax_cat mriscx_registers (behavior := both)
+declare_syntax_cat mriscx_registers_bare (behavior := both)
+declare_syntax_cat mriscx_registers_abi (behavior := both)
 declare_syntax_cat mriscx_Instr (behavior := both)
 declare_syntax_cat mriscx_syntax
 declare_syntax_cat mriscx_program
@@ -33,47 +36,124 @@ literals (num) and variables as integers (ident).
 syntax num : mriscx_num_or_ident
 
 syntax ident : mriscx_num_or_ident
+
+syntax &"x" mriscx_num_or_ident : mriscx_registers
+
+
+syntax &"x0" : mriscx_registers_bare
+syntax &"x1" : mriscx_registers_bare
+syntax &"x2" : mriscx_registers_bare
+syntax &"x3" : mriscx_registers_bare
+syntax &"x4" : mriscx_registers_bare
+syntax &"x5" : mriscx_registers_bare
+syntax &"x6" : mriscx_registers_bare
+syntax &"x7" : mriscx_registers_bare
+syntax &"x8" : mriscx_registers_bare
+syntax &"x9" : mriscx_registers_bare
+syntax &"x10" : mriscx_registers_bare
+syntax &"x11" : mriscx_registers_bare
+syntax &"x12" : mriscx_registers_bare
+syntax &"x13" : mriscx_registers_bare
+syntax &"x14" : mriscx_registers_bare
+syntax &"x15" : mriscx_registers_bare
+syntax &"x16" : mriscx_registers_bare
+syntax &"x17" : mriscx_registers_bare
+syntax &"x18" : mriscx_registers_bare
+syntax &"x19" : mriscx_registers_bare
+syntax &"x20" : mriscx_registers_bare
+syntax &"x21" : mriscx_registers_bare
+syntax &"x22" : mriscx_registers_bare
+syntax &"x23" : mriscx_registers_bare
+syntax &"x24" : mriscx_registers_bare
+syntax &"x25" : mriscx_registers_bare
+syntax &"x26" : mriscx_registers_bare
+syntax &"x27" : mriscx_registers_bare
+syntax &"x28" : mriscx_registers_bare
+syntax &"x29" : mriscx_registers_bare
+syntax &"x30" : mriscx_registers_bare
+syntax &"x31" : mriscx_registers_bare
+
+
+syntax &"zero" : mriscx_registers_abi
+syntax &"ra" : mriscx_registers_abi
+syntax &"sp" : mriscx_registers_abi
+syntax &"gp" : mriscx_registers_abi
+syntax &"tp" : mriscx_registers_abi
+syntax &"t0" : mriscx_registers_abi
+syntax &"t1" : mriscx_registers_abi
+syntax &"t2" : mriscx_registers_abi
+syntax &"s0" : mriscx_registers_abi
+syntax &"fp" : mriscx_registers_abi
+syntax &"s1" : mriscx_registers_abi
+syntax &"a0" : mriscx_registers_abi
+syntax &"a1" : mriscx_registers_abi
+syntax &"a2" : mriscx_registers_abi
+syntax &"a3" : mriscx_registers_abi
+syntax &"a4" : mriscx_registers_abi
+syntax &"a5" : mriscx_registers_abi
+syntax &"a6" : mriscx_registers_abi
+syntax &"a7" : mriscx_registers_abi
+syntax &"s2" : mriscx_registers_abi
+syntax &"s3" : mriscx_registers_abi
+syntax &"s4" : mriscx_registers_abi
+syntax &"s5" : mriscx_registers_abi
+syntax &"s6" : mriscx_registers_abi
+syntax &"s7" : mriscx_registers_abi
+syntax &"s8" : mriscx_registers_abi
+syntax &"s9" : mriscx_registers_abi
+syntax &"s10" : mriscx_registers_abi
+syntax &"s11" : mriscx_registers_abi
+syntax &"t3" : mriscx_registers_abi
+syntax &"t4" : mriscx_registers_abi
+syntax &"t5" : mriscx_registers_abi
+syntax &"t6" : mriscx_registers_abi
+
+syntax mriscx_registers_abi : mriscx_registers
+syntax mriscx_registers_bare : mriscx_registers
 /-
 Now we can define the syntax of all the legal instructions we need for our program.
 -/
 /-
 Operations in registers
 -/
-syntax "la " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
+syntax "la " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "li " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
+syntax "li " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "mv " &"x" mriscx_num_or_ident &"," &"x" mriscx_num_or_ident
+syntax "li " mriscx_registers &", " &"-" mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "addi " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
+syntax "mv " mriscx_registers &"," mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "inc " &"x" mriscx_num_or_ident
+syntax "addi " mriscx_registers &", " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "add " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident
+syntax "addi " mriscx_registers &", " mriscx_registers &", " &"-" mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "subi " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
+syntax "inc " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "dec " &"x" mriscx_num_or_ident
+syntax "add " mriscx_registers &", " mriscx_registers &", " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "sub " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident
+syntax "subi " mriscx_registers &", " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "xori " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident &", " mriscx_num_or_ident
+syntax "dec " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "xor " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident
+syntax "sub " mriscx_registers &", " mriscx_registers &", " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-
+syntax "xori " mriscx_registers &", " mriscx_registers &", " mriscx_num_or_ident
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
+syntax "xor " mriscx_registers &", " mriscx_registers &", " mriscx_registers
+  withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 /-
 Operations on memory
 -/
 -- Load word immediately from address
-syntax "lw " &"x" mriscx_num_or_ident ", " mriscx_num_or_ident
+syntax "lw " mriscx_registers &", " mriscx_num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 -- Load word from address stored in register
-syntax "lw " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident
+syntax "lw " mriscx_registers &", " num &"(" mriscx_registers &")"
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 -- Store word stored in register
 -- The first register is the source, the second holds the destination address
-syntax "sw " &"x" mriscx_num_or_ident ", " &"x" mriscx_num_or_ident
+syntax "sw " mriscx_registers &", " num &"(" mriscx_registers &")"
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 
 /-
@@ -81,29 +161,29 @@ Flow control operations
 -/
 syntax &"j " ident withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax &"j " &"." ident withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "beq " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " ident
+syntax "beq " mriscx_registers &", " mriscx_registers &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "beq " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", "  &"." ident
+syntax "beq " mriscx_registers &", " mriscx_registers &", "  &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "bne " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " ident
+syntax "bne " mriscx_registers &", " mriscx_registers &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "bne " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " &"." ident
+syntax "bne " mriscx_registers &", " mriscx_registers &", " &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "bgt " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " ident
+syntax "bgt " mriscx_registers &", " mriscx_registers &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "bgt " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " &"." ident
+syntax "bgt " mriscx_registers &", " mriscx_registers &", " &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "ble " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " ident
+syntax "ble " mriscx_registers &", " mriscx_registers &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "ble " &"x" mriscx_num_or_ident &", " &"x" mriscx_num_or_ident &", " &"." ident
+syntax "ble " mriscx_registers &", " mriscx_registers &", " &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "beqz " &"x" mriscx_num_or_ident &", " ident
+syntax "beqz " mriscx_registers &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "beqz " &"x" mriscx_num_or_ident &", " &"." ident
+syntax "beqz " mriscx_registers &", " &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "bnez " &"x" mriscx_num_or_ident &", " ident
+syntax "bnez " mriscx_registers &", " ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "bnez " &"x" mriscx_num_or_ident &", " &"." ident
+syntax "bnez " mriscx_registers &", " &"." ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 
 /-

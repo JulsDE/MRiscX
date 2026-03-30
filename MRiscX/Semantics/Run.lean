@@ -1,4 +1,3 @@
-import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.AbstractSyntax.MState
 
 open Nat
@@ -12,7 +11,7 @@ on the abstract syntax.
 namespace MState
 
   -- small jump if function to have the runOneStep function cleaner
-  def jif (ms: MState) (reg : UInt64) (lbl : String) (cond : UInt64 → Bool) :=
+  def jif (ms: MState) (reg : RegisterName) (lbl : String) (cond : UInt64 → Bool) :=
       let regCont := ms.getRegisterAt reg
       if cond regCont then
         ms.jump lbl
@@ -20,7 +19,7 @@ namespace MState
         ms.incPc
 
   -- small jump if function to have the runOneStep function cleaner
-  def jif' (ms: MState) (reg1 reg2 :UInt64) (lbl:String) (cond : UInt64 → UInt64 → Bool) :=
+  def jif' (ms: MState) (reg1 reg2 : RegisterName) (lbl:String) (cond : UInt64 → UInt64 → Bool) :=
       let reg1Cont := ms.getRegisterAt reg1
       let reg2Cont := ms.getRegisterAt reg2
       if cond reg1Cont reg2Cont then
@@ -47,48 +46,59 @@ namespace MState
     else
       let instr := ms.currInstruction
       match instr with
-      | Instr.LoadAddress (dst:UInt64) (addr : UInt64) =>
-        (ms.addRegister dst addr).incPc
-      | Instr.LoadImmediate (dst:UInt64) (i:UInt64) =>
-        (ms.addRegister dst i).incPc
-      | Instr.CopyRegister (dst:UInt64) (src : UInt64) =>
-        (ms.addRegister dst (ms.getRegisterAt src)).incPc
-      | Instr.AddImmediate (dst:UInt64) (reg:UInt64) (i:UInt64) =>
-        (ms.addRegister dst ((ms.getRegisterAt reg) + i)).incPc
-      | Instr.Increment (dst:UInt64) =>
-        (ms.addRegister dst (ms.getRegisterAt dst + 1)).incPc
-      | Instr.AddRegister (dst:UInt64) (reg1:UInt64) (reg2:UInt64) =>
-        (ms.addRegister dst ((ms.getRegisterAt reg1) + (ms.getRegisterAt reg2))).incPc
-      | Instr.SubImmediate (dst:UInt64) (reg:UInt64) (i:UInt64) =>
-        (ms.addRegister dst ((ms.getRegisterAt reg) - i)).incPc
-      | Instr.Decrement (dst:UInt64) =>
-        (ms.addRegister dst ((ms.getRegisterAt dst) - 1)).incPc
-      | Instr.SubRegister (dst:UInt64) (reg1:UInt64) (reg2:UInt64) =>
-        (ms.addRegister dst ((ms.getRegisterAt reg1) - (ms.getRegisterAt reg2))).incPc
-      | Instr.XorImmediate (dst:UInt64) (reg:UInt64) (i:UInt64) =>
-        (ms.addRegister dst ((ms.getRegisterAt reg).xor i)).incPc
-      | Instr.XOR (dst:UInt64) (reg1:UInt64) (reg2:UInt64) =>
-        (ms.addRegister dst ((ms.getRegisterAt reg1).xor (ms.getRegisterAt reg2))).incPc
-      | Instr.LoadWordImmediate (dst:UInt64) (addr:UInt64) =>
-        (ms.addRegister dst (ms.getMemoryAt addr)).incPc
-      | Instr.LoadWordReg (dst:UInt64) (addr:UInt64) =>
-        (ms.addRegister dst (ms.getMemoryAt (ms.getRegisterAt addr))).incPc
-      | Instr.StoreWord (reg:UInt64) (dst:UInt64) =>
-        (ms.addMemory (ms.getRegisterAt dst) (ms.getRegisterAt reg)).incPc
+      | Instr.LoadAddress (dst:RegisterName) (addr : UInt64) =>
+        (ms.addRegister dst addr).incPc.incInstrCounter
+      | Instr.LoadImmediate (dst) (i) =>
+        (ms.addRegister dst i).incPc.incInstrCounter
+      | Instr.LoadNegImmediate (dst) (i) =>
+        let nr : UInt64 := 0 - i
+        (ms.addRegister dst nr).incPc.incInstrCounter
+      | Instr.CopyRegister (dst) (src) =>
+        (ms.addRegister dst (ms.getRegisterAt src)).incPc.incInstrCounter
+      | Instr.AddImmediate (dst) (reg) (i) =>
+        (ms.addRegister dst ((ms.getRegisterAt reg) + i)).incPc.incInstrCounter
+      | Instr.AddNegImmediate (dst) (reg) (i) =>
+        (ms.addRegister dst ((ms.getRegisterAt reg) - i)).incPc.incInstrCounter
+      | Instr.Increment (dst) =>
+        (ms.addRegister dst (ms.getRegisterAt dst + 1)).incPc.incInstrCounter
+      | Instr.AddRegister (dst) (reg1) (reg2) =>
+        (ms.addRegister dst ((ms.getRegisterAt reg1) + (ms.getRegisterAt reg2))).incPc.incInstrCounter
+      | Instr.SubImmediate (dst) (reg) (i) =>
+        (ms.addRegister dst ((ms.getRegisterAt reg) - i)).incPc.incInstrCounter
+      | Instr.Decrement (dst) =>
+        (ms.addRegister dst ((ms.getRegisterAt dst) - 1)).incPc.incInstrCounter
+      | Instr.SubRegister (dst) (reg1) (reg2) =>
+        (ms.addRegister dst ((ms.getRegisterAt reg1) - (ms.getRegisterAt reg2))).incPc.incInstrCounter
+      | Instr.XorImmediate (dst) (reg) (i) =>
+        (ms.addRegister dst ((ms.getRegisterAt reg).xor i)).incPc.incInstrCounter
+      | Instr.XOR (dst) (reg1) (reg2) =>
+        (ms.addRegister dst ((ms.getRegisterAt reg1).xor (ms.getRegisterAt reg2))).incPc.incInstrCounter
+      | Instr.LoadWordImmediate (dst) (addr) =>
+        let content := UInt64.ofBitVec ((ms.loadWord (addr)).setWidth 64)
+        (ms.addRegister dst (content)).incPc.incInstrCounter
+      | Instr.LoadWordReg (dst) off (regWithAddr) =>
+        let addr := ms.getRegisterAt regWithAddr
+        let content := UInt64.ofBitVec ((ms.loadWord (addr + off)).setWidth 64)
+        (ms.addRegister dst (content)).incPc.incInstrCounter
+      | Instr.StoreWord (reg) off (dst) =>
+        let regCont := (ms.getRegisterAt reg).toBitVec.extractLsb' 0 32
+        let addr := (ms.getRegisterAt dst)
+        (ms.storeWord (regCont) (addr + off))
+        -- (ms.addMemory (ms.getRegisterAt dst) (ms.getRegisterAt reg)).incPc.incInstrCounter
       | Instr.Jump (lbl:String) =>
-        ms.jump lbl
-      | Instr.JumpEq (reg1:UInt64) (reg2:UInt64) (lbl:String) =>
-        jif' ms reg1 reg2 lbl (fun n m => n == m)
-      | Instr.JumpNeq (reg1:UInt64) (reg2:UInt64) (lbl:String) =>
-        jif' ms reg1 reg2 lbl (fun n m => n != m)
-      | Instr.JumpGt (reg1:UInt64) (reg2:UInt64) (lbl:String) =>
-        jif' ms reg1 reg2 lbl (fun n m => n > m)
-      | Instr.JumpLe (reg1:UInt64) (reg2:UInt64) (lbl:String) =>
-        jif' ms reg1 reg2 lbl (fun n m => n <= m)
-      | Instr.JumpEqZero (reg:UInt64) (lbl:String) =>
-        jif ms reg lbl (fun n => n == 0)
+        ms.incInstrCounter.jump lbl
+      | Instr.JumpEq (reg1) (reg2) (lbl:String) =>
+        jif' ms.incInstrCounter reg1 reg2 lbl (fun n m => n == m)
+      | Instr.JumpNeq (reg1) (reg2) (lbl:String) =>
+        jif' ms.incInstrCounter reg1 reg2 lbl (fun n m => n != m)
+      | Instr.JumpGt (reg1) (reg2) (lbl:String) =>
+        jif' ms.incInstrCounter reg1 reg2 lbl (fun n m => n > m)
+      | Instr.JumpLe (reg1) (reg2) (lbl:String) =>
+        jif' ms.incInstrCounter reg1 reg2 lbl (fun n m => n <= m)
+      | Instr.JumpEqZero (reg) (lbl:String) =>
+        jif ms.incInstrCounter reg lbl (fun n => n == 0)
       | Instr.JumpNeqZero reg (lbl:String) =>
-        jif ms reg lbl (fun n => n ≠ 0)
+        jif ms.incInstrCounter reg lbl (fun n => n ≠ 0)
       | Instr.Panic => ms.setTerminated true
       -- | _ => ms.setTerminated true
 

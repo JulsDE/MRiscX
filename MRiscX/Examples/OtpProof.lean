@@ -40,9 +40,7 @@ theorem proof_otp : ∀ (p k c l: UInt64),
     finish:
   end
   ⦃
-    (p < k ∧ k < c
-    ∧ c.toNat + l.toNat < UInt64.size
-    ∧ (p + l - 1 < k ∧ k + l - 1 < c))
+    (I_pre p k c l)
     ∧ ¬⸨terminated⸩
   ⦄
   "main" ↦ ⟨{"finish"} | ({n:UInt64 | n > "finish"} ∪ {"main"})⟩

@@ -1,5 +1,5 @@
 import MRiscX.Hoare.HoareTheory
-import MRiscX.Delab.DelabHoare
+-- import MRiscX.Delab.DelabHoare
 import Mathlib.Data.Set.BooleanAlgebra
 
 /-
@@ -397,10 +397,8 @@ Requires:
 
     by_cases hC : C s
     · -- Guard true: run one loop iteration, then recurse on the smaller variant.
-      have hpre : C s ∧ I s ∧ V s = v := by
-        exact ⟨hC, hI, hV⟩
 
-      specialize h_true v h_inter' h_nonempty' s h_code h_pc hpre
+      specialize h_true v h_inter' h_nonempty' s h_code h_pc ⟨hC, hI, hV⟩
 
       rcases h_true with ⟨s', hweak', ⟨hVlt, hI', hpc'⟩, hnotinLb'⟩
 

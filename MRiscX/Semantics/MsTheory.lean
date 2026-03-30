@@ -1,4 +1,3 @@
-import MRiscX.AbstractSyntax.AbstractSyntax
 import MRiscX.AbstractSyntax.MState
 import MRiscX.Semantics.Run
 import MRiscX.Util.BasicTheorems
@@ -20,57 +19,71 @@ can apply these theorems with simp automatically.
 
 namespace MState
 
-@[simp] theorem incPc_increments_pc: ∀ (ms:MState),
+
+
+
+@[simp]
+theorem incPc_increments_pc: ∀ (ms:MState),
   ms.incPc = {ms with pc := ms.pc + 1} := by
   intros ms
   unfold MState.incPc
   simp
 
-@[simp] theorem setReg_incPc_symm: ∀(ms:MState) (r:Registers),
+@[simp]
+theorem setReg_incPc_symm: ∀(ms:MState) (r:Registers),
   (ms.setRegister r).incPc = ms.incPc.setRegister r := by
   intros ms r
   unfold MState.setRegister MState.incPc
   simp
 
-@[simp] theorem addReg_incPc_comm: ∀(ms:MState) (r v: UInt64),
+@[simp]
+theorem addReg_incPc_comm: ∀(ms:MState) (r : RegisterName) (v: UInt64),
   (ms.addRegister r v).incPc = ms.incPc.addRegister r v:= by
   intros ms r
   unfold MState.addRegister MState.incPc
   simp
+  by_cases h: r.nr = 0 <;> simp [h]
 
-@[simp] theorem addMem_incPc_comm: ∀(ms:MState) (r v: UInt64),
+@[simp]
+theorem addMem_incPc_comm: ∀(ms:MState) (r v: UInt64),
   (ms.addMemory r v).incPc = ms.incPc.addMemory r v:= by
   intros ms r
   unfold MState.addMemory MState.incPc
   simp
 
-@[simp] theorem incPc_terminated: ∀(ms:MState),
+@[simp]
+theorem incPc_terminated: ∀(ms:MState),
   ms.incPc.terminated = ms.terminated := by
   intros ms
   unfold MState.incPc
   simp
 
 
-@[simp] theorem setPc_terminated: ∀(ms:MState) (p:UInt64),
+@[simp]
+theorem setPc_terminated: ∀(ms:MState) (p:UInt64),
   (ms.setPc p).terminated = ms.terminated := by
   intros ms p
   unfold MState.setPc
   simp
 
-@[simp] theorem addReg_terminated: ∀(ms:MState) (r v: UInt64),
+@[simp]
+theorem addReg_terminated: ∀(ms:MState) (r : RegisterName) (v: UInt64),
   (ms.addRegister r v).terminated = ms.terminated := by
   intros ms r v
   unfold MState.addRegister
   simp
+  by_cases h: r.nr = 0 <;> simp [h]
 
-@[simp] theorem addMem_terminated: ∀(ms:MState) (r v: UInt64),
+
+@[simp]
+theorem addMem_terminated: ∀(ms:MState) (r v: UInt64),
   (ms.addMemory r v).terminated = ms.terminated := by
   intros ms r v
   unfold MState.addMemory
   simp
 
 
--- @[simp] theorem setReg_setMem_symm: ∀(ms:MState) (r:Registers) (m:Memory),
+-- @[simp]  theorem setReg_setMem_symm: ∀(ms:MState) (r:Registers) (m:Memory),
 --  ((ms.setRegister r).setMemory m).incPc = (ms.setRegister r).incPc.setMemory m ∧
 --   (ms.setRegister r).incPc.setMemory m = (ms.incPc.setRegister r).setMemory m ∧
 --   (ms.incPc.setRegister r).setMemory m = (ms.incPc.setMemory m).setRegister r ∧
@@ -80,45 +93,92 @@ namespace MState
 --   unfold MState.setMemory MState.setRegister MState.incPc
 --   simp
 
-@[simp] theorem addRegister_getRegister_neq:
-  ∀(ms:MState) (r1 r2 v : UInt64),
+@[simp]
+theorem addRegister_getRegister_neq:
+  ∀(ms:MState) (r1 r2 : RegisterName) (v : UInt64),
   r1 ≠ r2 →
   ((ms.addRegister r1 v).getRegisterAt r2) = (ms.getRegisterAt r2)
   := by
   intros ms r1 r2 v H
   unfold MState.addRegister MState.getRegisterAt
   simp
+  by_cases h: r1.nr = 0 <;> simp [h]
   rw [t_update_neq]; simp at H
   simp [H]
 
-@[simp] theorem addRegister_getRegister_eq:
-  ∀(ms:MState) (r1 r2 v : UInt64),
+@[simp]
+theorem addRegister_getRegisterAtNr_neq:
+  ∀(ms:MState) (regNr1 regNr2 : RegisterNr) (name  : RegisterName) (v : UInt64),
+  name.nr = regNr1 →
+  regNr1 ≠ 0 →
+  regNr1 ≠ regNr2 →
+  ((ms.addRegister name v).getRegisterAtNr regNr2) = (ms.getRegisterAtNr regNr2)
+  := by
+  intros ms nr1 nr2 name v nrInName neq_z H
+  unfold MState.addRegister MState.getRegisterAtNr
+  simp
+  rw [tReg_update_neq] <;> try assumption
+  simp [nrInName, H]
+  rw [nrInName]
+  simp [neq_z]
+
+@[simp]
+theorem addRegister_getRegister_eq:
+  ∀(ms:MState) (r1 r2 : RegisterName) (v : UInt64),
+  r1.nr ≠ 0 →
   r1 = r2 →
   ((ms.addRegister r1 v).getRegisterAt r2) = v
   := by
-  intros ms r1 r2 v H
+  intros ms r1 r2 v neq_z H
   unfold MState.addRegister MState.getRegisterAt
-  simp
-  rw [H, t_update_eq]
+  rw [←H]
+  simp [neq_z]
+
+@[simp]
+theorem addRegister_getRegisterAtNr_eq:
+  ∀(ms:MState) (name : RegisterName) (nr : RegisterNr) (v : UInt64),
+  nr ≠ 0 →
+  name.nr = nr →
+  ((ms.addRegister name v).getRegisterAtNr nr) = v
+  := by
+  intros ms name nr v neq_z H
+  unfold MState.addRegister MState.getRegisterAtNr Registers.getByRegNr
+  rw [H]
+  simp [neq_z]
+  rw [H]
+  intros
+  contradiction
 
 
-@[simp] theorem setPc_getRegister_indep:
-  ∀(ms:MState) (i : UInt64) (r : UInt64),
+@[simp]
+theorem setPc_getRegister_indep:
+  ∀(ms:MState) (i : UInt64) (r : RegisterName),
   ((ms.setPc i).getRegisterAt r) = (ms.getRegisterAt r)
   := by
   intros ms i r
   unfold MState.setPc MState.getRegisterAt
   simp
 
-@[simp] theorem setPc_getRegisterAt_def_indep:
-  ∀(ms:MState) (r l: UInt64),
+@[simp]
+theorem setPc_getRegisterAtNr_indep:
+  ∀(ms:MState) (i : UInt64) (r : RegisterNr),
+  ((ms.setPc i).getRegisterAtNr r) = (ms.getRegisterAtNr r)
+  := by
+  intros ms i r
+  unfold MState.setPc MState.getRegisterAtNr
+  simp
+
+@[simp]
+theorem setPc_getRegisterAt_def_indep:
+  ∀(ms:MState) (r : RegisterName) (l: UInt64),
   TMap.get ms.registers r = TMap.get (ms.setPc l).registers r
   := by
   intros ms r l
   unfold MState.setPc
   simp
 
-@[simp] theorem setPc_getMemory_indep:
+@[simp]
+theorem setPc_getMemory_indep:
   ∀(ms:MState) (i : UInt64) (r : UInt64),
   ((ms.setPc i).getMemoryAt r) = (ms.getMemoryAt r)
   := by
@@ -126,7 +186,8 @@ namespace MState
   unfold MState.setPc MState.getMemoryAt
   simp
 
-@[simp] theorem setPc_getMemoryAt_def_indep:
+@[simp]
+theorem setPc_getMemoryAt_def_indep:
   ∀(ms:MState) (m l: UInt64),
   TMap.get ms.memory m = TMap.get (ms.setPc l).memory m
   := by
@@ -135,7 +196,8 @@ namespace MState
   simp
 
 
-@[simp] theorem set_pc:
+@[simp]
+theorem set_pc:
   ∀(ms:MState) (i : UInt64) ,
   (ms.setPc i).pc = i
   := by
@@ -143,29 +205,41 @@ namespace MState
   unfold MState.setPc
   simp
 
-@[simp] theorem incPc_getRegister_indep:
-  ∀(ms:MState) (r : UInt64),
+@[simp]
+theorem incPc_getRegister_indep:
+  ∀(ms:MState) (r : RegisterName),
   ((ms.incPc).getRegisterAt r) = (ms.getRegisterAt r)
   := by
   intros ms r
   unfold MState.incPc MState.getRegisterAt
   simp
 
+@[simp]
+theorem incPc_getRegisterAtNr_indep:
+  ∀(ms:MState) (r : RegisterNr),
+  ((ms.incPc).getRegisterAtNr r) = (ms.getRegisterAtNr r)
+  := by
+  intros ms r
+  unfold MState.incPc MState.getRegisterAtNr
+  simp
 
-@[simp] theorem jump_set_pc: ∀ (ms:MState) (s:String) (i:UInt64),
+@[simp]
+theorem jump_set_pc: ∀ (ms:MState) (s:String) (i:UInt64),
   (ms.code.labels.get s) = i ->
   (ms.jump s) = {ms with pc := i} := by
   intros ms s i H
   unfold MState.jump
   rw [H]
 
-@[simp] theorem currInstruction_unfold : ∀ (ms:MState),
+@[simp]
+theorem currInstruction_unfold : ∀ (ms:MState),
   ms.currInstruction = ms.code.instructionMap.get (ms.pc) := by
   intros ms
   unfold MState.currInstruction
   simp
 
-@[simp] theorem runNSteps_currInstruction : ∀ (ms:MState) (n:Nat),
+@[simp]
+theorem runNSteps_currInstruction : ∀ (ms:MState) (n:Nat),
   (ms.runNSteps n).currInstruction = (ms.runNSteps n).code.instructionMap.get ((ms.runNSteps n).pc)
   := by
   intros ms n
@@ -175,26 +249,30 @@ namespace MState
 
 
 
-@[simp] theorem addRegister_unfold (ms:MState) : ∀ (i1 i2:UInt64),
-  ms.addRegister i1 i2 = {ms with registers :=
-    ((i1) ↦ i2 ; ms.registers)} := by
-  intros i1 i2
+@[simp]
+theorem addRegister_unfold (ms:MState) : ∀ (r : RegisterName) (v : UInt64),
+  r.nr ≠ 0 →
+  ms.addRegister r v = {ms with registers := ((r) ↦ v ; ms.registers)} := by
+  intros r val_toUnits_apply H
   unfold MState.addRegister
-  simp
+  simp [H]
 
-@[simp] theorem addMemory_unfold (ms:MState) : ∀ (i1 i2:UInt64),
-  ms.addMemory i1 i2 = {ms with memory :=
-    ((i1) ↦ i2 ; ms.memory)} := by
-  intros i1 i2
+@[simp]
+theorem addMemory_unfold (ms:MState) : ∀ (a v:UInt64),
+  ms.addMemory a v = {ms with memory :=
+    ((a) ↦ v ; ms.memory)} := by
+  intros a v
   unfold MState.addMemory
   simp
 
-@[simp] theorem run_zero_steps (ms:MState) :
+@[simp]
+theorem run_zero_steps (ms:MState) :
   ms.runNSteps 0 = ms := by
   unfold MState.runNSteps
   rfl
 
-@[simp] theorem run_n_run_one : ∀ (ms:MState) (n:Nat),
+@[simp]
+theorem run_n_run_one : ∀ (ms:MState) (n:Nat),
   (ms.runNSteps n).runOneStep = ms.runNSteps (n+1) := by
   intros ms n
   revert ms
@@ -209,7 +287,8 @@ namespace MState
     unfold MState.runNSteps
     rw [IHN']
 
-@[simp] theorem run_n_run_one_comm : ∀ (ms:MState) (n:Nat),
+@[simp]
+theorem run_n_run_one_comm : ∀ (ms:MState) (n:Nat),
   (ms.runNSteps n).runOneStep = ms.runOneStep.runNSteps n := by
   intros ms n
   revert ms
@@ -224,13 +303,15 @@ namespace MState
     unfold MState.runNSteps
     rw [IHN']
 
-@[simp] theorem run_one_step_eq_run_n_1 : ∀ (ms:MState),
+@[simp]
+theorem run_one_step_eq_run_n_1 : ∀ (ms:MState),
   ms.runOneStep = ms.runNSteps 1 := by
   intros ms
   unfold MState.runNSteps
   simp
 
-@[simp] theorem run_N_comm : ∀ (ms:MState) (n m:Nat),
+@[simp]
+theorem run_N_comm : ∀ (ms:MState) (n m:Nat),
   (ms.runNSteps n).runNSteps m = (ms.runNSteps m).runNSteps n := by
   intros ms n
   revert ms
@@ -244,7 +325,8 @@ namespace MState
     rw [<- IHN']
     rw [<- MState.run_n_run_one_comm]
 
-@[simp] theorem run_n_m_steps_comp : ∀ (ms:MState) (n m:Nat),
+@[simp]
+theorem run_n_m_steps_comp : ∀ (ms:MState) (n m:Nat),
   (ms.runNSteps n).runNSteps m = ms.runNSteps (n + m) := by
   intros ms n
   revert ms
@@ -258,31 +340,37 @@ namespace MState
     rw [<- MState.run_n_run_one, Nat.add_assoc, <- IHN', Nat.add_comm,
       <- MState.run_n_run_one, <- MState.run_n_run_one_comm]
 
-@[simp] theorem add_reg_code_no_change : ∀ (ms:MState) (r v:UInt64),
+@[simp]
+theorem add_reg_code_no_change : ∀ (ms:MState) (r : RegisterName) (v : UInt64),
   (ms.addRegister r v).code = ms.code := by
   intros ms r v
   unfold MState.addRegister
   simp
+  by_cases h : r.nr = 0 <;> simp [h]
 
-@[simp] theorem add_mem_code_no_change : ∀ (ms:MState) (r v:UInt64),
+@[simp]
+theorem add_mem_code_no_change : ∀ (ms:MState) (r v:UInt64),
   (ms.addMemory r v).code = ms.code := by
   intros ms r v
   unfold MState.addMemory
   simp
 
-@[simp] theorem set_pc_code_no_change : ∀ (ms:MState) (v:UInt64),
+@[simp]
+theorem set_pc_code_no_change : ∀ (ms:MState) (v:UInt64),
   (ms.setPc v).code = ms.code := by
   intros ms v
   unfold MState.setPc
   simp
 
-@[simp] theorem set_termianted_code_no_change : ∀ (ms:MState) (v:Bool),
+@[simp]
+theorem set_termianted_code_no_change : ∀ (ms:MState) (v:Bool),
   (ms.setTerminated v).code = ms.code := by
   intros ms v
   unfold MState.setTerminated
   simp
 
-@[simp] theorem jump_register_indep: ∀ (ms:MState) (m:Memory) (r:Registers) (c:Code) (s:String),
+@[simp]
+theorem jump_register_indep: ∀ (ms:MState) (m:Memory) (r:Registers) (c:Code) (s:String),
   ({ms with registers := r, memory := m, code := c}.jump s).pc = ({ms with code := c}.jump s).pc := by
   intros ms m r c s
   unfold MState.jump
@@ -291,63 +379,166 @@ namespace MState
   . dsimp
   . simp
 
-@[simp] theorem get_register_only_register: ∀ (m:Memory) (r:Registers) (c:Code) (terminated:Bool) (i p:UInt64),
-  {registers := r, memory := m, code := c, pc := p, terminated := terminated : MState}.getRegisterAt i =
-  TMap.get r i := by
+-- @[simp]
+-- theorem get_register_only_register: ∀ (m:Memory) (regs:Registers) (c:Code)
+--     (terminated:Bool) (regName : RegisterName) (p:UInt64) (ic : Nat),
+--   {registers := regs, memory := m, code := c, pc := p,
+--     terminated := terminated, instrCounter := ic: MState}.getRegisterAt regName =
+--   TMap.get regs regName := by
+--   intros r m _ terminated i p
+--   unfold MState.getRegisterAt
+--   simp
+
+@[simp]
+theorem get_register_at_nr_only_register: ∀ (m:Memory) (regs:Registers) (c:Code)
+    (terminated:Bool) (regNr : RegisterNr) (p:UInt64) (ic : Nat),
+  {registers := regs, memory := m, code := c, pc := p,
+    terminated := terminated, instrCounter := ic : MState}.getRegisterAtNr regNr =
+  regs.getByRegNr regNr := by
   intros r m _ terminated i p
-  unfold MState.getRegisterAt
+  unfold MState.getRegisterAtNr
   simp
 
-@[simp] theorem get_register_only_register': ∀ (ms:MState) (m:Memory) (r:Registers) (c:Code) (terminated:Bool) (i p:UInt64),
-  {ms with memory := m, registers := r, pc := p, code := c, terminated := terminated }.getRegisterAt i =
+@[simp]
+theorem get_register_only_register': ∀ (ms:MState) (m:Memory) (r:Registers) (c:Code)
+    (terminated:Bool) (i : RegisterName) (p:UInt64),
+  {ms with
+    memory := m, registers := r, pc := p, code := c, terminated := terminated }.getRegisterAt i =
   {ms with registers := r}.getRegisterAt i := by
   intros ms r m _ terminated i p
   unfold MState.getRegisterAt
   simp
 
-@[simp] theorem get_register_only_memory: ∀ (m:Memory) (r:Registers) (c:Code) (terminated:Bool) (i p:UInt64),
-  {registers := r, memory := m, code := c, pc := p, terminated := terminated : MState}.getMemoryAt i =
+@[simp]
+theorem get_register_at_nr_only_register': ∀ (ms:MState) (m:Memory) (r:Registers) (c:Code)
+    (terminated:Bool) (nr : RegisterNr) (p:UInt64),
+  {ms with
+    memory := m, registers := r, pc := p, code := c, terminated := terminated }.getRegisterAtNr nr =
+  {ms with registers := r}.getRegisterAtNr nr := by
+  intros ms r m _ terminated i p
+  unfold MState.getRegisterAtNr
+  simp
+
+@[simp]
+theorem get_register_only_memory: ∀ (m:Memory) (r:Registers) (c:Code) (terminated:Bool)
+    (i p:UInt64),
+  {registers := r, memory := m, code := c, pc := p,
+    terminated := terminated, instrCounter := ic : MState}.getMemoryAt i =
   TMap.get m i := by
   intros r m _ terminated i p
   unfold MState.getMemoryAt
   simp
 
-@[simp] theorem get_register_only_memory': ∀ (ms:MState) (m:Memory) (r:Registers) (c:Code) (terminated:Bool) (i p:UInt64),
-  {ms with memory := m, registers := r, pc := p, code := c, terminated := terminated }.getMemoryAt i =
+@[simp]
+theorem get_register_only_memory': ∀ (ms:MState) (m:Memory) (r:Registers) (c:Code)
+    (terminated:Bool) (i p:UInt64),
+  {ms with
+    memory := m, registers := r, pc := p, code := c, terminated := terminated }.getMemoryAt i =
   {ms with memory := m}.getMemoryAt i := by
   intros ms r m _ terminated i p
   unfold MState.getMemoryAt
   simp
 
 
-@[simp] theorem get_label_from_code: ∀(ms : MState) (s : String) (l : UInt64),
+@[simp]
+theorem get_label_from_code: ∀(ms : MState) (s : String) (l : UInt64),
   (ms.getLabelAt s = l) = (PMap.get ms.code.labels s = l)
   := by
   intros ms s l
   unfold MState.getLabelAt
   simp
 
-@[simp] theorem getRegisterAt_def: ∀ (ms : MState) (l : UInt64),
-  ms.getRegisterAt l = TMap.get ms.registers l := by
-  intros ms l
-  unfold MState.getRegisterAt
-  simp
+-- @[simp]
+-- theorem getRegisterAt_def: ∀ (ms : MState) (r : RegisterName),
+--   ms.getRegisterAt r = TMap.get ms.registers r := by
+--   intros ms r
+--   unfold MState.getRegisterAt
+--   simp
 
-@[simp] theorem getMemoryAt_def: ∀ (ms : MState) (l : UInt64),
+-- @[simp] theorem get_register_at_nr_def: ∀ (ms : MState) (r : RegisterNr),
+--   ms.getRegisterAtNr r = TMap.get ms.registers r := by
+--   intros ms r
+--   unfold MState.getRegisterAt
+--   simp
+
+@[simp]
+theorem getMemoryAt_def: ∀ (ms : MState) (l : UInt64),
   ms.getMemoryAt l = TMap.get ms.memory l := by
   intros ms l
   unfold MState.getMemoryAt
   simp
 
-@[simp] theorem TMap_register_le_zero_eq_zero: ∀(ms:MState) (l : UInt64),
-    (TMap.get ms.registers l ≤ 0) = (TMap.get ms.registers l = 0) := by
+@[simp]
+theorem TMap_register_le_zero_eq_zero: ∀(ms:MState) (r : RegisterName),
+    (TMap.get ms.registers r ≤ 0) = (TMap.get ms.registers r = 0) := by
   simp
 
-@[simp] theorem register_le_zero_eq_zero: ∀(ms:MState) (l : UInt64),
-    (ms.getRegisterAt l ≤ 0) = (ms.getRegisterAt l = 0) := by
+@[simp]
+theorem register_le_zero_eq_zero: ∀(ms:MState) (r : RegisterName),
+    (ms.getRegisterAt r ≤ 0) = (ms.getRegisterAt r = 0) := by
   simp
 
-@[simp] theorem runOneSteps_code_remains : ∀ (ms:MState),
+@[simp]
+theorem register_nr_le_zero_eq_zero: ∀(ms:MState) (r : RegisterNr),
+    (ms.getRegisterAtNr r ≤ 0) = (ms.getRegisterAtNr r = 0) := by
+  simp
+
+@[simp]
+theorem reg_zero_not_writeable: ∀ (ms : MState) (name : RegisterName) (v : UInt64),
+  name.nr == 0 →
+  (ms.addRegister name v).getRegisterAt name = ms.getRegisterAt name
+  := by
+  intros ms name v h
+  unfold MState.addRegister
+  rw [h]
+  simp
+
+
+@[simp]
+theorem incInstrCounter_no_change_in_code: ∀ (ms : MState),
+  ms.incInstrCounter.code = ms.code
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp]
+theorem incInstrCounter_no_change_in_pc: ∀ (ms : MState),
+  ms.incInstrCounter.pc = ms.pc
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp]
+theorem incInstrCounter_incPc_comm: ∀ (ms : MState),
+  ms.incInstrCounter.incPc = ms.incPc.incInstrCounter
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+
+@[simp]
+theorem incInstrCounter_no_change_mem: ∀ (ms : MState),
+  ms.incInstrCounter.memory = ms.memory
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp]
+theorem incInstrCounter_no_change_registers: ∀ (ms : MState),
+  ms.incInstrCounter.registers = ms.registers
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp]
+theorem incInstrCounter_no_change_terminated: ∀ (ms : MState),
+  ms.incInstrCounter.terminated = ms.terminated
+  := by
+  unfold MState.incInstrCounter
+  simp
+
+@[simp]
+theorem runOneSteps_code_remains : ∀ (ms:MState),
   (ms.runOneStep).code = ms.code
   := by
   intros ms
@@ -358,7 +549,7 @@ namespace MState
     simp
     cases TMap.get ms.code.instructionMap ms.pc <;> simp
     case Jump s =>
-      unfold MState.jump
+      unfold MState.incInstrCounter MState.jump
       cases PMap.get ms.code.labels s <;> simp
     case JumpEq reg1 reg2 lbl | JumpNeq reg1 reg2 lbl
       | JumpGt reg1 reg2 lbl | JumpLe reg1 reg2 lbl =>
@@ -373,7 +564,8 @@ namespace MState
       all_goals cases PMap.get ms.code.labels lbl <;> simp
 
 
-@[simp] theorem runNSteps_code_remains : ∀ (ms:MState) (n:Nat),
+@[simp]
+theorem runNSteps_code_remains : ∀ (ms:MState) (n:Nat),
   (ms.runNSteps n).code = ms.code
   := by
   intros ms n
@@ -387,7 +579,8 @@ namespace MState
     unfold MState.runNSteps
     exact IHn'
 
-@[simp] theorem code_remains_same : ∀ (ms ms' : MState) (code : Code) (n : ℕ),
+@[simp]
+theorem code_remains_same : ∀ (ms ms' : MState) (code : Code) (n : ℕ),
   ms.code = code →
   ms.runNSteps n = ms' →
   ms'.code = code

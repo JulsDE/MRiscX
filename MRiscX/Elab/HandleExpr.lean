@@ -1,4 +1,6 @@
-import MRiscX.AbstractSyntax.AbstractSyntax
+import MRiscX.AbstractSyntax.Instr
+import MRiscX.AbstractSyntax.Code
+
 import Lean
 open Lean Meta Elab
 
@@ -49,6 +51,11 @@ partial def getUInt64FromExpr (e : Expr) : MetaM UInt64 := do
   else
     throwError "Not a UInt64 Expression"
 
+
+partial def getRegisterNameFromExpr (e : Expr) : MetaM RegisterName := do
+  let e ← Meta.whnf e
+
+  return {nr := 0, name := ""}
 
 partial def getStrFromExpr (e : Expr) : MetaM String := do
   let e ← Meta.whnf e
@@ -124,10 +131,10 @@ def getArgsAsUIntsOrThrow (args : Array Expr) (n : Nat) : MetaM (List UInt64) :=
     throwError "Expected at least {n} arguments, got {args.size}"
   (List.range n).mapM fun i => getUInt64FromExpr (args[i]!)
 
-def getTwoUIntFromExprValidated (args : Array Expr) : MetaM (UInt64 × UInt64) := do
+def getTwoUIntFromExprValidated (args : Array Expr) : MetaM (RegisterName × UInt64) := do
   if args.size < 2 then
     throwError "Expected at least 2 arguments, got {args.size}"
-  return (←getUInt64FromExpr args[0]!, ←getUInt64FromExpr args[1]!)
+  return (←getRegisterNameFromExpr args[0]!, ←getUInt64FromExpr args[1]!)
 
 def getThreeUIntFromExprValidated (args : Array Expr) : MetaM (UInt64 × UInt64 × UInt64) := do
   if args.size < 3 then
@@ -148,67 +155,95 @@ def getTwoUIntOneStringFromExprValidated (args : Array Expr) :
 def getInstrFromExpr (e : Expr) : MetaM Instr := do
   let e ← Meta.whnf e
   if e.isAppOfArity ``Instr.LoadAddress 2 then
-    let (reg, addr) ← getTwoUIntFromExprValidated e.getAppArgs
+    let reg ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let addr ← getUInt64FromExpr e.getAppArgs[1]!
     return Instr.LoadAddress reg addr
   if e.isAppOfArity ``Instr.LoadImmediate 2 then
-    let (reg, val) ← getTwoUIntFromExprValidated e.getAppArgs
+    let reg ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let val ← getUInt64FromExpr e.getAppArgs[1]!
     return Instr.LoadImmediate reg val
   if e.isAppOfArity ``Instr.CopyRegister 2 then
-    let (dst, src) ← getTwoUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let src ← getRegisterNameFromExpr e.getAppArgs[1]!
     return Instr.CopyRegister dst src
   if e.isAppOfArity ``Instr.AddImmediate 3 then
-    let (dst, reg, val) ← getThreeUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let val ← getUInt64FromExpr e.getAppArgs[2]!
     return Instr.AddImmediate dst reg val
   if e.isAppOfArity ``Instr.Increment 1 then
-    let dst ←getUInt64FromExpr e.getAppArgs[0]!
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
     return Instr.Increment dst
   if e.isAppOfArity ``Instr.AddRegister 3 then
-    let (dst, reg1, reg2) ← getThreeUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg1 ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let reg2 ← getRegisterNameFromExpr e.getAppArgs[2]!
     return Instr.AddRegister dst reg1 reg2
   if e.isAppOfArity ``Instr.SubImmediate 3 then
-    let (dst, reg, val) ← getThreeUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let val ← getUInt64FromExpr e.getAppArgs[2]!
     return Instr.SubImmediate dst reg val
   if e.isAppOfArity ``Instr.Decrement 1 then
-    let dst ←getUInt64FromExpr e.getAppArgs[0]!
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
     return Instr.Decrement dst
   if e.isAppOfArity ``Instr.SubRegister 3 then
-    let (dst, reg1, reg2) ← getThreeUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg1 ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let reg2 ← getRegisterNameFromExpr e.getAppArgs[2]!
     return Instr.SubRegister dst reg1 reg2
   if e.isAppOfArity ``Instr.XorImmediate 3 then
-    let (dst, reg, val) ← getThreeUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let val ← getUInt64FromExpr e.getAppArgs[2]!
     return Instr.XorImmediate dst reg val
   if e.isAppOfArity ``Instr.XOR 3 then
-    let (dst, reg1, reg2) ← getThreeUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg1 ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let reg2 ← getRegisterNameFromExpr e.getAppArgs[2]!
     return Instr.XOR dst reg1 reg2
   if e.isAppOfArity ``Instr.LoadWordImmediate 2 then
-    let (dst, reg) ← getTwoUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg ← getUInt64FromExpr e.getAppArgs[1]!
     return Instr.LoadWordImmediate dst reg
   if e.isAppOfArity ``Instr.LoadWordReg 2 then
-    let (dst, reg) ← getTwoUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg ← getRegisterNameFromExpr e.getAppArgs[1]!
     return Instr.LoadWordReg dst reg
   if e.isAppOfArity ``Instr.StoreWord 2 then
-    let (reg, dst) ← getTwoUIntFromExprValidated e.getAppArgs
+    let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg ← getRegisterNameFromExpr e.getAppArgs[1]!
     return Instr.StoreWord reg dst
   if e.isAppOfArity ``Instr.Jump 1 then
     let label ← getStrFromExpr e.getAppArgs[0]!
     return Instr.Jump label
   if e.isAppOfArity ``Instr.JumpEq 3 then
-    let (reg1, reg2, label) ← getTwoUIntOneStringFromExprValidated e.getAppArgs
+    let reg1 ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg2 ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let label ← getStrFromExpr e.getAppArgs[2]!
     return Instr.JumpEq reg1 reg2 label
   if e.isAppOfArity ``Instr.JumpNeq 3 then
-    let (reg1, reg2, label) ← getTwoUIntOneStringFromExprValidated e.getAppArgs
+    let reg1 ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg2 ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let label ← getStrFromExpr e.getAppArgs[2]!
     return Instr.JumpNeq reg1 reg2 label
   if e.isAppOfArity ``Instr.JumpGt 3 then
-    let (reg1, reg2, label) ← getTwoUIntOneStringFromExprValidated e.getAppArgs
+    let reg1 ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg2 ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let label ← getStrFromExpr e.getAppArgs[2]!
     return Instr.JumpGt reg1 reg2 label
   if e.isAppOfArity ``Instr.JumpLe 3 then
-    let (reg1, reg2, label) ← getTwoUIntOneStringFromExprValidated e.getAppArgs
+    let reg1 ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let reg2 ← getRegisterNameFromExpr e.getAppArgs[1]!
+    let label ← getStrFromExpr e.getAppArgs[2]!
     return Instr.JumpLe reg1 reg2 label
   if e.isAppOfArity ``Instr.JumpEqZero 2 then
-    let (reg, label) ← getUIntStringFromExprValidated e.getAppArgs
+    let reg ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let label ← getStrFromExpr e.getAppArgs[1]!
     return Instr.JumpEqZero reg label
   if e.isAppOfArity ``Instr.JumpNeqZero 2 then
-    let (reg, label) ← getUIntStringFromExprValidated e.getAppArgs
+    let reg ← getRegisterNameFromExpr e.getAppArgs[0]!
+    let label ← getStrFromExpr e.getAppArgs[1]!
     return Instr.JumpNeqZero reg label
   return Instr.Panic
 
@@ -242,7 +277,9 @@ private def getLambdaBody (e : Expr) (fuel : Nat) : MetaM Expr := do
   match fuel with
   | 0 => throwError "There might be too many arguments in this function or an error occurred
                         during the extraction of the function body"
-  | Nat.succ n' => do return ← getLambdaBody e.bindingBody! n'
+  | Nat.succ n' => do
+      logInfo s!"{e.bindingBody!} a"
+      return ← getLambdaBody e.bindingBody! n'
 
 /--
 Return the actual binding body from a lambda function.

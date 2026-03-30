@@ -1,5 +1,6 @@
 import Lean
 import MRiscX.Elab.HandleNumOrIdent
+import MRiscX.Elab.HandleRegister
 import MRiscX.Parser.HoareSyntax
 open Lean Elab
 
@@ -33,8 +34,6 @@ the functioncalls should be made.
 These HoareAssignments are used for the specification of the instruction.
 -/
 
-
-
 /-
 This function is similar to expandCDot?.
 It traverses the given syntax and searches for patterns to replace the keywords
@@ -53,9 +52,33 @@ where
   go : Syntax → TermElabM Syntax
   | _stx@`(⸨terminated⸩) =>
     return ←`(term | $(mkIdent `MState.terminated) ($curState))
-  | _stx@`(x[$r:mriscx_num_or_ident]) => do
-    let newR ← parseMriscxNumOrIdentToTerm r
-    return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState) $newR)
+  | _stx@`(x[$r:mriscx_registers]) => do
+    match r with
+    | `(mriscx_registers | $a:mriscx_registers_bare)
+    | `(mriscx_registers | $a:mriscx_registers_abi) =>
+      let some nr := getCorrespondingRegisterName? ⟨a⟩
+                  | throwError s!"Could not get a valid RegisterNr from {a}"
+
+      let t : TSyntax `term := Syntax.mkNumLit s!"{nr.nr}"
+      return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
+              ($(mkIdent `RegisterName.mk)
+              ($(mkIdent `RegisterNr.ofUInt64) $t) $(Syntax.mkStrLit nr.name)))
+    | `(mriscx_registers | x $i:mriscx_num_or_ident) =>
+
+      let newR ← parseMriscxNumOrIdentToTerm i
+      match newR with
+      | `(term | $n:num) =>
+        let name := s!"{n.getNat}"
+        return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
+              ($(mkIdent `RegisterName.mk)
+              ($(mkIdent `RegisterNr.ofUInt64) $newR) $(Syntax.mkStrLit name)))
+      | `(term | $i:ident) =>
+        let name := i.getId.getString!
+        return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
+              ($(mkIdent `RegisterName.mk)
+              ($(mkIdent `RegisterNr.ofUInt64) $newR) $(Syntax.mkStrLit name)))
+      | _ => throwError "no plan"
+    | _ => throwError "fail haha"
   | _stx@`(mem[$t:term]) => do
     let et ← replaceKeywords t curState
     return ←`(term | $(mkIdent `MState.getMemoryAt) ($curState) ($(⟨et⟩)))
@@ -87,18 +110,33 @@ partial def getHoareAssignmentArray (stx: TSyntax `hoare_assignment_chain)
     return ←(getHoareAssignmentArray s (curArr.push t))
   | _ => throwError s!"hoare assignment {stx} term not known!"
 
+-- def mkRegisterNameTermFromNumOrIdent (i : TSyntax `mriscx_num_or_ident) :=
+
+
 /-
 Parse the TSyntax to the actual function calls
 -/
+
 def foldTermArray (element: TSyntax `hoare_assignment) (curTerm: TSyntax `term) :
     TermElabM (TSyntax `term) := do
   match element with
   | `(hoare_assignment | x[$r:mriscx_num_or_ident] ← $t:term)
   | `(hoare_assignment | x[$r:mriscx_num_or_ident] <- $t:term) => do
-    let newR ← parseMriscxNumOrIdentToTerm r
+    let valOfNewR ← parseMriscxNumOrIdentToTerm r
+    let name ← `(@toString $(mkIdent `UInt64) $(mkIdent `instToStringUInt64) $valOfNewR)
+
+    let newR ← `($(mkIdent `RegisterName.mk) ($(mkIdent `RegisterNr.ofUInt64) $valOfNewR) $name)
     let newT := ⟨←replaceKeywords t curTerm⟩
     -- let newV := ← parseMriscxNumOrIdentToTerm v
     return ←`(term | $(mkIdent `MState.addRegister) ($curTerm) $newR $newT)
+  -- | `(hoare_assignment | x[$r:mriscx_registers] ← $t:term)
+  -- | `(hoare_assignment | x[$r:mriscx_registers] <- $t:term) => do
+  --   let valOfNewR ← parseMriscxNumOrIdentToTerm r
+  --   let name := Syntax.mkStrLit s!"x{valOfNewR}"
+  --   let newR ← `($(mkIdent `RegisterName.mk) ($(mkIdent `RegisterNr.ofUInt64) $name))
+  --   let newT := ⟨←replaceKeywords t curTerm⟩
+    -- let newV := ← parseMriscxNumOrIdentToTerm v
+    -- return ←`(term | $(mkIdent `MState.addRegister) ($curTerm) $newR $newT)
   | `(hoare_assignment | mem[$m:term] ← $t:term)
   | `(hoare_assignment | mem[$m:term] <- $t:term) => do
     let newM := ⟨←replaceKeywords m curTerm⟩
@@ -106,9 +144,9 @@ def foldTermArray (element: TSyntax `hoare_assignment) (curTerm: TSyntax `term) 
     -- let newV := ← parseMriscxNumOrIdentToTerm v
     return ←`(term | $(mkIdent `MState.addMemory) ($curTerm) $newM $newT)
   | `(hoare_assignment | pc++) =>
-    return ←`(term | $(mkIdent `MState.incPc) ($curTerm))
+    return ←`(term | $(mkIdent `MState.incInstrCounter) ($(mkIdent `MState.incPc) ($curTerm)))
   | `(hoare_assignment | pc ← $i:term) => do
-    return ←`(term | $(mkIdent `MState.setPc) ($curTerm) $i)
+    return ←`(term | $(mkIdent `MState.incInstrCounter) ($(mkIdent `MState.setPc) ($curTerm) $i))
   | _ => throwError s!"{element}"
 
 /-

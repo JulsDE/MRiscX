@@ -1,36 +1,6 @@
-import MRiscX.AbstractSyntax.Map
+import MRiscX.AbstractSyntax.Registers
+import MRiscX.AbstractSyntax.Memory
 import MRiscX.AbstractSyntax.Instr
-import MRiscX.Parser.AssemblySyntax
-import Lean
-open Nat
-open Lean Lean.Elab
-/--
-Purpose of this file:
-This file establishes the syntax of the MRiscX assembly language, encompassing the definition
-of instructions, labels, registers, memory and machine states. Given that the instructionsMap,
-labels, registers, and memory are represented as maps, it may be beneficial to review the contents
-of the file Maps.lean beforehand.
-
-
-Next we define some Datatypes for the map keys.
-This is because it makes it easier to understand which
-map is being processed.
-Firstly a register, which will hold a value
--/
-
-abbrev Register := UInt64
-
-
-instance: Coe Register UInt64 where
- coe c := (c:UInt64)
-
-
-/--
-Next, the memory address. This address will point to a certain
-address in the memory which holds some value
--/
-abbrev MemoryAddress := UInt64
-
 /--
 The InstructionIndex is a serial number which points
 to a instruction in the stack
@@ -123,35 +93,3 @@ namespace Code
 
   def getInstrAt (m : Code) (l : UInt64): Instr := m.instructionMap.get l
 end Code
-
-
-
-
-/--
-Definiton of the registers
-R := {r_1 ↦ w_1, … , r_k ↦ w_k}
--/
-def Registers := TMap Register UInt64
-  deriving Repr
-
-/--
-RegisterMap with default value 0
-
-R := {r_1 ↦ w_1, … , r_k ↦ w_k ; 0}
--/
-def EmptyRegisters : Registers := TMap.empty 0
-
-/--
-Definiton of the memory
-M := {m_1 ↦ w_1, … , m_k ↦ w_k}
--/
-def Memory := TMap MemoryAddress UInt64
-  deriving Repr
-
-
-/--
-MemoryMap with default value 0
-
-M := {m_1 ↦ w_1, … , m_k ↦ w_k ; 0}
--/
-def EmptyMemory : Memory := TMap.empty 0
