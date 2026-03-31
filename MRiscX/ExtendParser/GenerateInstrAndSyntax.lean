@@ -407,10 +407,9 @@ private def mkExecuteAlt
   let fields := fieldsOfPieces spec.pieces
   let pat ← mkCtorPattern typeName spec.ctorName fields
   let sem := spec.sem
-  logInfo s!"sem: {sem}"
   let asd := stateIdent[0]!
   let as := stateIdent[1]!
-  let rhs : TSyntax `term ← `(term| ($sem:term) $as)
+  let rhs : TSyntax `term ← `(term| ($sem:term) $asd)
   `(matchAltExpr| | $pat:term => $rhs:term)
 
 private def mkExecuteCmd
@@ -425,7 +424,6 @@ private def mkExecuteCmd
   let instrIdent := mkIdent instrName
   let lblMapIdent := mkIdent lblMapName
   let alts ← specs.mapM (mkExecuteAlt typeName (#[stateIdent, lblMapIdent]))
-  logInfo s!"{alts}"
   `(command|
     def $execName:ident ($stateIdent : MState) ($lblMapIdent : MState.LabelMap)
                             ($instrIdent : $typeName:ident) : MState :=

@@ -29,6 +29,13 @@ structure RegisterName where
 -- deriving DecidableEq
 deriving Repr
 
+def DefaultRegisterName := {nr := RegisterNr.ofNat 0, name := "zero" : RegisterName}
+
+instance : Inhabited RegisterName where
+  default := DefaultRegisterName
+
+
+
 namespace RegisterName
 
   def bareNames :=
