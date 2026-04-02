@@ -1,5 +1,5 @@
 import MRiscX.AbstractSyntax.MState
-
+-- import MRiscX.ExtendParser.idea
 
 import Lean
 
@@ -88,7 +88,7 @@ declare_syntax_cat instr_set_entry
 syntax ident ":" "{" "syntax" ":" instr_set_sig "," "semantics" ":" term "}" : instr_set_entry
 
 syntax (name := makeInstrSet)
-  "make_InstrSet " ident ident ppLine withPosition((colGe instr_set_entry)+) : command
+  "make_InstrSet " ident ident ident ppLine withPosition((colGe instr_set_entry)+) : command
 
 
 namespace InstrSet
@@ -401,32 +401,32 @@ private def mkCtorPattern
 
 private def mkExecuteAlt
     (typeName : TSyntax `ident)
-    (stateIdent : Array Ident)
+    (stateIdent : Ident)
     (spec : CtorSpec) :
     CommandElabM (TSyntax ``matchAlt) := do
   let fields := fieldsOfPieces spec.pieces
   let pat ← mkCtorPattern typeName spec.ctorName fields
   let sem := spec.sem
-  let asd := stateIdent[0]!
-  let as := stateIdent[1]!
-  let rhs : TSyntax `term ← `(term| ($sem:term) $asd)
+  let rhs : TSyntax `term ← `(term| ($sem:term) $stateIdent)
   `(matchAltExpr| | $pat:term => $rhs:term)
 
 private def mkExecuteCmd
     (typeName : TSyntax `ident)
     (execName : TSyntax `ident)
+    (mstateName : TSyntax `ident)
     (specs : Array CtorSpec) :
     CommandElabM (TSyntax `command) := do
   let stateName ← MonadQuotation.addMacroScope `_ms
   let instrName ← MonadQuotation.addMacroScope `_instr
-  let lblMapName ← MonadQuotation.addMacroScope `_lblMap
   let stateIdent := mkIdent stateName
   let instrIdent := mkIdent instrName
-  let lblMapIdent := mkIdent lblMapName
-  let alts ← specs.mapM (mkExecuteAlt typeName (#[stateIdent, lblMapIdent]))
+  let regNameIdent := mkIdent `RegisterName
+  let uintName := mkIdent `UInt64
+  let alts ← specs.mapM (mkExecuteAlt typeName stateIdent)
   `(command|
-    def $execName:ident ($stateIdent : MState) ($lblMapIdent : MState.LabelMap)
-                            ($instrIdent : $typeName:ident) : MState :=
+    def $execName:ident [MachineStateI ($mstateName $typeName) $regNameIdent $uintName $uintName]
+                            ($stateIdent : $mstateName $typeName)
+                            ($instrIdent : $typeName:ident) : MState $typeName :=
       match $instrIdent:ident with
       $alts:matchAlt*)
 
@@ -436,12 +436,13 @@ private def mkExecuteCmd
 private def elabMakeInstrCore
     (typeName : TSyntax `ident)
     (execName : TSyntax `ident)
+    (mstateName : TSyntax `ident)
     (entries : TSyntaxArray `instr_set_entry) :
     CommandElabM Unit := do
   let specs ← entries.mapM mkCtorSpec
   let indCmd ← mkInductiveCmd typeName specs
   let synCmds ← specs.mapM (mkSyntaxCmd typeName)
-  let execCmd ← mkExecuteCmd typeName execName specs
+  let execCmd ← mkExecuteCmd typeName execName mstateName specs
 
   elabCommand indCmd
   for cmd in synCmds do
@@ -450,8 +451,8 @@ private def elabMakeInstrCore
 
 def elabMakeInstr : CommandElab := fun stx => do
   match stx with
-  | `(command| make_InstrSet $typeName:ident $execName:ident $entries:instr_set_entry*) =>
-      elabMakeInstrCore typeName execName entries
+  | `(command| make_InstrSet $typeName:ident $execName:ident $mstate:ident $entries:instr_set_entry*) =>
+      elabMakeInstrCore typeName execName mstate entries
   | _ =>
       throwUnsupportedSyntax
 
@@ -477,19 +478,48 @@ declare_syntax_cat hoare
 declare_syntax_cat mriscx_spec
 
 /-
-Next, we define the syntax that will be valid within our language. Since we aim
-to prove statements based on this language, it is essential to support numerical
-literals (num) and variables as integers (ident).
+make_instrSet Instr ...
+> inductive Instr
+> concrete Syntax
+> Typeclass execute?
+> Typeclass specs?
+
+make_execute
+> execute function
+> elaboration
+
+make_specs
+> instance specs
+
+we alwys have
+label: instr*
+
+we know:
+instr → la r:register, i:immediate
+
+but how does register or immediate look like?
+
 -/
 syntax num : mriscx_num_or_ident
 
 syntax ident : mriscx_num_or_ident
 
-make_InstrSet Instr execute
+variable {InstrType : Type} (ms : MachineStateI (MState InstrType) RegisterName UInt64 ProgramCounter)
+
+make_InstrSet Instr execute MState
   LoadAddress:
     { syntax : la (a:register), (m:immediate),
-      semantics: fun (ms:MState) => (ms.addRegister a m).incPc }
+      semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc }
+  Jump:
+    { syntax : j (lbl:label),
+      semantics: fun (ms) => (MState.jump ms lbl)}
+  PANIC:
+    { syntax: PANIC,
+      semantics: fun (ms) => (MState.setTerminated ms true)}
 
+
+class exe (MStateType : Type) where
+  LoadAddress : MStateType → RegisterName → UInt64 → MStateType
 
 /-
 The labels followed by the instructions
@@ -527,12 +557,20 @@ variable (imm : UInt64)
 -- Instr.Jump : String → Instr
 
 #print execute
--- def execute : MState → Instr → MState :=
+-- def execute : MState Instr → Instr → MState Instr :=
 -- fun _ms _instr =>
 --   match _instr with
---   | Instr.LoadAddress a m => (fun ms => (ms.addRegister a m).incPc) _ms
---   | Instr.CopyRegister c reg => (fun ms => (ms.addRegister c (ms.getRegisterAt reg)).incPc) _ms
---   | Instr.Increment r => (fun ms => (ms.addRegister r (ms.getRegisterAt r + 1)).incPc) _ms
---   | Instr.AddRegister dst reg1 reg2 =>
---     (fun ms => (ms.addRegister dst (ms.getRegisterAt reg1 + ms.getRegisterAt reg2)).incPc) _ms
+--   | Instr.LoadAddress a m => (fun ms => (ms.addRegisterAt a m).incPc) _ms
 --   | Instr.Jump lbl => (fun ms => ms.jump lbl) _ms
+--   | Instr.PANIC => (fun ms => ms.setTerminated true) _ms
+
+
+
+def l : LabelMap := PMap.empty
+def i : InstrMap Instr := (0 ↦ Instr.LoadAddress (RegisterName.mk 1 "x1") 2 ; TMap.empty Instr.PANIC)
+
+def c : Code Instr := {labelMap := l, instrMap := i}
+def d : MState Instr := {registers := EmptyRegisters, memory := EmptyMemory, pc := 0,
+                          terminated := false, instrCounter := 0, code := c}
+#eval (d.addRegisterAt (RegisterName.mk 1 "zero") 12).registers
+#eval (execute d (d.code.instrMap.get 0)).registers

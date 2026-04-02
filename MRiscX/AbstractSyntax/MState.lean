@@ -1,4 +1,4 @@
--- import MRiscX.AbstractSyntax.Code
+import MRiscX.AbstractSyntax.NewCode
 import MRiscX.AbstractSyntax.Registers
 import MRiscX.AbstractSyntax.Memory
 
@@ -12,18 +12,21 @@ and a termination flag. The program counter points to the next instruction to be
 while the termination flag indicates whether the machine state has halted or if further
 evaluation should continue.
 -/
-structure MState where
+structure MState (Instr : Type) where
   memory: Memory
   registers: Registers
   pc: ProgramCounter
-
+  code: Code Instr
   terminated: Bool
   instrCounter : Nat
 
-def DefaultMState : MState :=
-  {registers := EmptyRegisters, memory := EmptyMemory, pc := 0,
-    terminated := false, instrCounter := 0}
+class MachineStateI (γ : Type) (RegisterNrType RegisterValType UInt64: Type) where
+  addRegister : γ → RegisterNrType → RegisterValType → γ
+  setPc : γ → ProgramCounter → γ
 
+#check fun {α : Type} [inst : MachineStateI α RegisterName UInt64 ProgramCounter]
+    (ms : α) (i : RegisterName) (v : UInt64) =>
+  inst.addRegister ms i v
 /-
 To perform the operations on the MState like we want to, we need to implement some
 functions.
@@ -33,49 +36,49 @@ Those function do not functions implemented here to avoid unfolding the function
 have a better experience while simping in proofs. Might be refactored.
 -/
 namespace MState
-
+  variable {InstrType : Type} (ms : MState InstrType)
   -- def currInstruction (ms:MState) (code : Code): Instr :=
   --   code.instructionMap.get (ms.pc)
 
-  def incPc (ms:MState) : MState :=
+  def incPc :=
     {ms with pc := ms.pc + 1}
 
-  def setPc (ms:MState) (p:UInt64) : MState :=
+  def setPc (p:UInt64) : MState InstrType :=
     {ms with pc := p}
 
-  def setRegister (ms:MState) (r:Registers) : MState :=
+  def setRegister (r:Registers) : MState InstrType :=
     {ms with registers := r}
 
-  def addRegister (ms:MState) (i : RegisterName) (v:UInt64) : MState :=
+  def addRegisterAt (i : RegisterName) (v:UInt64) :=
     -- Register zero is always zero
     if i.nr == 0 then
       ms
     else
       {ms with registers := (i ↦ v ; ms.registers)}
 
-  def getRegisterAt (ms:MState) (i : RegisterName) : UInt64 :=
+  def getRegisterAt (i : RegisterName) : UInt64 :=
     if i.nr == 0 then
       0
     else
       ms.registers.get i
 
-  def getRegisterAtNr (ms:MState) (i : RegisterNr) : UInt64 :=
+  def getRegisterAtNr (i : RegisterNr) : UInt64 :=
     ms.registers.getByRegNr i
 
-  def setMemory (ms:MState) (m:Memory) : MState :=
+  def setMemory (m:Memory) : MState InstrType :=
     {ms with memory := m}
 
-  def storeByte (ms : MState) (i : MemoryAddress) (v : Byte) : MState :=
+  def storeByte (i : MemoryAddress) (v : Byte) : MState InstrType :=
     {ms with memory := (i ↦ v ; ms.memory)}
 
-  def storeHalfword (ms : MState) (i : MemoryAddress) (v : Halfword) : MState :=
+  def storeHalfword (i : MemoryAddress) (v : Halfword) : MState InstrType :=
     let b0 := v.extractLsb' 0 8
     let b1 := v.extractLsb' 8 8
     {ms with memory :=  (i ↦ b0 ;
                         ((i + 1) ↦ b1 ;
                         ms.memory))}
 
-  def storeWord (ms : MState) (v : Word) (i : MemoryAddress) : MState :=
+  def storeWord (v : Word) (i : MemoryAddress) : MState InstrType :=
     let b0 := v.extractLsb' 0 8
     let b1 := v.extractLsb' 8 8
     let b2 := v.extractLsb' 16 8
@@ -86,7 +89,7 @@ namespace MState
                         ((i + 3) ↦ b3 ;
                         ms.memory))))}
 
-  def storeDoubleword (ms : MState) (i : MemoryAddress) (v : Doubleword) : MState :=
+  def storeDoubleword (i : MemoryAddress) (v : Doubleword) : MState InstrType :=
     let b0 := v.extractLsb' 0 8
     let b1 := v.extractLsb' 8 8
     let b2 := v.extractLsb' 16 8
@@ -105,22 +108,22 @@ namespace MState
                        ((i + 7) ↦ b7 ;
                         ms.memory))))))))}
 
-  def loadByte  (ms : MState) (a : MemoryAddress) : Byte :=
+  def loadByte  (a : MemoryAddress) : Byte :=
     ms.memory.get a
 
-  def loadHalfword (ms : MState) (addr : MemoryAddress) : Halfword :=
+  def loadHalfword (addr : MemoryAddress) : Halfword :=
     let b0 := ms.memory.get addr
     let b1 := ms.memory.get (addr + 1)
     b1 ++ b0
 
-  def loadWord (ms : MState) (addr : MemoryAddress) : Word :=
+  def loadWord (addr : MemoryAddress) : Word :=
     let b0 := ms.memory.get addr
     let b1 := ms.memory.get (addr + 1)
     let b2 := ms.memory.get (addr + 2)
     let b3 := ms.memory.get (addr + 3)
     b3 ++ b2 ++ b1 ++ b0
 
-  def loadDoubleword (ms : MState) (addr : MemoryAddress) : Doubleword :=
+  def loadDoubleword (ms : MState Instr) (addr : MemoryAddress) : Doubleword :=
     let b0 := ms.memory.get addr
     let b1 := ms.memory.get (addr + 1)
     let b2 := ms.memory.get (addr + 2)
@@ -132,40 +135,50 @@ namespace MState
     b7 ++ b6 ++ b5 ++ b4 ++ b3 ++ b2 ++ b1 ++ b0
 
 
-  def getMemoryAt (ms:MState) (i:MemoryAddress) : Byte :=
+  def getMemoryAt (i:MemoryAddress) : Byte :=
     ms.memory.get (i)
 
-  -- def setInstructionMap (ms:MState) (sc:InstructionMap) : MState :=
+  -- def setInstructionMap (ms:MState Instr) (sc:InstructionMap) : MState Instr:=
   --   {ms with code.instructionMap := sc}
 
-  -- def setCode (ms: MState) (code: Code) : MState :=
+  -- def setCode (ms: MState Instr) (code: Code) : MState Instr:=
   --   {ms with code := code}
 
   -- def setLabels (ms:MState) (l:LabelMap) : MState :=
   --   {ms with code.labels := l}
 
-  def setTerminated (ms:MState) (bool:Bool) : MState :=
+  def setTerminated (bool:Bool) : MState InstrType :=
     {ms with terminated := bool}
 
-  def incInstrCounter (ms : MState) :=
+  def incInstrCounter :=
     {ms with instrCounter := ms.instrCounter + 1}
 
-  -- def getLabelAt (ms:MState) (s:String) : Option UInt64 :=
+  -- def getLabelAt (ms:MState Instr) (s:String) : Option UInt64 :=
   --   ms.code.labels.get s
 
-  -- def createStandardState (c : Code): MState :=
-  --   {DefaultMState with code := c}
+  -- def createStandardState (c : Code): MState Instr:=
+  --   {DefaultMState Instrwith code := c}
 
 def LabelMap := PMap String UInt64
 deriving Repr, Inhabited
   /-
   This creates a Machine state with the pointer which the label [s] points to.
-  If there is no label [s] in code.labels, terminated is set to true.
+ If there is no label [s] in code.labels, terminated is set to true.
   -/
-  def jump (ms:MState) (labels: LabelMap) (s:String) : MState :=
-    match labels.get s with
+  def jump (s:String) : MState InstrType :=
+    match ms.code.labelMap.get s with
     | some i => {ms with pc := i}
     | none => {ms with terminated := true}
 
 
+
+
+-- instance : MachineStateI (MState Instr) where
+--   addRegister (ms:MState Instr) (r : RegisterName) (v : UInt64) := MState.addRegisterAt (ms) r v
+--   setPc (ms : MState Instr) (newPc : ProgramCounter) := setPc ms newPc
 end MState
+
+instance instMState {Instr : Type} : MachineStateI (MState Instr) RegisterName UInt64
+                                        ProgramCounter where
+    addRegister := MState.addRegisterAt
+    setPc := MState.setPc

@@ -1,4 +1,4 @@
-import MRiscX.AbstractSyntax.Registers
+-- import MRiscX.AbstractSyntax.Registers
 import MRiscX.AbstractSyntax.Memory
 
 notation n "*" "Byte" => BitVec (n * 8)
@@ -14,11 +14,11 @@ abbrev ProgramCounter := UInt64 -- ?
 
 
 -- What is generated
-abbrev register_value := register_size
-abbrev register_nr := (Fin register_amount)
-abbrev Register := TMap register_nr register_size
+abbrev RegisterValue := register_size
+abbrev RegisterNr := (Fin register_amount)
+abbrev Register := TMap RegisterNr RegisterValue
 abbrev Mem := PMap (Fin memory_size) (1 * Byte)
-def empty_registers : TMap register_nr register_value := TMap.empty 0
+def empty_registers : TMap RegisterNr RegisterValue := TMap.empty 0
 def empty_mem : PMap (Fin memory_size) (1 * Byte) := PMap.empty
 
 
@@ -27,23 +27,34 @@ def empty_mem : PMap (Fin memory_size) (1 * Byte) := PMap.empty
 abbrev LabelMap := PMap String ProgramCounter -- generated ?
 
 
-class MachineState (γ : Type) where
-    addRegister : γ → register_nr → register_value → γ
-    jump {α β : Type} [BEq α] : γ → PMap α β → α → γ
+class MachineStateI (γ : Type) (RegisterNrType RegisterValType ProgramCounter: Type) where
+    addRegister : γ → RegisterNrType → RegisterValType → γ
+    setPc : γ → ProgramCounter → γ
 
-structure MState where
+abbrev InstrMap (Instr : Type) := TMap UInt64 Instr
+
+structure Code (Instr : Type) where
+    labelMap : LabelMap
+    codeMap : InstrMap Instr
+
+structure MState (Instr: Type) where
     register: Register
     memory: Mem
+    code: Code Instr
     pc: ProgramCounter
+    terminated : Bool
 
 namespace MState
+    variable {Instr : Type}
 
-    def addRegister (ms : MState) (r : register_nr) (v : register_value) :=
+    def addRegister (ms : MState Instr) (r : RegisterNr) (v : RegisterValue) :=
         {ms with register := ms.register.put r v}
 
-    def getPc (ms : MState) := ms.pc
+    def getPc (ms : MState Instr) := ms.pc
 
-    def jump (ms : MState) (map : LabelMap) (k : String) :=
+    def setPc (ms : MState Instr) (newPc : ProgramCounter) := {ms with pc := newPc}
+
+    def jump (ms : MState Instr) (map : LabelMap) (k : String) :=
         let newPc? := map.get k
         match newPc? with
         | some newPc => {ms with pc := newPc}
@@ -51,15 +62,22 @@ namespace MState
 
 end MState
 
-instance instMState : MachineState MState where
+instance instMState {Instr : Type} : MachineStateI (MState Instr) RegisterNr RegisterValue
+                                        ProgramCounter where
     addRegister := MState.addRegister
-    jump  (ms : MState) (map : LabelMap) (k : String) := MState.jump ms (map) k
+    setPc := MState.setPc
+/-
+make_instrSet Instr ...
+> inductive Instr
+> concrete Syntax
+> Typeclass execute?
+> Typeclass specs?
 
-def DefaultMState := {register := empty_registers, memory := empty_mem, pc := 0 : MState}
-#eval DefaultMState.addRegister 0 1
+make_execute
+> execute function
+> elaboration
 
+make_specs
+> instance specs
 
--- make_instr
---     LoadAddress:
---     { syntax : la (a:register), (m:immediate),
---       semantics: fun (ms:MState) => (ms.addRegister a m).incPc }
+-/

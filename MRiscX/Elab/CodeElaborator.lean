@@ -293,7 +293,7 @@ partial def getCodeFromSyntax (syn: TSyntax `mriscx_syntax): TermElabM Expr := d
     -/
     let mut labelInstrArr : Array (String × (Array Expr)) := #[]
     /-
-      Here, the iteration through the array of labels finds place.
+      Here, we iteration through the array of labels.
       Each "synEntry" holds a labelname and the corresponding instructions, if present
     -/
     for synEntry in lblSyn do
@@ -318,7 +318,7 @@ partial def getCodeFromSyntax (syn: TSyntax `mriscx_syntax): TermElabM Expr := d
     -/
     let mut counter : UInt64 := 0
     for labelInstr in labelInstrArr do
-      label_map ← mkAppM ``PMap.put #[mkStrLit (labelInstr.1) , mkUInt64Lit counter , label_map]
+      label_map ← mkAppM ``PMap.put #[mkStrLit (labelInstr.1), mkUInt64Lit counter, label_map]
       for instr in labelInstr.2 do
         instruction_map ← mkAppM ``TMap.put #[mkUInt64Lit (counter) , instr, instruction_map]
         counter := counter + 1
