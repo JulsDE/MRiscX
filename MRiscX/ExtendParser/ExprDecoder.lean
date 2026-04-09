@@ -23,6 +23,7 @@ structure DecodedCtor where
   ctorName : Name
   pieces   : Array DecodedPiece
   semText  : String
+  specText : String
 
 structure DecodedArch where
   archName : Name := .anonymous
@@ -44,6 +45,10 @@ private def trimAsciiStr (s : String) : String :=
 
 private def n (s : String) : Name :=
   s.splitOn "." |>.foldl (init := .anonymous) Name.str
+
+private def nameMatches (fn : Name) (expected : String) : Bool :=
+  let full := toString fn
+  full == expected || full.endsWith s!".{expected}"
 
 def decodeError {α} (expected : String) (e : Expr) : CommandElabM α :=
   throwError s!"failed to decode {expected} from expression:\n{e}"
@@ -215,13 +220,13 @@ private def decodeTextFromTSyntaxExpr (e : Expr) : CommandElabM String := do
   pure <| trimAsciiStr (stx.reprint.getD (toString stx))
 
 private def isNameCtorExpr (fn : Name) : Bool :=
-  fn == n "Lean.Name.anonymous" ||
-  fn == n "Lean.Name.str" ||
-  fn == n "Lean.Name.num" ||
-  fn == n "Lean.Name.mkStr1" ||
-  fn == n "Lean.Name.mkStr2" ||
-  fn == n "Lean.Name.mkStr3" ||
-  fn == n "Lean.Name.mkStr4"
+  nameMatches fn "Lean.Name.anonymous" ||
+  nameMatches fn "Lean.Name.str" ||
+  nameMatches fn "Lean.Name.num" ||
+  nameMatches fn "Lean.Name.mkStr1" ||
+  nameMatches fn "Lean.Name.mkStr2" ||
+  nameMatches fn "Lean.Name.mkStr3" ||
+  nameMatches fn "Lean.Name.mkStr4"
 
 private def decodeNameFromSyntax (stx : Syntax) : CommandElabM Name := do
   match stx with
@@ -294,7 +299,7 @@ private def decodeSemTextExpr (e : Expr) : CommandElabM String := do
 def decodeHoleExpr (e : Expr) : CommandElabM DecodedHole := do
   let e := e.consumeMData
   let (fn, args) := e.getAppFnArgs
-  if fn == n "Hole.mk" then
+  if nameMatches fn "Hole.mk" then
     if args.size = 3 then
       pure {
         name   := ← decodeNameLikeExpr args[0]!
@@ -309,12 +314,12 @@ def decodeHoleExpr (e : Expr) : CommandElabM DecodedHole := do
 def decodePieceExpr (e : Expr) : CommandElabM DecodedPiece := do
   let e := e.consumeMData
   let (fn, args) := e.getAppFnArgs
-  if fn == n "Piece.lit" then
+  if nameMatches fn "Piece.lit" then
     if args.size = 1 then
       pure <| .lit (← decodeStringExpr args[0]!)
     else
       decodeError "Piece.lit" e
-  else if fn == n "Piece.hole" then
+  else if nameMatches fn "Piece.hole" then
     if args.size = 1 then
       pure <| .hole (← decodeHoleExpr args[0]!)
     else
@@ -325,12 +330,20 @@ def decodePieceExpr (e : Expr) : CommandElabM DecodedPiece := do
 def decodeCtorExpr (e : Expr) : CommandElabM DecodedCtor := do
   let e := e.consumeMData
   let (fn, args) := e.getAppFnArgs
-  if fn == n "CtorSpec.mk" then
-    if args.size = 4 then
+  if nameMatches fn "CtorSpec.mk" then
+    if args.size = 5 then
       pure {
         ctorName := ← decodeNameLikeExpr args[1]!
         pieces   := ← decodeArrayExpr decodePieceExpr args[2]!
         semText  := ← decodeSemTextExpr args[3]!
+        specText := ← decodeSemTextExpr args[4]!
+      }
+    else if args.size = 4 then
+      pure {
+        ctorName := ← decodeNameLikeExpr args[1]!
+        pieces   := ← decodeArrayExpr decodePieceExpr args[2]!
+        semText  := ← decodeSemTextExpr args[3]!
+        specText := "True"
       }
     else
       decodeError "CtorSpec.mk" e
@@ -340,7 +353,7 @@ def decodeCtorExpr (e : Expr) : CommandElabM DecodedCtor := do
 def decodeArchExpr (e : Expr) : CommandElabM DecodedArch := do
   let e := e.consumeMData
   let (fn, args) := e.getAppFnArgs
-  if fn == n "ArchSpec.mk" then
+  if nameMatches fn "ArchSpec.mk" then
     if args.size = 4 then
       let archName ←
         try

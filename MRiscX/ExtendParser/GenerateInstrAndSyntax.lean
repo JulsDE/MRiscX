@@ -2,6 +2,7 @@ import MRiscX.AbstractSyntax.MState
 import MRiscX.ExtendParser.ExprDecoder
 import MRiscX.ExtendParser.GenerateConcreteSyntax
 import MRiscX.ExtendParser.GenerateElaborator
+import Mathlib.Data.Set.Basic
 import Lean
 
 open Lean
@@ -22,6 +23,36 @@ syntax "x0" : register
 
 syntax num_or_ident : immediate
 syntax ident : label
+
+declare_syntax_cat instr_set_hoare_assignment
+declare_syntax_cat instr_set_hoare_assignment_chain
+declare_syntax_cat instr_set_hoare_assignment_term
+
+syntax "x[" num_or_ident "]" "←" term : instr_set_hoare_assignment
+syntax "x[" num_or_ident "]" "<-" term : instr_set_hoare_assignment
+syntax "x[" register "]" "←" term : instr_set_hoare_assignment
+syntax "x[" register "]" "<-" term : instr_set_hoare_assignment
+syntax "mem[" term &"]" "←" term : instr_set_hoare_assignment
+syntax "mem[" term &"]" "<-" term : instr_set_hoare_assignment
+syntax ident "++" : instr_set_hoare_assignment
+syntax ident "←" term : instr_set_hoare_assignment
+syntax ident "<-" term : instr_set_hoare_assignment
+
+syntax "⟦⟧" : instr_set_hoare_assignment_term
+syntax instr_set_hoare_assignment : instr_set_hoare_assignment_chain
+syntax instr_set_hoare_assignment ";" instr_set_hoare_assignment : instr_set_hoare_assignment_chain
+syntax instr_set_hoare_assignment ";" instr_set_hoare_assignment_chain : instr_set_hoare_assignment_chain
+syntax "⟦" instr_set_hoare_assignment_chain "⟧" : instr_set_hoare_assignment_term
+
+syntax "⟦⟧" : term
+syntax "⟦" instr_set_hoare_assignment_chain "⟧" : term
+syntax "x[" register "]" : term
+syntax "x[" num_or_ident "]" : term
+syntax "mem[" term "]" : term
+syntax "labels[" ident "]" : term
+syntax "labels[" &"." ident "]" : term
+syntax "⸨pc⸩" : term
+syntax "⸨terminated⸩": term
 
 declare_syntax_cat instr_set_hole
 syntax register : instr_set_hole
@@ -52,8 +83,21 @@ syntax ">="  : instr_set_piece
 declare_syntax_cat instr_set_sig
 syntax ((!( ("," "semantics" ":") )) instr_set_piece)+ : instr_set_sig
 
+declare_syntax_cat instr_set_spec
+syntax "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄" : instr_set_spec
+syntax ((!("⦃")) term) : instr_set_spec
+
 declare_syntax_cat instr_set_entry
-syntax ident ":" "{" "syntax" ":" instr_set_sig "," "semantics" ":" term "}" : instr_set_entry
+syntax ident ":" "{"
+  "syntax" ":" instr_set_sig ","
+  "semantics" ":" term ","
+  "specification" ":" instr_set_spec
+  "}" : instr_set_entry
+syntax ident ":" "{"
+  "syntax" ":" instr_set_sig ","
+  "semantics" ":" term
+  ppLine "specification" ":" instr_set_spec
+  "}" : instr_set_entry
 
 syntax (name := mkInstrSetTerm)
   "mkInstrSet " ident ident ident ppLine withPosition((colGe instr_set_entry)+) : term
@@ -83,6 +127,7 @@ structure CtorSpec where
   ctorName : Name
   pieces   : Array Piece
   sem      : String
+  spec     : String
 deriving Repr, Inhabited, ToExpr
 
 structure ArchSpec where
@@ -179,7 +224,7 @@ private def mkCtorSpec
     (entry : TSyntax `instr_set_entry) :
     CommandElabM CtorSpec := do
   match entry with
-  | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term }) => do
+  | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term, specification : $spec:instr_set_spec }) => do
       let pieces ← extractPieces sig
       let holes := fieldsOfInputPieces pieces
       let ctorName := ctorName.getId.eraseMacroScopes
@@ -189,6 +234,20 @@ private def mkCtorSpec
         ctorName := ctorName
         pieces   := pieces
         sem      := sem.raw.reprint.getD (toString sem.raw)
+        spec     := spec.raw.reprint.getD (toString spec.raw)
+      }
+  | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term
+      specification : $spec:instr_set_spec }) => do
+      let pieces ← extractPieces sig
+      let holes := fieldsOfInputPieces pieces
+      let ctorName := ctorName.getId.eraseMacroScopes
+      ensureNoDuplicateFieldNames ctorName holes
+      pure {
+        ref      := entry.raw.reprint.getD (toString entry.raw)
+        ctorName := ctorName
+        pieces   := pieces
+        sem      := sem.raw.reprint.getD (toString sem.raw)
+        spec     := spec.raw.reprint.getD (toString spec.raw)
       }
   | _ =>
       throwErrorAt entry "invalid instruction entry"
@@ -299,46 +358,3 @@ def elabMkTypeImpl : CommandElab :=
 @[command_elab mkExecutionCmd]
 def elabMkExecutionImpl : CommandElab :=
   elabMkExecution
-
-
-
-def abd : ArchSpec := mkInstrSet RV64 Instr execute
-  LoadAddress:
-    { syntax : la (a:register), (m:immediate),
-      semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc }
-  LoadImmediate:
-    { syntax : li (a:register), (m:immediate),
-      semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc }
-  Jump:
-    { syntax : j (lbl:label),
-      semantics: fun (ms) => (MState.jump ms lbl) }
-  PANIC:
-    { syntax : PANIC,
-      semantics: fun (ms) => (MState.setTerminated ms true) }
-
-mkType abd
-mkExecution abd
-
-#print Instr
-#print execute
-
-def l : LabelMap := PMap.empty
-def i : InstrMap Instr := (0 ↦ Instr.LoadAddress (RegisterName.mk 1 "x1") 2 ; TMap.empty Instr.PANIC)
-
-def c : Code Instr := {labelMap := l, instrMap := i}
-def d : MState Instr := {registers := EmptyRegisters, memory := EmptyMemory, pc := 0,
-                          terminated := false, instrCounter := 0, code := c}
-
-#eval (d.addRegisterAt (RegisterName.mk 1 "zero") 12).registers
-#eval (execute d (d.code.instrMap.get 0)).registers
-
-
-mkSyntax abd
-
-mkElaborator abd
-#check mriscx
-        first:  j s
-                la a3, 1
-        en: li x3, 1
-            li ra, 41
-      end

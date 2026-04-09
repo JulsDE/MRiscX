@@ -1,8 +1,8 @@
 import MRiscX.AbstractSyntax.MState
-import MRiscX.Semantics.Run
-import MRiscX.Hoare.EvalLabelInHoare
-import MRiscX.Hoare.HoareAssignmentElab
-import MRiscX.AbstractSyntax.MState
+-- import MRiscX.Semantics.Run
+-- import MRiscX.Hoare.EvalLabelInHoare
+-- import MRiscX.Hoare.HoareAssignmentElab
+-- import MRiscX.AbstractSyntax.MState
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Set.BooleanAlgebra
 
@@ -27,10 +27,17 @@ assertions, we define Hoare triples, which make claims about the
 state before and after the execution of a command.
 This can be used to perform a structured proof later.
 -/
-abbrev Assertion : Type := MState → Prop
+variable (Instr : Type) (α CodeType RegisterNameType RegisterValType ProgramCounterType: Type)
 
-def Assertion.And (P Q : Assertion) : Assertion := fun st => (P st) ∧ (Q st)
-def Assertion.Not (P : Assertion) : Assertion := fun st => ¬(P st)
+class runable (α) where
+  runOneStep: α → α
+  runNSteps : α → ℕ → α
+
+
+abbrev Assertion (α : Type) [runable α] : Type := α → Prop
+
+def Assertion.And [runable α] (P Q : Assertion α) : Assertion α := fun st => (P st) ∧ (Q st)
+def Assertion.Not [runable α] (P : Assertion α) : Assertion α := fun st => ¬(P st)
 
 
 
@@ -61,11 +68,13 @@ intermediate state between `s` and `s'` has a program counter in `L_w`.
 With the help of this relation, unambiguous statements can be made about the flow of the program.
 
 -/
-def weak (s s' : MState) (L_w L_b : Set UInt64) (c : Code) : Prop :=
-  s.code = c →
-  ∃ (n:Nat), n > 0 ∧ s.runNSteps n = s' ∧ (s'.pc) ∈ L_w ∧
+
+def weak [runable α] [MachineStateI α CodeType RegisterNameType RegisterValType ProgramCounterType]
+          (s s' : α) (L_w L_b : Set ProgramCounterType) : Prop :=
+  ∃ (n:Nat), n > 0 ∧ runable.runNSteps s n = s' ∧
+    (MachineStateI.getPc CodeType RegisterNameType RegisterValType s') ∈ L_w ∧
   ∀ (n':Nat), 0 < n' ∧ n' < n →
-  (s.runNSteps n').pc ∉ (L_w ∪ L_b)
+  (MachineStateI.getPc CodeType RegisterNameType RegisterValType) (runable.runNSteps s n') ∉ (L_w ∪ L_b)
 
 
 /--
@@ -79,27 +88,30 @@ there exists a successor state `s'` for which both the relation
 `weak(s, L_w ∪ L_b, s')` and `Q(s')`, `I(s')` and `s'.pc ∉ L_w`
 are satisfied.
 -/
-def hoare_triple_up (P Q : Assertion) (l : UInt64) (L_w L_b : Set UInt64)
-  (c : Code)
+def hoare_triple_up [h : runable α] [m : MachineStateI α CodeType RegisterNameType RegisterValType ProgramCounterType]
+  (P Q : Assertion α) (l : ProgramCounterType) (L_w L_b : Set ProgramCounterType)
 :=
   L_w ∩ L_b = ∅ →
   L_w ≠ ∅ →
-  ∀ (s : MState), s.code = c →
-  s.pc = l →
+  ∀  (s : α),
+  ∃ (c : CodeType), (MachineStateI.getCode RegisterNameType RegisterValType ProgramCounterType s) = c →
+  (MachineStateI.getPc CodeType RegisterNameType RegisterValType s) = l →
   P s →
-  ∃ (s' : MState), (weak s s' L_w L_b c) ∧ Q s' ∧ s'.pc ∉ L_b
+  ∃ (s' : α), (weak α CodeType RegisterNameType RegisterValType ProgramCounterType s s' L_w L_b) ∧ Q s'
+  ∧ (MachineStateI.getPc CodeType RegisterNameType RegisterValType s') ∉ L_b
 
+#check weak
 
 /--
 Essentially the same as the `hoare_triple_up`, but instead of inspecting a whole code segment,
 this relation only focusses on the instruction which is executed next. This can be used to
 reason about single instructions in order to define their specification.
 -/
-def hoare_triple_up_1 (P Q : Assertion) (l:UInt64) (L_w L_b : Set UInt64) (i : Instr)
+def hoare_triple_up_1 [h : runable α] (P Q : Assertion α) (l:UInt64) (L_w L_b : Set UInt64) (i : Instr)
 :=
   L_w ∩ L_b = ∅ →
   L_w ≠ ∅ →
-  ∀ (s : MState), s.currInstruction = i →
+  ∀ (s : α), s.currInstruction = i →
   s.pc = l →
   P s →
   ∃ (s' : MState), (weak s s' L_w L_b s.code) ∧ Q s' ∧ s'.pc ∉ L_b

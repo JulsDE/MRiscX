@@ -1,5 +1,5 @@
 import MRiscX.AbstractSyntax.Instr
-import MRiscX.AbstractSyntax.Code
+import MRiscX.AbstractSyntax.NewCode
 
 import Lean
 open Lean Meta Elab
@@ -206,14 +206,16 @@ def getInstrFromExpr (e : Expr) : MetaM Instr := do
     let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
     let reg ← getUInt64FromExpr e.getAppArgs[1]!
     return Instr.LoadWordImmediate dst reg
-  if e.isAppOfArity ``Instr.LoadWordReg 2 then
+  if e.isAppOfArity ``Instr.LoadWordReg 3 then
     let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
-    let reg ← getRegisterNameFromExpr e.getAppArgs[1]!
-    return Instr.LoadWordReg dst reg
+    let off ← getUInt64FromExpr e.getAppArgs[1]!
+    let reg ← getRegisterNameFromExpr e.getAppArgs[2]!
+    return Instr.LoadWordReg dst off reg
   if e.isAppOfArity ``Instr.StoreWord 2 then
     let dst ← getRegisterNameFromExpr e.getAppArgs[0]!
-    let reg ← getRegisterNameFromExpr e.getAppArgs[1]!
-    return Instr.StoreWord reg dst
+    let off ← getUInt64FromExpr e.getAppArgs[1]!
+    let reg ← getRegisterNameFromExpr e.getAppArgs[2]!
+    return Instr.StoreWord reg off dst
   if e.isAppOfArity ``Instr.Jump 1 then
     let label ← getStrFromExpr e.getAppArgs[0]!
     return Instr.Jump label

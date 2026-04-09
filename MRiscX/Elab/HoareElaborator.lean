@@ -1,5 +1,5 @@
 import MRiscX.Hoare.HoareCore
-import MRiscX.Elab.CodeElaborator
+-- import MRiscX.Elab.CodeElaborator
 import MRiscX.Parser.HoareSyntax
 
 
