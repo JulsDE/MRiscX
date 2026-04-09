@@ -80,4 +80,31 @@ make_execute
 make_specs
 > instance specs
 
+
+(0)
+Requirement:
+class IMachineState
+
+MachineStateBuilder : Type -> Type
+
+(1)
+makeAbstractSyntax (specName, instrTypeName, prefixName)
+
+(2)
+Requirement:
+InstrType,
+
+makeExecuteTerm / Command
+
+(3)
+makeConcreteSyntax
+
+(4)
+makeElaboration
+
+(5)
+makeDelaboration
+
+(6)
+makeHoareSpecs
 -/
