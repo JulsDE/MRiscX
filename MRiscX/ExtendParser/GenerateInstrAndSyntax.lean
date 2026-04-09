@@ -3,7 +3,7 @@ import MRiscX.AbstractSyntax.MState
 
 import Lean
 
-open Lean
+open Lean Meta
 open Lean Elab Command
 open Lean.Parser.Command
 open Lean.Parser.Term
@@ -90,15 +90,25 @@ syntax ident ":" "{" "syntax" ":" instr_set_sig "," "semantics" ":" term "}" : i
 syntax (name := makeInstrSet)
   "make_InstrSet " ident ident ident ppLine withPosition((colGe instr_set_entry)+) : command
 
+syntax (name := mkInstrTypeCmd)
+  "mkInstrType " term : command
 
-namespace InstrSet
+syntax (name := mkInstrSetTerm)
+  "mkInstrSet " instr_set_entry : term
+
+syntax (name := mkInstrSetArchTerm)
+  "mkInstrSet " ident ident ident ppLine withPosition((colGe instr_set_entry)+) : term
+
+
 
 /-! ## Interne Repräsentation -/
 
+deriving instance ToExpr for SyntaxNodeKinds
+
 structure Hole where
-  name   : TSyntax `ident
-  ty     : TSyntax `term
-  parser : TSyntax `stx
+  name   : Name
+  ty     : Term
+  parser : Name
 deriving Repr
 
 inductive Piece where
@@ -107,10 +117,17 @@ inductive Piece where
 deriving Repr
 
 structure CtorSpec where
-  ref      : Syntax
-  ctorName : TSyntax `ident
+  ref      : Name
+  ctorName : Name
   pieces   : Array Piece
-  sem      : TSyntax `term
+  sem      : Term
+deriving Repr
+
+structure ArchSpec where
+  name     : Name
+  typeName : Name
+  execName : Name
+  specs    : Array CtorSpec
 deriving Repr
 
 instance : ToString Hole where
@@ -131,7 +148,7 @@ instance : ToString CtorSpec where
 
 private def quoteStringLit (s : String) : String :=
   let escaped :=
-    s.data.foldl (init := "") fun acc c =>
+    s.toList.foldl (init := "") fun acc c =>
       acc ++
         match c with
         | '\"' => "\\\""
@@ -142,14 +159,14 @@ private def quoteStringLit (s : String) : String :=
         | c    => String.singleton c
   "\"" ++ escaped ++ "\""
 
-private def parseAs (cat : Name) (input : String) (ref : Syntax) : CommandElabM Syntax := do
+private def parseAs (cat : Name) (input : String) (ref : Name) : CommandElabM Syntax := do
   match Parser.runParserCategory (← getEnv) cat input "<make_InstrAS>" with
   | .ok stx =>
       pure stx
   | .error err =>
-      throwErrorAt ref s!"Fehler beim Parsen von `{input}` als `{cat}`:\n{err}"
+      throwError s!"Fehler beim Parsen von `{input}` als `{cat}` in `{ref}`:\n{err}"
 
-private def parseStx (ref : Syntax) (input : String) : CommandElabM (TSyntax `stx) := do
+private def parseStx (ref : Name) (input : String) : CommandElabM (TSyntax `stx) := do
   pure ⟨← parseAs `stx input ref⟩
 
 
@@ -180,7 +197,7 @@ private def isIdentLikeTok (tok : String) : Bool :=
   let rec loop : List Char → Bool
     | []      => true
     | c :: cs => (c.isAlphanum || c == '_' || c == '\'') && loop cs
-  tok.length > 0 && loop tok.data
+  tok.length > 0 && loop tok.toList
 
 private def isPunctuationTok (tok : String) : Bool :=
   tok == ","  || tok == ";"  || tok == ":"  || tok == "." ||
@@ -215,7 +232,7 @@ private def useNonReservedAtom (tok : String) (isFirst : Bool) : Bool :=
     isPunctuationTok tok
 
 private def mkLiteralStx
-    (ref : Syntax)
+    (ref : Name)
     (tok : String)
     (isFirst : Bool)
     (hasNext : Bool) :
@@ -227,21 +244,21 @@ private def mkLiteralStx
   else
     parseStx ref txtQ
 
-private def fieldsOfPieces (pieces : Array Piece) : Array (TSyntax `ident × TSyntax `term) :=
+private def fieldsOfPieces (pieces : Array Piece) : Array (Name × Term) :=
   pieces.foldl (init := #[]) fun acc piece =>
     match piece with
     | .lit _   => acc
     | .hole h  => acc.push (h.name, h.ty)
 
 private def ensureNoDuplicateFieldNames
-    (ctorName : TSyntax `ident)
-    (fields : Array (TSyntax `ident × TSyntax `term)) :
+    (ctorName : Name)
+    (fields : Array (Name × Term)) :
     CommandElabM Unit := do
   let mut seen : Array Name := #[]
   for (name, _) in fields do
-    let n := name.getId.eraseMacroScopes
+    let n := name.eraseMacroScopes
     if seen.contains n then
-      throwErrorAt name s!"doppelter Platzhaltername `{n}` im Konstruktor `{ctorName.getId}`"
+      throwError s!"doppelter Platzhaltername `{n}` im Konstruktor `{ctorName}`"
     seen := seen.push n
 
 
@@ -252,16 +269,17 @@ private def elabPiece (piece : TSyntax `instr_set_piece) : CommandElabM Piece :=
   | `(instr_set_piece| $h:instr_set_hole) =>
       match h with
       | `(instr_set_hole| ($name:ident : $parser:stx)) =>
+          let holeName := name.getId
           match parser with
           | `(stx | register) =>
             let ty: TSyntax `term ← `(term | RegisterName)
-            pure <| .hole { name, ty, parser }
+            pure <| .hole { name := holeName, ty, parser := `register }
           | `(stx | label) =>
             let ty: TSyntax `term ← `(term | String)
-            pure <| .hole { name, ty, parser }
+            pure <| .hole { name := holeName, ty, parser := `label }
           | `(stx | immediate) =>
             let ty: TSyntax `term ← `(term | UInt64)
-            pure <| .hole { name, ty, parser }
+            pure <| .hole { name := holeName, ty, parser := `immediate }
           | _ =>
             throwError s!"No valid syntax type: {parser.raw.getArgs[0]!}`. Must be `register`" ++
                           "`immediate` or `label`!"
@@ -290,15 +308,114 @@ private def mkCtorSpec
   | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term }) => do
       let pieces ← extractPieces sig
       let fields := fieldsOfPieces pieces
+      let ctorName := ctorName.getId
       ensureNoDuplicateFieldNames ctorName fields
       pure {
-        ref      := entry
+        ref      := ctorName
         ctorName := ctorName
         pieces   := pieces
         sem      := sem
       }
   | _ =>
       throwErrorAt entry "interner Fehler: ungültiger Instruktions-Eintrag"
+
+
+/-! ## `CtorSpec` als Term -/
+
+private def posRawToExpr (p : String.Pos.Raw) : Expr :=
+  mkApp (.const ``String.Pos.Raw.mk []) (toExpr p.byteIdx)
+
+private def substringRawToExpr (s : Substring.Raw) : Expr :=
+  mkApp3 (.const ``Substring.Raw.mk [])
+    (toExpr s.str)
+    (posRawToExpr s.startPos)
+    (posRawToExpr s.stopPos)
+
+private def sourceInfoToExpr : SourceInfo → Expr
+  | .none =>
+      .const ``SourceInfo.none []
+  | .original leading pos trailing endPos =>
+      mkApp4 (.const ``SourceInfo.original [])
+        (substringRawToExpr leading)
+        (posRawToExpr pos)
+        (substringRawToExpr trailing)
+        (posRawToExpr endPos)
+  | .synthetic pos endPos canonical =>
+      mkApp3 (.const ``SourceInfo.synthetic [])
+        (posRawToExpr pos)
+        (posRawToExpr endPos)
+        (toExpr canonical)
+
+private def mkArrayExpr (elemTy : Expr) (elems : Array Expr) : Expr :=
+  elems.foldl
+    (init := mkApp (.const ``Array.empty [levelZero]) elemTy)
+    (fun arr elem => mkApp3 (.const ``Array.push [levelZero]) elemTy arr elem)
+
+private partial def syntaxToExpr : Syntax → Expr
+  | .missing =>
+      .const ``Syntax.missing []
+  | .node info kind args =>
+      mkApp3 (.const ``Syntax.node [])
+        (sourceInfoToExpr info)
+        (toExpr kind)
+        (mkArrayExpr (.const ``Syntax []) (args.map syntaxToExpr))
+  | .atom info val =>
+      mkApp2 (.const ``Syntax.atom [])
+        (sourceInfoToExpr info)
+        (toExpr val)
+  | .ident info rawVal val preresolved =>
+      mkApp4 (.const ``Syntax.ident [])
+        (sourceInfoToExpr info)
+        (substringRawToExpr rawVal)
+        (toExpr val)
+        (toExpr preresolved)
+
+private def tSyntaxToExpr (ks : SyntaxNodeKinds) (stx : TSyntax ks) : Expr :=
+  mkApp2 (.const ``TSyntax.mk [])
+    (toExpr ks)
+    (syntaxToExpr stx.raw)
+
+private def holeToExpr (h : Hole) : Expr :=
+  mkApp3 (.const ``Hole.mk [])
+    (toExpr h.name)
+    (tSyntaxToExpr `term h.ty)
+    (toExpr h.parser)
+
+private def pieceToExpr : Piece → Expr
+  | .lit tok =>
+      mkApp (.const ``Piece.lit []) (toExpr tok)
+  | .hole h =>
+      mkApp (.const ``Piece.hole []) (holeToExpr h)
+
+private def ctorSpecToExpr (spec : CtorSpec) : Expr :=
+  mkApp4 (.const ``CtorSpec.mk [])
+    (toExpr spec.ref)
+    (toExpr spec.ctorName)
+    (mkArrayExpr (.const ``Piece []) (spec.pieces.map pieceToExpr))
+    (tSyntaxToExpr `term spec.sem)
+
+private def archSpecToExpr
+    (name : Name)
+    (typeName : Name)
+    (execName : Name)
+    (specs : Array CtorSpec) : Expr :=
+  mkApp4 (.const ``ArchSpec.mk [])
+    (toExpr name)
+    (toExpr typeName)
+    (toExpr execName)
+    (mkArrayExpr (.const ``CtorSpec []) (specs.map ctorSpecToExpr))
+
+def elabMkInstrSetTerm : Lean.Elab.Term.TermElab := fun stx expectedType? => do
+  let _ := expectedType?
+  match stx with
+  | `(term| mkInstrSet $entry:instr_set_entry) =>
+      let spec ← liftM <| liftCommandElabM (mkCtorSpec entry)
+      pure (ctorSpecToExpr spec)
+  | `(term| mkInstrSet $name:ident $typeName:ident $execName:ident $entries:instr_set_entry*) => do
+      let specs ← liftM <| liftCommandElabM (entries.mapM mkCtorSpec)
+      pure (archSpecToExpr name.getId typeName.getId execName.getId specs)
+  | _ =>
+      throwUnsupportedSyntax
 
 
 /-! ## Induktiver Datentyp -/
@@ -316,7 +433,7 @@ private def mkArrowType
 
 private def mkCtorType
     (typeName : TSyntax `ident)
-    (fields : Array (TSyntax `ident × TSyntax `term)) :
+    (fields : Array (Name × Term)) :
     CommandElabM (TSyntax `term) := do
   let resultTy : TSyntax `term ← `(term| $typeName:ident)
   let argTys : List (TSyntax `term) := fields.toList.map (fun f => f.2)
@@ -328,7 +445,7 @@ private def mkCtorDecl
     CommandElabM (TSyntax ``ctor) := do
   let fields := fieldsOfPieces spec.pieces
   let ctorTy ← mkCtorType typeName fields
-  let ctorName := spec.ctorName
+  let ctorName := mkIdent spec.ctorName
   `(ctor| | $ctorName:ident : $ctorTy:term)
 
 private def mkInductiveCmd
@@ -352,7 +469,7 @@ private def mkTargetSyntaxCatName (typeName : TSyntax `ident) : TSyntax `ident :
     | _        => Name.str .anonymous ("mriscx_" ++ toString n)
   mkIdentFrom typeName catName
 
-deriving instance Inhabited for InstrSet.Piece
+deriving instance Inhabited for Piece
 
 private def mkSyntaxItems (spec : CtorSpec) : CommandElabM (Array (TSyntax `stx)) := do
   let mut items : Array (TSyntax `stx) := #[]
@@ -361,7 +478,7 @@ private def mkSyntaxItems (spec : CtorSpec) : CommandElabM (Array (TSyntax `stx)
     let hasNext := i + 1 < n
     match spec.pieces[i]! with
     | .hole h =>
-        items := items.push h.parser
+        items := items.push (← parseStx spec.ref (toString h.parser))
     | .lit tok =>
         items := items.push (← mkLiteralStx spec.ref tok (i == 0) hasNext)
   pure items
@@ -379,16 +496,18 @@ private def mkSyntaxCmd
 
 /-! ## Generierte Semantikfunktion -/
 private def mkPatArg
-    (name : TSyntax `ident)
-    (ty : TSyntax `term) :
+    (name : Name)
+    (ty : Term) :
     CommandElabM (TSyntax `term) := do
-        `(term| ($name:ident : $ty:term))
+  let name := mkIdent name
+  `(term| ($name:ident : $ty:term))
 
 private def mkCtorPattern
-    (typeName : TSyntax `ident)
-    (ctorName : TSyntax `ident)
-    (fields   : Array (TSyntax `ident × TSyntax `term)) :
+    (_typeName : TSyntax `ident)
+    (ctorName : Name)
+    (fields   : Array (Name × Term)) :
     CommandElabM (TSyntax `term) := do
+  let ctorName := mkIdent ctorName
   let argPats ← fields.mapM fun (name, ty) => mkPatArg name ty
 --   if argPats.isEmpty then
 --     `(term| $typeName:ident.$ctorName:ident)
@@ -456,11 +575,76 @@ def elabMakeInstr : CommandElab := fun stx => do
   | _ =>
       throwUnsupportedSyntax
 
-end InstrSet
+#check Syntax.node
+
+private unsafe def elabMkInstrTypeCore
+    (archSpecTerm : TSyntax `term) :
+    CommandElabM Unit := do
+  let arch : ArchSpec ← liftTermElabM <| do
+    let expectedTy := mkConst ``ArchSpec
+    let archExpr ← Lean.Elab.Term.elabTerm archSpecTerm (some expectedTy)
+    let actualTy ← Lean.Meta.inferType archExpr
+    let a ← Lean.Elab.Term.elabTerm archSpecTerm none
+    let e ← Meta.whnf a
+    logInfo s!"{e.getAppArgs[3]!.getAppFn}"
+    logInfo s!"{e.getAppArgs[3]!.getAppArgs[0]!}"
+    logInfo s!"{e.getAppArgs[3]!.getAppArgs[2]!}"
+    logInfo s!"{e.getAppArgs[3]!.getAppFn}"
+    logInfo s!"{e.getAppArgs[3]!.getAppFn}"
+    let _ ← Meta.whnf e.getAppArgs[3]!
+    unless (← Lean.Meta.isDefEq actualTy expectedTy) do
+      throwError s!"`mkInstrType` expected `InstrSet.ArchSpec`, got `{← Lean.Meta.ppExpr actualTy}`"
+    let archExpr ← Lean.instantiateMVars archExpr
+    if archExpr.hasMVar then
+      throwError "`mkInstrType` failed: unresolved metavariables in argument"
+    Lean.Meta.evalExpr ArchSpec expectedTy archExpr
+
+  let indCmd ← mkInductiveCmd (mkIdent arch.typeName) arch.specs
+  elabCommand indCmd
+
+unsafe def elabMkInstrType : CommandElab := fun stx => do
+  match stx with
+  | `(command| mkInstrType $archSpecTerm:term) =>
+      elabMkInstrTypeCore archSpecTerm
+  | _ =>
+      throwUnsupportedSyntax
 
 @[command_elab makeInstrSet]
 def elabMakeInstrSet : CommandElab :=
-  InstrSet.elabMakeInstr
+  elabMakeInstr
+
+@[command_elab mkInstrTypeCmd]
+unsafe def elabMkInstrType' : CommandElab :=
+  elabMkInstrType
+
+@[term_elab mkInstrSetTerm]
+def elabMkInstrSetTerm' : Lean.Elab.Term.TermElab :=
+  elabMkInstrSetTerm
+
+@[term_elab mkInstrSetArchTerm]
+def elabMkInstrSetArchTerm : Lean.Elab.Term.TermElab :=
+  elabMkInstrSetTerm
+
+
+def abd : ArchSpec := mkInstrSet RV64 Instr execute
+  LoadAddress:
+    { syntax : la (a:register), (m:immediate),
+      semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc }
+  LoadImmediate:
+    { syntax : li (a:register), (m:immediate),
+      semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc}
+  Jump:
+    { syntax : j (lbl:label),
+      semantics: fun (ms) => (MState.jump ms lbl)}
+  PANIC:
+    { syntax: PANIC,
+      semantics: fun (ms) => (MState.setTerminated ms true)}
+
+#check Lean.TSyntax.mk
+#check abd
+#eval abd.specs.size
+mkInstrType abd
+#print Instr
 
 
 /- Hier kommt die beispielhafte Anwendung. -/
@@ -470,7 +654,7 @@ declare_syntax_cat mriscx_label
 declare_syntax_cat mriscx_Instr (behavior := both)
 declare_syntax_cat mriscx_syntax
 declare_syntax_cat mriscx_program
-declare_syntax_cat mriscx_num_or_ident
+declare_syntax_cat mriscx_num_or_iden
 declare_syntax_cat hoare
 
 -- this cat is for making it easier to differentiate between single line
