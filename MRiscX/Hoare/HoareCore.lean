@@ -27,7 +27,7 @@ assertions, we define Hoare triples, which make claims about the
 state before and after the execution of a command.
 This can be used to perform a structured proof later.
 -/
-variable (Instr : Type) (α CodeType RegisterNameType RegisterValType ProgramCounterType: Type)
+variable (Instr : Type) (α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType: Type)
 
 class runable (α) where
   runOneStep: α → α
@@ -69,12 +69,12 @@ With the help of this relation, unambiguous statements can be made about the flo
 
 -/
 
-def weak [runable α] [MachineStateI α CodeType RegisterNameType RegisterValType ProgramCounterType]
+def weak [runable α] [MachineStateI α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType]
           (s s' : α) (L_w L_b : Set ProgramCounterType) : Prop :=
   ∃ (n:Nat), n > 0 ∧ runable.runNSteps s n = s' ∧
-    (MachineStateI.getPc CodeType RegisterNameType RegisterValType s') ∈ L_w ∧
+    (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType s') ∈ L_w ∧
   ∀ (n':Nat), 0 < n' ∧ n' < n →
-  (MachineStateI.getPc CodeType RegisterNameType RegisterValType) (runable.runNSteps s n') ∉ (L_w ∪ L_b)
+  (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType) (runable.runNSteps s n') ∉ (L_w ∪ L_b)
 
 
 /--
@@ -88,30 +88,36 @@ there exists a successor state `s'` for which both the relation
 `weak(s, L_w ∪ L_b, s')` and `Q(s')`, `I(s')` and `s'.pc ∉ L_w`
 are satisfied.
 -/
-def hoare_triple_up [h : runable α] [m : MachineStateI α CodeType RegisterNameType RegisterValType ProgramCounterType]
+def hoare_triple_up [h : runable α] [m : MachineStateI α InstrType CodeType RegisterNameType
+                                          RegisterValType ProgramCounterType]
   (P Q : Assertion α) (l : ProgramCounterType) (L_w L_b : Set ProgramCounterType)
+  (c : CodeType)
 :=
   L_w ∩ L_b = ∅ →
   L_w ≠ ∅ →
   ∀  (s : α),
-  ∃ (c : CodeType), (MachineStateI.getCode RegisterNameType RegisterValType ProgramCounterType s) = c →
-  (MachineStateI.getPc CodeType RegisterNameType RegisterValType s) = l →
+  (MachineStateI.getCode InstrType RegisterNameType RegisterValType ProgramCounterType s) = c →
+  (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType s) = l →
   P s →
-  ∃ (s' : α), (weak α CodeType RegisterNameType RegisterValType ProgramCounterType s s' L_w L_b) ∧ Q s'
-  ∧ (MachineStateI.getPc CodeType RegisterNameType RegisterValType s') ∉ L_b
+  ∃ (s' : α),
+  (weak α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType s s' L_w L_b) ∧ Q s'
+  ∧ (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType s') ∉ L_b
 
-#check weak
 
 /--
 Essentially the same as the `hoare_triple_up`, but instead of inspecting a whole code segment,
 this relation only focusses on the instruction which is executed next. This can be used to
 reason about single instructions in order to define their specification.
 -/
-def hoare_triple_up_1 [h : runable α] (P Q : Assertion α) (l:UInt64) (L_w L_b : Set UInt64) (i : Instr)
+def hoare_triple_up_1 [h : runable α]
+  [m : MachineStateI α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType]
+  (P Q : Assertion α) (l : ProgramCounterType) (L_w L_b : Set ProgramCounterType) (i : InstrType)
 :=
   L_w ∩ L_b = ∅ →
   L_w ≠ ∅ →
-  ∀ (s : α), s.currInstruction = i →
-  s.pc = l →
+  ∀ (s : α), MachineStateI.currInstruction CodeType RegisterNameType RegisterValType ProgramCounterType s = i →
+  (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType s) = l →
   P s →
-  ∃ (s' : MState), (weak s s' L_w L_b s.code) ∧ Q s' ∧ s'.pc ∉ L_b
+  ∃ (s' : α),
+  (weak α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType s s' L_w L_b) ∧ Q s'
+  ∧ (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType s') ∉ L_b

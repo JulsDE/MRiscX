@@ -20,11 +20,13 @@ structure MState (Instr : Type) where
   terminated: Bool
   instrCounter : Nat
 
-class MachineStateI (γ : Type) (CodeType RegisterNrType RegisterValType ProgramCounterType: Type) where
+class MachineStateI (γ : Type)
+    (InstrType CodeType RegisterNrType RegisterValType ProgramCounterType: Type) where
   getCode : γ → CodeType
   addRegister : γ → RegisterNrType → RegisterValType → γ
   setPc : γ → ProgramCounterType → γ
   getPc : γ → ProgramCounterType
+  currInstruction : γ → InstrType
 
 /-
 To perform the operations on the MState like we want to, we need to implement some
@@ -155,6 +157,9 @@ namespace MState
   def getCode (ms : MState Instr) :=
     ms.code
 
+  def getCurrInstr (ms : MState Instr) : Instr :=
+    ms.code.instrMap.get ms.pc
+
   -- def getLabelAt (ms:MState Instr) (s:String) : Option UInt64 :=
   --   ms.code.labels.get s
 
@@ -180,8 +185,9 @@ deriving Repr, Inhabited
 --   setPc (ms : MState Instr) (newPc : ProgramCounter) := setPc ms newPc
 end MState
 
-instance instMState {Instr : Type} : MachineStateI (MState Instr) (Code Instr) RegisterName UInt64
+instance instMState {Instr : Type} : MachineStateI (MState Instr) Instr (Code Instr) RegisterName UInt64
                                         ProgramCounter where
+    currInstruction := MState.getCurrInstr
     getCode := MState.getCode
     addRegister := MState.addRegisterAt
     setPc := MState.setPc
