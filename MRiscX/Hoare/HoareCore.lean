@@ -29,9 +29,6 @@ This can be used to perform a structured proof later.
 -/
 variable (Instr : Type) (α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType: Type)
 
-class runable (α) where
-  runOneStep: α → α
-  runNSteps : α → ℕ → α
 
 
 abbrev Assertion (α : Type) [runable α] : Type := α → Prop

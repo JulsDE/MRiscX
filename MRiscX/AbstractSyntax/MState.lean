@@ -28,6 +28,11 @@ class MachineStateI (γ : Type)
   getPc : γ → ProgramCounterType
   currInstruction : γ → InstrType
 
+
+class runable (α) where
+  runOneStep: α → α
+  runNSteps : α → Nat → α
+
 /-
 To perform the operations on the MState like we want to, we need to implement some
 functions.
