@@ -1,8 +1,11 @@
 import MRiscX.AbstractSyntax.MState
 import MRiscX.ExtendParser.ExprDecoder
 import MRiscX.ExtendParser.GenerateConcreteSyntax
-import MRiscX.ExtendParser.GenerateElaborator
+import MRiscX.ExtendParser.GenerateInstrToExpr
+import MRiscX.Hoare.HoareAssignmentElab
+-- import MRiscX.ExtendParser.GenerateElaborator
 import Mathlib.Data.Set.Basic
+
 import Lean
 
 open Lean
@@ -84,6 +87,7 @@ declare_syntax_cat instr_set_sig
 syntax ((!( ("," "semantics" ":") )) instr_set_piece)+ : instr_set_sig
 
 declare_syntax_cat instr_set_spec
+-- syntax instr_set_spec : term
 syntax "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄" : instr_set_spec
 syntax ((!("⦃")) term) : instr_set_spec
 
@@ -109,33 +113,7 @@ syntax (name := mkExecutionCmd)
   "mkExecution " ident : command
 
 
-/-! Persisted internal representation -/
 
-structure Hole where
-  name   : Name
-  ty     : String
-  parser : String
-deriving Repr, Inhabited, ToExpr
-
-inductive Piece where
-  | lit  (token : String)
-  | hole (value : Hole)
-deriving Repr, Inhabited, ToExpr
-
-structure CtorSpec where
-  ref      : String
-  ctorName : Name
-  pieces   : Array Piece
-  sem      : String
-  spec     : String
-deriving Repr, Inhabited, ToExpr
-
-structure ArchSpec where
-  name     : Name
-  typeName : Name
-  execName : Name
-  specs    : Array CtorSpec
-deriving Repr, Inhabited, ToExpr
 
 
 /-! Helpers -/
@@ -222,74 +200,63 @@ private def extractPieces
 
 private def mkCtorSpec
     (entry : TSyntax `instr_set_entry) :
-    CommandElabM CtorSpec := do
+    CommandElabM InstrSpec := do
   match entry with
   | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term, specification : $spec:instr_set_spec }) => do
       let pieces ← extractPieces sig
       let holes := fieldsOfInputPieces pieces
       let ctorName := ctorName.getId.eraseMacroScopes
-      ensureNoDuplicateFieldNames ctorName holes
-      pure {
-        ref      := entry.raw.reprint.getD (toString entry.raw)
-        ctorName := ctorName
-        pieces   := pieces
-        sem      := sem.raw.reprint.getD (toString sem.raw)
-        spec     := spec.raw.reprint.getD (toString spec.raw)
+      let arch : InstrSpec := {
+          instrName := ctorName,
+          ref := entry.raw.reprint.getD (toString entry.raw),
+          pieces := pieces,
+          sem := sem.raw.reprint.getD (toString sem.raw),
+          hoareDesc := spec
+
       }
-  | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term
-      specification : $spec:instr_set_spec }) => do
-      let pieces ← extractPieces sig
-      let holes := fieldsOfInputPieces pieces
-      let ctorName := ctorName.getId.eraseMacroScopes
       ensureNoDuplicateFieldNames ctorName holes
-      pure {
-        ref      := entry.raw.reprint.getD (toString entry.raw)
-        ctorName := ctorName
-        pieces   := pieces
-        sem      := sem.raw.reprint.getD (toString sem.raw)
-        spec     := spec.raw.reprint.getD (toString spec.raw)
-      }
+      return arch
   | _ =>
       throwErrorAt entry "invalid instruction entry"
 
 
 /-! Code generation from persisted ArchSpec -/
 
-private def fieldsOfDecodedPieces (pieces : Array DecodedPiece) : Array DecodedHole :=
+private def fieldsOfDecodedPieces (pieces : Array Piece) : Array Hole :=
   pieces.foldl (init := #[]) fun acc piece =>
     match piece with
     | .lit _   => acc
     | .hole h  => acc.push h
 
-private def mkCtorTypeText (typeName : Name) (holes : Array DecodedHole) : String :=
+private def mkCtorTypeText (typeName : Name) (holes : Array Hole) : String :=
   let resultTy := toString typeName
   if holes.isEmpty then
     resultTy
   else
-    let argTys := holes.toList.map (fun h => h.tyText)
+    let argTys := holes.toList.map (fun h => h.ty)
     String.intercalate " → " (argTys ++ [resultTy])
 
-private def mkCtorLine (typeName : Name) (spec : DecodedCtor) : String :=
-  let ctor := toString spec.ctorName
+private def mkCtorLine (typeName : Name) (spec : InstrSpec) : String :=
+  let ctor := toString spec.instrName
   let ty := mkCtorTypeText typeName (fieldsOfDecodedPieces spec.pieces)
   s!"  | {ctor} : {ty}"
 
 private def mkInductiveCmd
-    (arch : DecodedArch) :
+    (arch : ArchSpec) :
     CommandElabM (TSyntax `command) := do
   let typeName := arch.typeName
-  let ctorLines := arch.ctors.toList.map (mkCtorLine typeName)
+  let ctorLines := arch.specs.toList.map (mkCtorLine typeName)
   let cmdText := joinLines <|
     [s!"inductive {typeName} : Type where"] ++
     ctorLines ++
     ["deriving Repr, BEq, Inhabited"]
   parseCommandStr Syntax.missing cmdText
 
-private def mkPatArgText (h : DecodedHole) : String :=
-  s!"({h.name} : {h.tyText})"
+private def mkPatArgText (h : Hole) : String :=
+  s!"({h.name} : {h.ty})"
 
-private def mkAltLine (spec : DecodedCtor) : String :=
-  let ctor := toString spec.ctorName
+private def mkAltLine (spec : InstrSpec) : String :=
+  let ctor := toString spec.instrName
   let holes := fieldsOfDecodedPieces spec.pieces
   let pat :=
     if holes.isEmpty then
@@ -297,64 +264,174 @@ private def mkAltLine (spec : DecodedCtor) : String :=
     else
       let args := String.intercalate " " (holes.toList.map mkPatArgText)
       s!".{ctor} {args}"
-  s!"  | {pat} => ({spec.semText}) _ms"
+  s!"  | {pat} => ({spec.sem}) _ms"
 
-private def mkExecuteCmd
-    (arch : DecodedArch) :
-    CommandElabM (TSyntax `command) := do
-  let typeName := arch.typeName
-  let execName := arch.execName
-  let altLines := arch.ctors.toList.map mkAltLine
-  let cmdText := joinLines <|
-    [ s!"def {execName} (_ms : MState {typeName}) (_instr : {typeName}) : MState {typeName} :="
-    , "  match _instr with"
-    ] ++
-    altLines
-  parseCommandStr Syntax.missing cmdText
+def adf (name : Name) : CommandElabM (TSyntax `ident) := do
+  let n := mkIdent name
+  return ⟨n⟩
+
+
+
+
+
+
+
+private def mkCtorPattern (ctorName : TSyntax `ident) (fields : Array (TSyntax `ident × TSyntax `term)) :
+    CommandElabM (TSyntax `term) := do
+  let argPats ← fields.mapM fun (name, _) => `(term| $name:ident)
+  if argPats.isEmpty then
+    `(term| .$ctorName:ident)
+  else
+    `(term| .$ctorName:ident $argPats*)
+
+private def mkMStateEndoType
+    (stateAlias : TSyntax `ident) :
+    CommandElabM (TSyntax `term) :=
+  `(term| $stateAlias:ident → $stateAlias:ident)
+
+
+-- private def mkExecuteAlt
+--     (stateAlias : TSyntax `ident)
+--     (stateIdent : TSyntax `ident)
+--     (spec : InstrSpec) :
+--     CommandElabM (TSyntax ``matchAlt) := do
+--   let pat ← mkCtorPattern (mkIdent spec.instrName) (fieldsOfPieces spec.pieces)
+--   let sem := spec.sem
+--   let semTy ← mkMStateEndoType stateAlias
+--   let semFn : TSyntax `term ← `(term| show $semTy:term from $sem:term)
+--   let rhs : TSyntax `term ← `(term| $semFn:term $stateIdent:ident)
+--   `(matchAltExpr| | $pat:term => $rhs:term)
+
+
+
+
+-- private def mkExecuteCmd
+--     (arch : ArchSpec) :
+--     CommandElabM (TSyntax `command) := do
+--   let typeName := arch.typeName
+--   let execName := arch.execName
+--   let alts ← arch.specs.mapM (mkExecuteAlt stateAlias stateIdent)
+--   `(command|
+--     def $(mkIdent execName) ($(mkIdent `_ms) : $(mkIdent `MState) $(mkIdent `Isntr))
+--           ($(mkIdent `_instr) : $(mkIdent execName)) : $(mkIdent `MState) $(mkIdent `Isntr) :=
+--       match $(mkIdent `_ms):ident with
+--       $altLines:matchAlt*)
 
 /-! Elaborators -/
 
-def elabMkInstrSetTerm : Lean.Elab.Term.TermElab := fun stx _expectedType? => do
-  match stx with
-  | `(term| mkInstrSet $archName:ident $typeName:ident $execName:ident $entries:instr_set_entry*) => do
-      let specs ← liftM <| liftCommandElabM (entries.mapM mkCtorSpec)
-      let arch : ArchSpec := {
-        name     := archName.getId.eraseMacroScopes
-        typeName := typeName.getId.eraseMacroScopes
-        execName := execName.getId.eraseMacroScopes
-        specs    := specs
-      }
+def tres (stx : TSyntax `instr_set_spec) : CommandElabM (TSyntax `term) := do
+  return ⟨stx⟩
 
-      pure (toExpr arch)
-  | _ =>
-      throwUnsupportedSyntax
 
-def elabMkType : CommandElab := fun stx => do
-  match stx with
-  | `(command| mkType $archName:ident) => do
-      let arch ← resolveArchFromIdent archName
-      let indCmd ← mkInductiveCmd arch
-      elabCommand indCmd
-  | _ =>
-      throwUnsupportedSyntax
 
-def elabMkExecution : CommandElab := fun stx => do
-  match stx with
-  | `(command| mkExecution $archName:ident) => do
-      let arch ← resolveArchFromIdent archName
-      let execCmd ← mkExecuteCmd arch
-      elabCommand execCmd
-  | _ =>
-      throwUnsupportedSyntax
+  -- | `(term| mkInstrSet $archName:ident $typeName:ident $execName:ident $entries:instr_set_entry*) => do
+  --     let specs ← liftM <| liftCommandElabM (entries.mapM mkCtorSpec)
+  --     let arch : ArchSpec := {
+  --       name     := archName.getId.eraseMacroScopes
+  --       typeName := typeName.getId.eraseMacroScopes
+  --       execName := execName.getId.eraseMacroScopes
+  --       specs    := specs
+  --     }
 
-@[term_elab mkInstrSetTerm]
-def elabMkInstrSetTermImpl : Lean.Elab.Term.TermElab :=
-  elabMkInstrSetTerm
+  --     pure (toExpr arch)
+  -- | _ =>
+  --     throwUnsupportedSyntax
 
-@[command_elab mkTypeCmd]
-def elabMkTypeImpl : CommandElab :=
-  elabMkType
+-- def elabMkType : CommandElab := fun stx => do
+--   match stx with
+--   | `(command| mkType $archName:ident) => do
+--       let arch ← resolveArchFromIdent archName
+--       let indCmd ← mkInductiveCmd arch
+--       logInfo s!"Created type {arch.typeName} for {arch.archName}"
+--       elabCommand indCmd
+--   | _ =>
+--       throwUnsupportedSyntax
 
-@[command_elab mkExecutionCmd]
-def elabMkExecutionImpl : CommandElab :=
-  elabMkExecution
+-- def elabMkExecution : CommandElab := fun stx => do
+--   match stx with
+--   | `(command| mkExecution $archName:ident) => do
+--       let arch ← resolveArchFromIdent archName
+--       let execCmd ← mkExecuteCmd arch
+--       elabCommand execCmd
+--   | _ =>
+--       throwUnsupportedSyntax
+
+
+
+-- @[command_elab mkTypeCmd]
+-- def elabMkTypeImpl : CommandElab :=
+--   elabMkType
+
+-- @[command_elab mkExecutionCmd]
+-- def elabMkExecutionImpl : CommandElab :=
+--   elabMkExecution
+
+
+
+elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_entry*: command => do
+  let specs ← (entries.mapM mkCtorSpec)
+  let arch : ArchSpec := {
+    name     := archName.getId.eraseMacroScopes
+    typeName := typeName.getId.eraseMacroScopes
+    execName := execName.getId.eraseMacroScopes
+    specs    := specs
+  }
+  let ad : TSyntax `term ← `($(mkIdent arch.name))
+  let indCmd ← mkInductiveCmd arch
+  for instr in arch.specs do
+    let syn ← mkSyntaxCmdForCtor instr
+    elabCommand syn
+  -- let exeCmd ← mkExecuteCmd arch
+  logInfo s!"Created type {arch.typeName} for {arch.name}"
+  -- logInfo s!"{arch.specs[0]!.hoareDesc}"
+  elabCommand indCmd
+  elabCommand (← mkGetInstrExprCmd arch)
+  elabCommand (← mkTest)
+  -- `mkTest` may emit extra elaborators/commands; keep it opt-in at call sites.
+  -- elabCommand (← mkTest)
+  -- elabCommand exeCmd
+  -- let ad : TSyntax `term ← tres arch.specs[0]!.hoareDesc
+  -- elabCommand (←`(#check $ad))
+
+
+mkAll RV64 Instr execute
+  LoadAddress:
+    { syntax : la (a:register), (m:immediate),
+      semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc,
+      specification: ⦃P ⟦x[a] <- m; pc++⟧⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄}
+  LoadImmediate:
+    { syntax : li (a:register), (m:immediate),
+      semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
+      specification: true }
+  Jump:
+    { syntax : j (lbl:label),
+      semantics: fun ms => (MState.jump ms lbl),
+      specification: True }
+  PANIC:
+    { syntax : PANIC,
+      semantics: fun ms => (MState.setTerminated ms true),
+      specification: True }
+
+#check ⟪j oaijdfsoi;⟫
+
+
+elab "mriscx" t:mriscx_label* "end" : term => do
+  return mkNatLit 0
+
+#check mriscx
+        first: li x0, 1
+        end
+
+#print getInstrExpr
+
+def execute : MState Instr → Instr → MState Instr :=
+fun ms instr =>
+  if ms.terminated then ms
+  else
+    match instr with
+    | Instr.LoadAddress a m => (fun ms => (ms.addRegisterAt a m).incPc) ms
+    | Instr.LoadImmediate a m => (fun ms => (ms.addRegisterAt a m).incPc) ms
+    | Instr.Jump lbl => (fun ms => ms.jump lbl) ms
+    | Instr.PANIC => (fun ms => ms.setTerminated true) ms
+#print Instr
+-- #print execute

@@ -8,30 +8,34 @@ open Lean Meta
 Shared decoded view used by `mkType`, `mkExecution`, and `mkSyntax`.
 -/
 
-structure DecodedHole where
+
+structure Hole where
   name   : Name
-  tyText : String
-  parser : Name
-deriving Inhabited
+  ty     : String
+  parser : String
+deriving Repr, Inhabited, ToExpr
 
-inductive DecodedPiece where
-  | lit  (tok : String)
-  | hole (h : DecodedHole)
-deriving Inhabited
+inductive Piece where
+  | lit  (token : String)
+  | hole (value : Hole)
+deriving Repr, Inhabited, ToExpr
 
-structure DecodedCtor where
-  ctorName : Name
-  pieces   : Array DecodedPiece
-  semText  : String
-  specText : String
+structure InstrSpec where
+  ref      : String
+  instrName : Name
+  pieces   : Array Piece
+  sem      : String
+  hoareDesc: TSyntax `instr_set_spec
+deriving Repr, Inhabited --, ToExpr
 
-structure DecodedArch where
-  archName : Name := .anonymous
+structure ArchSpec where
+  name     : Name
   typeName : Name
   execName : Name
-  ctors    : Array DecodedCtor
+  specs    : Array InstrSpec
+deriving Repr, Inhabited --, ToExpr
 
-def fieldsOfPieces (pieces : Array DecodedPiece) : Array DecodedHole :=
+def fieldsOfPieces (pieces : Array Piece) : (Array Hole) :=
   pieces.foldl (init := #[]) fun acc piece =>
     match piece with
     | .lit _   => acc
@@ -296,85 +300,85 @@ private def decodeSemTextExpr (e : Expr) : CommandElabM String := do
       else
         decodeError "constructor semantics" e
 
-def decodeHoleExpr (e : Expr) : CommandElabM DecodedHole := do
-  let e := e.consumeMData
-  let (fn, args) := e.getAppFnArgs
-  if nameMatches fn "Hole.mk" then
-    if args.size = 3 then
-      pure {
-        name   := ← decodeNameLikeExpr args[0]!
-        tyText := ← decodeTypeTextExpr args[1]!
-        parser := ← decodeParserExpr args[2]!
-      }
-    else
-      decodeError "Hole.mk" e
-  else
-    decodeError "Hole" e
+-- def decodeHoleExpr (e : Expr#) : CommandElabM Hole := do
+--   let e := e.consumeMData
+--   let (fn, args) := e.getAppFnArgs
+--   if nameMatches fn "Hole.mk" then
+--     if args.size = 3 then
+--       pure {
+--         name   := ← decodeNameLikeExpr args[0]!
+--         ty := ← decodeTypeTextExpr args[1]!
+--         parser := ← decodeParserExpr args[2]!
+--       }
+--     else
+--       decodeError "Hole.mk" e
+--   else
+--     decodeError "Hole" e
 
-def decodePieceExpr (e : Expr) : CommandElabM DecodedPiece := do
-  let e := e.consumeMData
-  let (fn, args) := e.getAppFnArgs
-  if nameMatches fn "Piece.lit" then
-    if args.size = 1 then
-      pure <| .lit (← decodeStringExpr args[0]!)
-    else
-      decodeError "Piece.lit" e
-  else if nameMatches fn "Piece.hole" then
-    if args.size = 1 then
-      pure <| .hole (← decodeHoleExpr args[0]!)
-    else
-      decodeError "Piece.hole" e
-  else
-    decodeError "Piece" e
+-- def decodePieceExpr (e : Expr) : CommandElabM Piece := do
+--   let e := e.consumeMData
+--   let (fn, args) := e.getAppFnArgs
+--   if nameMatches fn "Piece.lit" then
+--     if args.size = 1 then
+--       pure <| .lit (← decodeStringExpr args[0]!)
+--     else
+--       decodeError "Piece.lit" e
+--   else if nameMatches fn "Piece.hole" then
+--     if args.size = 1 then
+--       pure <| .hole (← decodeHoleExpr args[0]!)
+--     else
+--       decodeError "Piece.hole" e
+--   else
+--     decodeError "Piece" e
 
-def decodeCtorExpr (e : Expr) : CommandElabM DecodedCtor := do
-  let e := e.consumeMData
-  let (fn, args) := e.getAppFnArgs
-  if nameMatches fn "CtorSpec.mk" then
-    if args.size = 5 then
-      pure {
-        ctorName := ← decodeNameLikeExpr args[1]!
-        pieces   := ← decodeArrayExpr decodePieceExpr args[2]!
-        semText  := ← decodeSemTextExpr args[3]!
-        specText := ← decodeSemTextExpr args[4]!
-      }
-    else if args.size = 4 then
-      pure {
-        ctorName := ← decodeNameLikeExpr args[1]!
-        pieces   := ← decodeArrayExpr decodePieceExpr args[2]!
-        semText  := ← decodeSemTextExpr args[3]!
-        specText := "True"
-      }
-    else
-      decodeError "CtorSpec.mk" e
-  else
-    decodeError "CtorSpec" e
+-- def decodeCtorExpr (e : Expr) : CommandElabM InstrSpec := do
+--   let e := e.consumeMData
+--   let (fn, args) := e.getAppFnArgs
+--   if nameMatches fn "CtorSpec.mk" then
+--     if args.size = 5 then
+--       pure {
+--         ctorName := ← decodeNameLikeExpr args[1]!
+--         pieces   := ← decodeArrayExpr decodePieceExpr args[2]!
+--         semText  := ← decodeSemTextExpr args[3]!
+--         specText := ← decodeSemTextExpr args[4]!
+--       }
+--     else if args.size = 4 then
+--       pure {
+--         ctorName := ← decodeNameLikeExpr args[1]!
+--         pieces   := ← decodeArrayExpr decodePieceExpr args[2]!
+--         semText  := ← decodeSemTextExpr args[3]!
+--         specText := "True"
+--       }
+--     else
+--       decodeError "CtorSpec.mk" e
+--   else
+--     decodeError "CtorSpec" e
 
-def decodeArchExpr (e : Expr) : CommandElabM DecodedArch := do
-  let e := e.consumeMData
-  let (fn, args) := e.getAppFnArgs
-  if nameMatches fn "ArchSpec.mk" then
-    if args.size = 4 then
-      let archName ←
-        try
-          decodeNameLikeExpr args[0]!
-        catch _ =>
-          pure Name.anonymous
-      pure {
-        archName := archName
-        typeName := ← decodeNameLikeExpr args[1]!
-        execName := ← decodeNameLikeExpr args[2]!
-        ctors    := ← decodeArrayExpr decodeCtorExpr args[3]!
-      }
-    else
-      decodeError "ArchSpec.mk" e
-  else
-    decodeError "ArchSpec" e
+-- def decodeArchExpr (e : Expr) : CommandElabM ArchSpec := do
+--   let e := e.consumeMData
+--   let (fn, args) := e.getAppFnArgs
+--   if nameMatches fn "ArchSpec.mk" then
+--     if args.size = 4 then
+--       let archName ←
+--         try
+--           decodeNameLikeExpr args[0]!
+--         catch _ =>
+--           pure Name.anonymous
+--       pure {
+--         archName := archName
+--         typeName := ← decodeNameLikeExpr args[1]!
+--         execName := ← decodeNameLikeExpr args[2]!
+--         ctors    := ← decodeArrayExpr decodeCtorExpr args[3]!
+--       }
+--     else
+--       decodeError "ArchSpec.mk" e
+--   else
+--     decodeError "ArchSpec" e
 
-def resolveArchFromIdent (archName : TSyntax `ident) : CommandElabM DecodedArch := do
-  let target := archName.getId.eraseMacroScopes
-  let info ← getConstInfo target
-  let some value := info.value? (allowOpaque := true)
-    | throwErrorAt archName s!"`{target}` is not reducible to an `ArchSpec` value"
-  let whnfValue ← liftTermElabM <| Meta.withTransparency .all <| Meta.whnf value
-  decodeArchExpr whnfValue
+-- def resolveArchFromIdent (archName : TSyntax `ident) : CommandElabM ArchSpec := do
+--   let target := archName.getId.eraseMacroScopes
+--   let info ← getConstInfo target
+--   let some value := info.value? (allowOpaque := true)
+--     | throwErrorAt archName s!"`{target}` is not reducible to an `ArchSpec` value"
+--   let whnfValue ← liftTermElabM <| Meta.withTransparency .all <| Meta.whnf value
+--   decodeArchExpr whnfValue

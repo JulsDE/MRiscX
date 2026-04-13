@@ -23,7 +23,10 @@ structure MState (Instr : Type) where
 class MachineStateI (γ : Type)
     (InstrType CodeType RegisterNrType RegisterValType ProgramCounterType: Type) where
   getCode : γ → CodeType
+  getLabelAt : γ → String → Option ProgramCounterType
+  getTerminated : γ → Bool
   addRegister : γ → RegisterNrType → RegisterValType → γ
+  getRegisterAt : γ → RegisterNrType → RegisterValType
   setPc : γ → ProgramCounterType → γ
   getPc : γ → ProgramCounterType
   currInstruction : γ → InstrType
@@ -165,6 +168,9 @@ namespace MState
   def getCurrInstr (ms : MState Instr) : Instr :=
     ms.code.instrMap.get ms.pc
 
+  def getLabelAt (ms : MState Instr) (lbl : String) : Option ProgramCounter :=
+    ms.getCode.labelMap.get lbl
+
   -- def getLabelAt (ms:MState Instr) (s:String) : Option UInt64 :=
   --   ms.code.labels.get s
 
@@ -193,7 +199,10 @@ end MState
 instance instMState {Instr : Type} : MachineStateI (MState Instr) Instr (Code Instr) RegisterName UInt64
                                         ProgramCounter where
     currInstruction := MState.getCurrInstr
+    getLabelAt := MState.getLabelAt
+    getTerminated := MState.terminated
     getCode := MState.getCode
     addRegister := MState.addRegisterAt
+    getRegisterAt := MState.getRegisterAt
     setPc := MState.setPc
     getPc := MState.pc

@@ -249,24 +249,24 @@ def getInstrFromExpr (e : Expr) : MetaM Instr := do
     return Instr.JumpNeqZero reg label
   return Instr.Panic
 
-partial def getInstrMapFromExpr (e : Expr) : MetaM InstructionMap := do
-  let e ← Meta.whnf e
-  if e.isAppOfArity ``TMap.empty 3 then
-    return TMap.empty Instr.Panic
-  else if e.isAppOfArity ``TMap.put 5 then
-    let line ← getUInt64FromExpr <| ← Meta.whnf <| e.getArg! 2
-    let instr_expr ← Meta.whnf <| e.getArg! 3
-    let instr ← getInstrFromExpr instr_expr
-    return TMap.put line instr (←getInstrMapFromExpr (e.getArg! 4))
-  else
-    throwError s!"{e} is not a partial map"
+-- partial def getInstrMapFromExpr (e : Expr) : MetaM InstructionMap := do
+--   let e ← Meta.whnf e
+--   if e.isAppOfArity ``TMap.empty 3 then
+--     return TMap.empty Instr.Panic
+--   else if e.isAppOfArity ``TMap.put 5 then
+--     let line ← getUInt64FromExpr <| ← Meta.whnf <| e.getArg! 2
+--     let instr_expr ← Meta.whnf <| e.getArg! 3
+--     let instr ← getInstrFromExpr instr_expr
+--     return TMap.put line instr (←getInstrMapFromExpr (e.getArg! 4))
+--   else
+--     throwError s!"{e} is not a partial map"
 
 
-def getInstrMapFromCodeExpr (e : Expr) : MetaM InstructionMap := do
-  let e ← Meta.whnf e
-  if e.isAppOfArity ``Code.mk 2 then
-    return ← getInstrMapFromExpr (e.getArg! 0)
-  throwError "Expected an Expr of type Code"
+-- def getInstrMapFromCodeExpr (e : Expr) : MetaM InstructionMap := do
+--   let e ← Meta.whnf e
+--   if e.isAppOfArity ``Code.mk 2 then
+--     return ← getInstrMapFromExpr (e.getArg! 0)
+--   throwError "Expected an Expr of type Code"
 
 /--
 Each parameter of a lambda function returns the function itself when `bindingBody!`.

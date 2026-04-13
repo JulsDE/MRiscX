@@ -21,7 +21,7 @@ declare_syntax_cat mriscx_registers_abi (behavior := both)
 declare_syntax_cat mriscx_Instr (behavior := both)
 declare_syntax_cat mriscx_syntax
 declare_syntax_cat mriscx_program
-declare_syntax_cat mriscx_num_or_ident
+declare_syntax_cat num_or_ident
 declare_syntax_cat hoare
 
 -- this cat is for making it easier to differentiate between single line
@@ -33,11 +33,11 @@ Next, we define the syntax that will be valid within our language. Since we aim
 to prove statements based on this language, it is essential to support numerical
 literals (num) and variables as integers (ident).
 -/
-syntax num : mriscx_num_or_ident
+syntax num : num_or_ident
 
-syntax ident : mriscx_num_or_ident
+syntax ident : num_or_ident
 
-syntax &"x" mriscx_num_or_ident : mriscx_registers
+syntax &"x" num_or_ident : mriscx_registers
 
 
 syntax &"x0" : mriscx_registers_bare
@@ -116,29 +116,29 @@ Now we can define the syntax of all the legal instructions we need for our progr
 /-
 Operations in registers
 -/
-syntax "la " mriscx_registers &", " mriscx_num_or_ident
+syntax "la " mriscx_registers &", " num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "li " mriscx_registers &", " mriscx_num_or_ident
+syntax "li " mriscx_registers &", " num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "li " mriscx_registers &", " &"-" mriscx_num_or_ident
+syntax "li " mriscx_registers &", " &"-" num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "mv " mriscx_registers &"," mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "addi " mriscx_registers &", " mriscx_registers &", " mriscx_num_or_ident
+syntax "addi " mriscx_registers &", " mriscx_registers &", " num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "addi " mriscx_registers &", " mriscx_registers &", " &"-" mriscx_num_or_ident
+syntax "addi " mriscx_registers &", " mriscx_registers &", " &"-" num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "inc " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "add " mriscx_registers &", " mriscx_registers &", " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "subi " mriscx_registers &", " mriscx_registers &", " mriscx_num_or_ident
+syntax "subi " mriscx_registers &", " mriscx_registers &", " num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "dec " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "sub " mriscx_registers &", " mriscx_registers &", " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
-syntax "xori " mriscx_registers &", " mriscx_registers &", " mriscx_num_or_ident
+syntax "xori " mriscx_registers &", " mriscx_registers &", " num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 syntax "xor " mriscx_registers &", " mriscx_registers &", " mriscx_registers
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
@@ -146,7 +146,7 @@ syntax "xor " mriscx_registers &", " mriscx_registers &", " mriscx_registers
 Operations on memory
 -/
 -- Load word immediately from address
-syntax "lw " mriscx_registers &", " mriscx_num_or_ident
+syntax "lw " mriscx_registers &", " num_or_ident
   withPosition(semicolonOrLinebreak ppDedent(ppLine)) : mriscx_Instr
 -- Load word from address stored in register
 syntax "lw " mriscx_registers &", " num &"(" mriscx_registers &")"

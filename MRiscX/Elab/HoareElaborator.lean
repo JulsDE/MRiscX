@@ -1,8 +1,8 @@
 import MRiscX.Hoare.HoareCore
 -- import MRiscX.Elab.CodeElaborator
 import MRiscX.Parser.HoareSyntax
-
-
+import MRiscX.Hoare.HoareAssignmentElab
+import MRiscX.Hoare.EvalLabelInHoare
 open Lean Meta Elab
 
 /-

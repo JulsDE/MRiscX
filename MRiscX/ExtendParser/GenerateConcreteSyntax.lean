@@ -168,34 +168,34 @@ private def mkLiteralStx (tok : String) (isFirst : Bool) (hasNext : Bool) : Comm
   else
     parseStx txtQ
 
-private def mkSyntaxItems (spec : DecodedCtor) : CommandElabM (Array (TSyntax `stx)) := do
+private def mkSyntaxItems (spec : InstrSpec) : CommandElabM (Array (TSyntax `stx)) := do
   let mut items : Array (TSyntax `stx) := #[]
   let nPieces := spec.pieces.size
   for i in [0:nPieces] do
     let hasNext := i + 1 < nPieces
     match spec.pieces[i]! with
-    | DecodedPiece.lit tok =>
+    | Piece.lit tok =>
         items := items.push (← mkLiteralStx tok (i == 0) hasNext)
-    | DecodedPiece.hole hole =>
+    | Piece.hole hole =>
         items := items.push (← parseStx (toString hole.parser))
   let terminator : TSyntax `stx ← `(stx| withPosition(Lean.Parser.semicolonOrLinebreak ppDedent(ppLine)))
   pure <| items.push terminator
 
-private def mkSyntaxCmdForCtor (spec : DecodedCtor) : CommandElabM (TSyntax `command) := do
+def mkSyntaxCmdForCtor (spec : InstrSpec) : CommandElabM (TSyntax `command) := do
   let items ← mkSyntaxItems spec
   `(command| syntax $[$items:stx]* : mriscx_Instr)
 
 
-def elabMkSyntax : CommandElab := fun stx => do
-  match stx with
-  | `(command| mkSyntax $archName:ident) => do
-      let arch ← resolveArchFromIdent archName
-      for ctor in arch.ctors do
-        let cmd ← mkSyntaxCmdForCtor ctor
-        elabCommand cmd
-  | _ =>
-      throwUnsupportedSyntax
+-- def elabMkSyntax : CommandElab := fun stx => do
+--   match stx with
+--   | `(command| mkSyntax $archName:ident) => do
+--       let arch ← resolveArchFromIdent archName
+--       for ctor in arch.ctors do
+--         let cmd ← mkSyntaxCmdForCtor ctor
+--         elabCommand cmd
+--   | _ =>
+--       throwUnsupportedSyntax
 
-@[command_elab mkSyntaxCmd]
-def elabMkSyntaxImpl : CommandElab :=
-  elabMkSyntax
+-- @[command_elab mkSyntaxCmd]
+-- def elabMkSyntaxImpl : CommandElab :=
+--   elabMkSyntax

@@ -11,7 +11,7 @@ open Lean.Parser.Term
 /-!
   Platzhalter in einem `syntax:`-Block, z. B.
 
-    (dst : Nat, mriscx_num_or_ident)
+    (dst : Nat, num_or_ident)
 
   Der zweite Slot ist bewusst `stx` statt nur `ident`.
 -/
@@ -464,7 +464,7 @@ declare_syntax_cat mriscx_label
 declare_syntax_cat mriscx_Instr (behavior := both)
 declare_syntax_cat mriscx_syntax
 declare_syntax_cat mriscx_program
-declare_syntax_cat mriscx_num_or_ident
+declare_syntax_cat num_or_ident
 declare_syntax_cat hoare
 
 -- this cat is for making it easier to differentiate between single line
@@ -476,22 +476,22 @@ Next, we define the syntax that will be valid within our language. Since we aim
 to prove statements based on this language, it is essential to support numerical
 literals (num) and variables as integers (ident).
 -/
-syntax num : mriscx_num_or_ident
+syntax num : num_or_ident
 
-syntax ident : mriscx_num_or_ident
+syntax ident : num_or_ident
 
 make_InstrSet Instr execute
   LoadAddress:
     { syntax : la (a:register), (m:immediate),
       semantics: fun ms => (ms.addRegister a m).incPc }
   -- CopyRegister:
-  --   { syntax : mv x (c:UInt64, mriscx_num_or_ident), x (reg:UInt64, mriscx_num_or_ident),
+  --   { syntax : mv x (c:UInt64, num_or_ident), x (reg:UInt64, num_or_ident),
   --     semantics: fun ms => (ms.addRegister c (ms.getRegisterAt reg)).incPc }
   -- Increment:
-  --   { syntax : inc x (r:UInt64, mriscx_num_or_ident),
+  --   { syntax : inc x (r:UInt64, num_or_ident),
   --     semantics: fun ms => (ms.addRegister r (ms.getRegisterAt r + 1)).incPc }
   -- AddRegister:
-  --   { syntax : add x (dst:UInt64, mriscx_num_or_ident), x (reg1:UInt64, mriscx_num_or_ident), x (reg2:UInt64, mriscx_num_or_ident),
+  --   { syntax : add x (dst:UInt64, num_or_ident), x (reg1:UInt64, num_or_ident), x (reg2:UInt64, num_or_ident),
   --     semantics: fun ms => (ms.addRegister dst ((ms.getRegisterAt reg1) + (ms.getRegisterAt reg2))).incPc }
   Jump:
     { syntax : j (lbl:label),

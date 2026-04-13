@@ -1,4 +1,4 @@
-import MRiscX.Parser.AssemblySyntax
+import MRiscX.ExtendParser.GenerateConcreteSyntax
 /-
 Syntax for hoare terms
 -/
@@ -13,7 +13,7 @@ syntax ident withPosition(linebreak ppDedent(ppLine))
 syntax "⦃" term "⦄" : term
 
 -- General Hoare Syntax
-syntax "x[" mriscx_registers "]" : term
+syntax "x[" register "]" : term
 syntax "mem[" term "]" : term
 syntax "labels[" ident "]" : term
 syntax "labels[" &"." ident "]" : term
@@ -31,10 +31,10 @@ declare_syntax_cat hoare_assignment (behavior := both)
 declare_syntax_cat hoare_assignment_chain
 declare_syntax_cat hoare_assignment_term
 
-syntax "x[" mriscx_num_or_ident "]" &" ← " term : hoare_assignment
-syntax "x[" mriscx_num_or_ident "]" &" <- " term : hoare_assignment
-syntax "x[" mriscx_registers "]" &" ← " term : hoare_assignment
-syntax "x[" mriscx_registers "]" &" <- " term : hoare_assignment
+syntax "x[" num_or_ident "]" &" ← " term : hoare_assignment
+syntax "x[" num_or_ident "]" &" <- " term : hoare_assignment
+syntax "x[" register "]" &" ← " term : hoare_assignment
+syntax "x[" register "]" &" <- " term : hoare_assignment
 
 syntax "mem[" term &"]" &" ← " term : hoare_assignment
 syntax "mem[" term &"]" &" <- " term : hoare_assignment

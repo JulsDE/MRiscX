@@ -1,8 +1,8 @@
-import MRiscX.Parser.AssemblySyntax
+import MRiscX.ExtendParser.GenerateConcreteSyntax
 import MRiscX.AbstractSyntax.Map
 import MRiscX.AbstractSyntax.Instr
 import MRiscX.AbstractSyntax.MState
-import MRiscX.Elab.HandleRegister
+-- import MRiscX.Elab.HandleRegister
 import MRiscX.Elab.HandleNumOrIdent
 import Lean
 open Lean.Elab Command Term
@@ -24,215 +24,215 @@ Finally, we generate a constant expression representing the instruction,
 along with the associated variables, and push this into the "expression"
 array.
 -/
-def getInstrExpr (t: TSyntax `mriscx_Instr): TermElabM Expr := do
-  match t with
-    | `(mriscx_Instr | la $r:mriscx_registers, $addr:mriscx_num_or_ident
-    )
-    | `(mriscx_Instr | la $r:mriscx_registers, $addr:mriscx_num_or_ident;) =>
-      let mut exprOfReg ← getCorrespondingRegister r
+-- def getInstrExpr (t: TSyntax `mriscx_Instr): TermElabM Expr := do
+--   match t with
+--     | `(mriscx_Instr | la $r:mriscx_registers, $addr:num_or_ident
+--     )
+--     | `(mriscx_Instr | la $r:mriscx_registers, $addr:num_or_ident;) =>
+--       let mut exprOfReg ← getCorrespondingRegister r
 
-      let exprOfAddr ← parseMriscxNumOrIdent addr
-      return (mkAppN (.const `Instr.LoadAddress []) #[exprOfReg, exprOfAddr])
-    | `(mriscx_Instr | li $r:mriscx_registers, $v:mriscx_num_or_ident
-    )
-    | `(mriscx_Instr | li $r:mriscx_registers, $v:mriscx_num_or_ident;) =>
-      let mut exprOfReg ← getCorrespondingRegister r
-      let exprOfVal ← parseMriscxNumOrIdent v
-      return (mkAppN (.const `Instr.LoadImmediate []) #[exprOfReg, exprOfVal])
-    | `(mriscx_Instr | li $r:mriscx_registers, -$v:mriscx_num_or_ident
-    )
-    | `(mriscx_Instr | li $r:mriscx_registers, -$v:mriscx_num_or_ident;) =>
-      let exprOfReg ← getCorrespondingRegister r
-      let exprOfVal ← parseMriscxNumOrIdent v
-      return (mkAppN (.const `Instr.LoadImmediate []) #[exprOfReg, exprOfVal])
-    | `(mriscx_Instr | mv $r:mriscx_registers, $v:mriscx_registers
-    )
-    | `(mriscx_Instr | mv $r:mriscx_registers, $v:mriscx_registers;) =>
-      let exprOfReg ← getCorrespondingRegister r
-      let exprOfVal ← getCorrespondingRegister v
-      return (mkAppN (.const `Instr.CopyRegister []) #[exprOfReg, exprOfVal])
-    | `(mriscx_Instr | addi $dst:mriscx_registers, $reg:mriscx_registers,
-                        $i:mriscx_num_or_ident
-    )
-    | `(mriscx_Instr | addi $dst:mriscx_registers, $reg:mriscx_registers,
-                        $i:mriscx_num_or_ident;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfReg ← getCorrespondingRegister reg
-      let exprOfImm ← parseMriscxNumOrIdent i
-      return (mkAppN (.const `Instr.AddImmediate []) #[exprOfDst, exprOfReg, exprOfImm])
-    | `(mriscx_Instr | addi $dst:mriscx_registers, $reg:mriscx_registers,
-                        -$i:mriscx_num_or_ident
-    )
-    | `(mriscx_Instr | addi $dst:mriscx_registers, $reg:mriscx_registers,
-                        -$i:mriscx_num_or_ident;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfReg ← getCorrespondingRegister reg
-      let exprOfImm ← parseMriscxNumOrIdent i
-      return (mkAppN (.const `Instr.AddNegImmediate []) #[exprOfDst, exprOfReg, exprOfImm])
-    | `(mriscx_Instr | inc $dst:mriscx_registers
-    )
-    | `(mriscx_Instr | inc $dst:mriscx_registers;) =>
-      let exprOfReg ← getCorrespondingRegister dst
-      return (mkAppN (.const `Instr.Increment []) #[exprOfReg])
-    | `(mriscx_Instr | add $dst:mriscx_registers,$reg1:mriscx_registers,
-                        $reg2:mriscx_registers
-    )
-    | `(mriscx_Instr | add $dst:mriscx_registers,$reg1:mriscx_registers,
-                        $reg2:mriscx_registers;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      return (mkAppN (.const `Instr.AddRegister []) #[exprOfDst, exprOfReg1, exprOfReg2])
-    | `(mriscx_Instr | subi $dst:mriscx_registers, $reg:mriscx_registers,
-                        $i:mriscx_num_or_ident
-    )
-    | `(mriscx_Instr | subi $dst:mriscx_registers, $reg:mriscx_registers,
-                        $i:mriscx_num_or_ident;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfReg ← getCorrespondingRegister reg
-      let exprOfImm ← parseMriscxNumOrIdent i
-      return (mkAppN (.const `Instr.SubImmediate []) #[exprOfDst, exprOfReg, exprOfImm])
-    | `(mriscx_Instr | dec $reg:mriscx_registers
-    )
-    | `(mriscx_Instr | dec $reg:mriscx_registers;) =>
-      let exprOfReg ← getCorrespondingRegister reg
-      return (mkAppN (.const `Instr.Decrement []) #[exprOfReg])
-    | `(mriscx_Instr | sub $dst:mriscx_registers,$reg1:mriscx_registers,
-                        $reg2:mriscx_registers
-    )
-    | `(mriscx_Instr | sub $dst:mriscx_registers,$reg1:mriscx_registers,
-                        $reg2:mriscx_registers;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      return (mkAppN (.const `Instr.SubRegister []) #[exprOfDst, exprOfReg1, exprOfReg2])
-    | `(mriscx_Instr | xori $dst:mriscx_registers, $reg:mriscx_registers,
-                        $i:mriscx_num_or_ident
-    )
-    | `(mriscx_Instr | xori $dst:mriscx_registers, $reg:mriscx_registers,
-                        $i:mriscx_num_or_ident;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfReg ← getCorrespondingRegister reg
-      let exprOfImm ← parseMriscxNumOrIdent i
-      return (mkAppN (.const `Instr.XorImmediate []) #[exprOfDst, exprOfReg, exprOfImm])
-    | `(mriscx_Instr | xor $dst:mriscx_registers,$reg1:mriscx_registers,
-                        $reg2:mriscx_registers
-    )
-    | `(mriscx_Instr | xor $dst:mriscx_registers,$reg1:mriscx_registers,
-                        $reg2:mriscx_registers;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      return (mkAppN (.const `Instr.XOR []) #[exprOfDst, exprOfReg1, exprOfReg2])
-    | `(mriscx_Instr | lw $dst:mriscx_registers, $addr:mriscx_num_or_ident
-    )
-    | `(mriscx_Instr | lw $dst:mriscx_registers, $addr:mriscx_num_or_ident;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfAddr ← parseMriscxNumOrIdent addr
-      return (mkAppN (.const `Instr.LoadWordImmediate []) #[exprOfDst, exprOfAddr])
-    | `(mriscx_Instr | lw $dst:mriscx_registers, $addr:mriscx_registers
-    )
-    | `(mriscx_Instr | lw $dst:mriscx_registers, $addr:mriscx_registers;) =>
-      let exprOfDst ← getCorrespondingRegister dst
-      let exprOfAddr ← getCorrespondingRegister addr
-      return (mkAppN (.const `Instr.LoadWordReg []) #[exprOfDst, exprOfAddr])
-    | `(mriscx_Instr | sw $reg:mriscx_registers, $dst:mriscx_registers
-    )
-    | `(mriscx_Instr | sw $reg:mriscx_registers, $dst:mriscx_registers;) =>
-      let exprOfReg ← getCorrespondingRegister reg
-      let exprOfDst ← getCorrespondingRegister dst
-      return (mkAppN (.const `Instr.StoreWord []) #[exprOfReg, exprOfDst])
-    | `(mriscx_Instr | j $lbl:ident
-    )
-    | `(mriscx_Instr | j $lbl:ident;) =>
-      let expr ← parseLabelname lbl false
-      return(mkAppN (.const `Instr.Jump []) #[expr])
-    | `(mriscx_Instr | j .$lbl:ident
-    )
-    | `(mriscx_Instr | j .$lbl:ident;) =>
-      let expr ← parseLabelname lbl true
-      return(mkAppN (.const `Instr.Jump []) #[expr])
-    | `(mriscx_Instr | beq $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident
-    )
-    | `(mriscx_Instr | beq $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident;) =>
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      let lblExpr ← parseLabelname lbl false
-      return (mkAppN (.const `Instr.JumpEq []) #[exprOfReg1, exprOfReg2, lblExpr])
-    | `(mriscx_Instr | beq $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident
-    )
-    | `(mriscx_Instr | beq $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident;) =>
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      let lblExpr ← parseLabelname lbl true
-      return (mkAppN (.const `Instr.JumpEq []) #[exprOfReg1, exprOfReg2, lblExpr])
-    | `(mriscx_Instr | bne $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident
-    )
-    | `(mriscx_Instr | bne $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident;) =>
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      let lblExpr ← parseLabelname lbl false
-      return (mkAppN (.const `Instr.JumpNeq []) #[exprOfReg1, exprOfReg2, lblExpr])
-    | `(mriscx_Instr | bne $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident
-    )
-    | `(mriscx_Instr | bne $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident;) =>
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      let lblExpr ← parseLabelname lbl true
-      return (mkAppN (.const `Instr.JumpNeq []) #[exprOfReg1, exprOfReg2, lblExpr])
-    | `(mriscx_Instr | bgt $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident
-    )
-    | `(mriscx_Instr | bgt $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident;) =>
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      let lblExpr ← parseLabelname lbl false
-      return (mkAppN (.const `Instr.JumpGt []) #[exprOfReg1, exprOfReg2, lblExpr])
-    | `(mriscx_Instr | bgt $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident
-    )
-    | `(mriscx_Instr | bgt $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident;) =>
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      let lblExpr ← parseLabelname lbl true
-      return (mkAppN (.const `Instr.JumpGt []) #[exprOfReg1, exprOfReg2, lblExpr])
-    | `(mriscx_Instr | ble $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident
-    )
-    | `(mriscx_Instr | ble $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident;) =>
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      let lblExpr ← parseLabelname lbl false
-      return (mkAppN (.const `Instr.JumpLe []) #[exprOfReg1, exprOfReg2, lblExpr])
-    | `(mriscx_Instr | ble $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident
-    )
-    | `(mriscx_Instr | ble $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident;) =>
-      let exprOfReg1 ← getCorrespondingRegister reg1
-      let exprOfReg2 ← getCorrespondingRegister reg2
-      let lblExpr ← parseLabelname lbl true
-      return (mkAppN (.const `Instr.JumpLe []) #[exprOfReg1, exprOfReg2, lblExpr])
-    | `(mriscx_Instr | beqz $reg:mriscx_registers, $lbl:ident
-    )
-    | `(mriscx_Instr | beqz $reg:mriscx_registers, $lbl:ident;)  =>
-      let regExpr ← getCorrespondingRegister reg
-      let lblExpr ← parseLabelname lbl false
-      return (mkAppN (.const `Instr.JumpEqZero []) #[regExpr, lblExpr])
-    | `(mriscx_Instr | beqz $reg:mriscx_registers, .$lbl:ident
-    )
-    | `(mriscx_Instr | beqz $reg:mriscx_registers, .$lbl:ident;) =>
-      let regExpr ← getCorrespondingRegister reg
-      let lblExpr ← parseLabelname lbl true
-      return (mkAppN (.const `Instr.JumpEqZero []) #[regExpr, lblExpr])
-    | `(mriscx_Instr | bnez $reg:mriscx_registers, $lbl:ident
-    )
-    | `(mriscx_Instr | bnez $reg:mriscx_registers, $lbl:ident;) =>
-      let regExpr ← getCorrespondingRegister reg
-      let lblExpr ← parseLabelname lbl false
-      return (mkAppN (.const `Instr.JumpNeqZero []) #[regExpr, lblExpr])
-    | `(mriscx_Instr | bnez $reg:mriscx_registers, .$lbl:ident
-    )
-    | `(mriscx_Instr | bnez $reg:mriscx_registers, .$lbl:ident;) =>
-      let regExpr ← getCorrespondingRegister reg
-      let lblExpr ← parseLabelname lbl true
-      return (mkAppN (.const `Instr.JumpNeqZero []) #[regExpr, lblExpr])
-    | _ => throwError ("Not a know Instruction")
+--       let exprOfAddr ← parseMriscxNumOrIdent addr
+--       return (mkAppN (.const `Instr.LoadAddress []) #[exprOfReg, exprOfAddr])
+--     | `(mriscx_Instr | li $r:mriscx_registers, $v:num_or_ident
+--     )
+--     | `(mriscx_Instr | li $r:mriscx_registers, $v:num_or_ident;) =>
+--       let mut exprOfReg ← getCorrespondingRegister r
+--       let exprOfVal ← parseMriscxNumOrIdent v
+--       return (mkAppN (.const `Instr.LoadImmediate []) #[exprOfReg, exprOfVal])
+--     | `(mriscx_Instr | li $r:mriscx_registers, -$v:num_or_ident
+--     )
+--     | `(mriscx_Instr | li $r:mriscx_registers, -$v:num_or_ident;) =>
+--       let exprOfReg ← getCorrespondingRegister r
+--       let exprOfVal ← parseMriscxNumOrIdent v
+--       return (mkAppN (.const `Instr.LoadImmediate []) #[exprOfReg, exprOfVal])
+--     | `(mriscx_Instr | mv $r:mriscx_registers, $v:mriscx_registers
+--     )
+--     | `(mriscx_Instr | mv $r:mriscx_registers, $v:mriscx_registers;) =>
+--       let exprOfReg ← getCorrespondingRegister r
+--       let exprOfVal ← getCorrespondingRegister v
+--       return (mkAppN (.const `Instr.CopyRegister []) #[exprOfReg, exprOfVal])
+--     | `(mriscx_Instr | addi $dst:mriscx_registers, $reg:mriscx_registers,
+--                         $i:num_or_ident
+--     )
+--     | `(mriscx_Instr | addi $dst:mriscx_registers, $reg:mriscx_registers,
+--                         $i:num_or_ident;) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfReg ← getCorrespondingRegister reg
+--       let exprOfImm ← parseMriscxNumOrIdent i
+--       return (mkAppN (.const `Instr.AddImmediate []) #[exprOfDst, exprOfReg, exprOfImm])
+--     | `(mriscx_Instr | addi $dst:mriscx_registers, $reg:mriscx_registers,
+--                         -$i:num_or_ident
+--     )
+--     | `(mriscx_Instr | addi $dst:mriscx_registers, $reg:mriscx_registers,
+--                         -$i:num_or_ident;) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfReg ← getCorrespondingRegister reg
+--       let exprOfImm ← parseMriscxNumOrIdent i
+--       return (mkAppN (.const `Instr.AddNegImmediate []) #[exprOfDst, exprOfReg, exprOfImm])
+--     | `(mriscx_Instr | inc $dst:mriscx_registers
+--     )
+--     | `(mriscx_Instr | inc $dst:mriscx_registers;) =>
+--       let exprOfReg ← getCorrespondingRegister dst
+--       return (mkAppN (.const `Instr.Increment []) #[exprOfReg])
+--     | `(mriscx_Instr | add $dst:mriscx_registers,$reg1:mriscx_registers,
+--                         $reg2:mriscx_registers
+--     )
+--     | `(mriscx_Instr | add $dst:mriscx_registers,$reg1:mriscx_registers,
+--                         $reg2:mriscx_registers;) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       return (mkAppN (.const `Instr.AddRegister []) #[exprOfDst, exprOfReg1, exprOfReg2])
+--     | `(mriscx_Instr | subi $dst:mriscx_registers, $reg:mriscx_registers,
+--                         $i:num_or_ident
+--     )
+--     | `(mriscx_Instr | subi $dst:mriscx_registers, $reg:mriscx_registers,
+--                         $i:num_or_ident;) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfReg ← getCorrespondingRegister reg
+--       let exprOfImm ← parseMriscxNumOrIdent i
+--       return (mkAppN (.const `Instr.SubImmediate []) #[exprOfDst, exprOfReg, exprOfImm])
+--     | `(mriscx_Instr | dec $reg:mriscx_registers
+--     )
+--     | `(mriscx_Instr | dec $reg:mriscx_registers;) =>
+--       let exprOfReg ← getCorrespondingRegister reg
+--       return (mkAppN (.const `Instr.Decrement []) #[exprOfReg])
+--     | `(mriscx_Instr | sub $dst:mriscx_registers,$reg1:mriscx_registers,
+--                         $reg2:mriscx_registers
+--     )
+--     | `(mriscx_Instr | sub $dst:mriscx_registers,$reg1:mriscx_registers,
+--                         $reg2:mriscx_registers;) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       return (mkAppN (.const `Instr.SubRegister []) #[exprOfDst, exprOfReg1, exprOfReg2])
+--     | `(mriscx_Instr | xori $dst:mriscx_registers, $reg:mriscx_registers,
+--                         $i:num_or_ident
+--     )
+--     | `(mriscx_Instr | xori $dst:mriscx_registers, $reg:mriscx_registers,
+--                         $i:num_or_ident;) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfReg ← getCorrespondingRegister reg
+--       let exprOfImm ← parseMriscxNumOrIdent i
+--       return (mkAppN (.const `Instr.XorImmediate []) #[exprOfDst, exprOfReg, exprOfImm])
+--     | `(mriscx_Instr | xor $dst:mriscx_registers,$reg1:mriscx_registers,
+--                         $reg2:mriscx_registers
+--     )
+--     | `(mriscx_Instr | xor $dst:mriscx_registers,$reg1:mriscx_registers,
+--                         $reg2:mriscx_registers;) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       return (mkAppN (.const `Instr.XOR []) #[exprOfDst, exprOfReg1, exprOfReg2])
+--     | `(mriscx_Instr | lw $dst:mriscx_registers, $addr:num_or_ident
+--     )
+--     | `(mriscx_Instr | lw $dst:mriscx_registers, $addr:num_or_ident;) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfAddr ← parseMriscxNumOrIdent addr
+--       return (mkAppN (.const `Instr.LoadWordImmediate []) #[exprOfDst, exprOfAddr])
+--     | `(mriscx_Instr | lw $dst:mriscx_registers, $off:num($addr:mriscx_registers)
+--     )
+--     | `(mriscx_Instr | lw $dst:mriscx_registers, $off:num($addr:mriscx_registers);) =>
+--       let exprOfDst ← getCorrespondingRegister dst
+--       let exprOfAddr ← getCorrespondingRegister addr
+--       return (mkAppN (.const `Instr.LoadWordReg []) #[exprOfDst, exprOfAddr])
+--     | `(mriscx_Instr | sw $reg:mriscx_registers, $off:num($dst:mriscx_registers)
+--     )
+--     | `(mriscx_Instr | sw $reg:mriscx_registers, $off:num($dst:mriscx_registers);) =>
+--       let exprOfReg ← getCorrespondingRegister reg
+--       let exprOfDst ← getCorrespondingRegister dst
+--       return (mkAppN (.const `Instr.StoreWord []) #[exprOfReg, exprOfDst])
+--     | `(mriscx_Instr | j $lbl:ident
+--     )
+--     | `(mriscx_Instr | j $lbl:ident;) =>
+--       let expr ← parseLabelname lbl false
+--       return(mkAppN (.const `Instr.Jump []) #[expr])
+--     | `(mriscx_Instr | j .$lbl:ident
+--     )
+--     | `(mriscx_Instr | j .$lbl:ident;) =>
+--       let expr ← parseLabelname lbl true
+--       return(mkAppN (.const `Instr.Jump []) #[expr])
+--     | `(mriscx_Instr | beq $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident
+--     )
+--     | `(mriscx_Instr | beq $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident;) =>
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       let lblExpr ← parseLabelname lbl false
+--       return (mkAppN (.const `Instr.JumpEq []) #[exprOfReg1, exprOfReg2, lblExpr])
+--     | `(mriscx_Instr | beq $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident
+--     )
+--     | `(mriscx_Instr | beq $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident;) =>
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       let lblExpr ← parseLabelname lbl true
+--       return (mkAppN (.const `Instr.JumpEq []) #[exprOfReg1, exprOfReg2, lblExpr])
+--     | `(mriscx_Instr | bne $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident
+--     )
+--     | `(mriscx_Instr | bne $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident;) =>
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       let lblExpr ← parseLabelname lbl false
+--       return (mkAppN (.const `Instr.JumpNeq []) #[exprOfReg1, exprOfReg2, lblExpr])
+--     | `(mriscx_Instr | bne $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident
+--     )
+--     | `(mriscx_Instr | bne $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident;) =>
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       let lblExpr ← parseLabelname lbl true
+--       return (mkAppN (.const `Instr.JumpNeq []) #[exprOfReg1, exprOfReg2, lblExpr])
+--     | `(mriscx_Instr | bgt $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident
+--     )
+--     | `(mriscx_Instr | bgt $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident;) =>
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       let lblExpr ← parseLabelname lbl false
+--       return (mkAppN (.const `Instr.JumpGt []) #[exprOfReg1, exprOfReg2, lblExpr])
+--     | `(mriscx_Instr | bgt $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident
+--     )
+--     | `(mriscx_Instr | bgt $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident;) =>
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       let lblExpr ← parseLabelname lbl true
+--       return (mkAppN (.const `Instr.JumpGt []) #[exprOfReg1, exprOfReg2, lblExpr])
+--     | `(mriscx_Instr | ble $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident
+--     )
+--     | `(mriscx_Instr | ble $reg1:mriscx_registers, $reg2:mriscx_registers, $lbl:ident;) =>
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       let lblExpr ← parseLabelname lbl false
+--       return (mkAppN (.const `Instr.JumpLe []) #[exprOfReg1, exprOfReg2, lblExpr])
+--     | `(mriscx_Instr | ble $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident
+--     )
+--     | `(mriscx_Instr | ble $reg1:mriscx_registers, $reg2:mriscx_registers, .$lbl:ident;) =>
+--       let exprOfReg1 ← getCorrespondingRegister reg1
+--       let exprOfReg2 ← getCorrespondingRegister reg2
+--       let lblExpr ← parseLabelname lbl true
+--       return (mkAppN (.const `Instr.JumpLe []) #[exprOfReg1, exprOfReg2, lblExpr])
+--     | `(mriscx_Instr | beqz $reg:mriscx_registers, $lbl:ident
+--     )
+--     | `(mriscx_Instr | beqz $reg:mriscx_registers, $lbl:ident;)  =>
+--       let regExpr ← getCorrespondingRegister reg
+--       let lblExpr ← parseLabelname lbl false
+--       return (mkAppN (.const `Instr.JumpEqZero []) #[regExpr, lblExpr])
+--     | `(mriscx_Instr | beqz $reg:mriscx_registers, .$lbl:ident
+--     )
+--     | `(mriscx_Instr | beqz $reg:mriscx_registers, .$lbl:ident;) =>
+--       let regExpr ← getCorrespondingRegister reg
+--       let lblExpr ← parseLabelname lbl true
+--       return (mkAppN (.const `Instr.JumpEqZero []) #[regExpr, lblExpr])
+--     | `(mriscx_Instr | bnez $reg:mriscx_registers, $lbl:ident
+--     )
+--     | `(mriscx_Instr | bnez $reg:mriscx_registers, $lbl:ident;) =>
+--       let regExpr ← getCorrespondingRegister reg
+--       let lblExpr ← parseLabelname lbl false
+--       return (mkAppN (.const `Instr.JumpNeqZero []) #[regExpr, lblExpr])
+--     | `(mriscx_Instr | bnez $reg:mriscx_registers, .$lbl:ident
+--     )
+--     | `(mriscx_Instr | bnez $reg:mriscx_registers, .$lbl:ident;) =>
+--       let regExpr ← getCorrespondingRegister reg
+--       let lblExpr ← parseLabelname lbl true
+--       return (mkAppN (.const `Instr.JumpNeqZero []) #[regExpr, lblExpr])
+--     | _ => throwError ("Not a know Instruction")⟪
 
 
 /-
@@ -270,7 +270,7 @@ partial def getLabelMapFromSyntax (syn : TSyntax `mriscx_syntax): TermElabM Labe
     for synEntry in lblSyn do
       labelInstrArr := labelInstrArr.push (←getLabelInstrArr synEntry)
 
-    let mut labelMap : LabelMap := EmptyLabels
+    let mut labelMap : LabelMap := PMap.empty
 
     for label in labelInstrArr do
       labelMap := labelMap.put label.1 counter

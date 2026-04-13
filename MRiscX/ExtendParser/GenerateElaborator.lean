@@ -9,7 +9,7 @@ open Lean Elab Command Term
 syntax (name := mkElaboratorCmd)
   "mkElaborator " ident : command
 
-initialize activeArchRef : IO.Ref (Option DecodedArch) ← IO.mkRef none
+initialize activeArchRef : IO.Ref (Option ArchSpec) ← IO.mkRef none
 
 private def trimAsciiStr (s : String) : String :=
   (s.trimAscii).toString
@@ -45,7 +45,7 @@ private partial def findTokenPos? (s : String) (tok : String) (start : Nat) : Op
   else
     findTokenPos? s tok (i + 1)
 
-private def nextLiteralTok? (pieces : Array DecodedPiece) (start : Nat) : Option String := Id.run do
+private def nextLiteralTok? (pieces : Array Piece) (start : Nat) : Option String := Id.run do
   for i in [start:pieces.size] do
     match pieces[i]! with
     | .lit tok =>
@@ -54,7 +54,7 @@ private def nextLiteralTok? (pieces : Array DecodedPiece) (start : Nat) : Option
         pure ()
   return none
 
-private def splitHoleTexts (pieces : Array DecodedPiece) (raw : String) : Option (Array String) := Id.run do
+private def splitHoleTexts (pieces : Array Piece) (raw : String) : Option (Array String) := Id.run do
   let s := sanitizeInstrText raw
   let mut pos := skipSpaces s 0
   let mut holes : Array String := #[]
@@ -213,7 +213,7 @@ private def parseRegisterExpr (txt : String) : TermElabM Expr := do
           else
             throwError s!"invalid register `{txt}`"
 
-private def holeExprFromText (hole : DecodedHole) (txt : String) : TermElabM Expr := do
+private def holeExprFromText (hole : Hole) (txt : String) : TermElabM Expr := do
   let p := hole.parser.eraseMacroScopes
   if p == `register || p == Name.mkSimple "register" then
     parseRegisterExpr txt
@@ -225,7 +225,7 @@ private def holeExprFromText (hole : DecodedHole) (txt : String) : TermElabM Exp
     let tyExpr ← elabTermFromText hole.tyText none
     elabTermFromText txt (some tyExpr)
 
-private def defaultHoleExpr (hole : DecodedHole) : TermElabM Expr := do
+private def defaultHoleExpr (hole : Hole) : TermElabM Expr := do
   let p := hole.parser.eraseMacroScopes
   if p == `register || p == Name.mkSimple "register" then
     pure (mkRegisterExpr 0 "zero")
@@ -253,7 +253,7 @@ private def qualifyCtorName (typeName ctorName : Name) : Name :=
   | _ =>
       c
 
-private def mkInstrExprForCtor (arch : DecodedArch) (spec : DecodedCtor) (holeTexts : Array String) : TermElabM Expr := do
+private def mkInstrExprForCtor (arch : ArchSpec) (spec : InstrSpec) (holeTexts : Array String) : TermElabM Expr := do
   let mut holeIdx := 0
   let mut args : Array Expr := #[]
   for piece in spec.pieces do
@@ -269,7 +269,7 @@ private def mkInstrExprForCtor (arch : DecodedArch) (spec : DecodedCtor) (holeTe
   let ctorConst := qualifyCtorName arch.typeName spec.ctorName
   pure (mkAppN (.const ctorConst []) args)
 
-private def mkDefaultInstrExpr (arch : DecodedArch) : TermElabM Expr := do
+private def mkDefaultInstrExpr (arch : ArchSpec) : TermElabM Expr := do
   let some first := arch.ctors[0]?
     | throwError "architecture has no constructors; cannot build default instruction map entry"
   let mut args : Array Expr := #[]
@@ -282,7 +282,7 @@ private def mkDefaultInstrExpr (arch : DecodedArch) : TermElabM Expr := do
   let ctorConst := qualifyCtorName arch.typeName first.ctorName
   pure (mkAppN (.const ctorConst []) args)
 
-private def mkInstrExpr (arch : DecodedArch) (instr : TSyntax `mriscx_Instr) : TermElabM Expr := do
+private def mkInstrExpr (arch : ArchSpec) (instr : TSyntax `mriscx_Instr) : TermElabM Expr := do
   let txt := instr.raw.reprint.getD (toString instr.raw)
   for spec in arch.ctors do
     match splitHoleTexts spec.pieces txt with
@@ -292,7 +292,7 @@ private def mkInstrExpr (arch : DecodedArch) (instr : TSyntax `mriscx_Instr) : T
         pure ()
   throwError s!"unknown instruction syntax `{sanitizeInstrText txt}` for architecture `{arch.archName}`"
 
-private def getLabelInstrs (arch : DecodedArch) (lbl : TSyntax `mriscx_label) : TermElabM (String × Array Expr) := do
+private def getLabelInstrs (arch : ArchSpec) (lbl : TSyntax `mriscx_label) : TermElabM (String × Array Expr) := do
   match lbl with
   | `(mriscx_label| $name:ident : $seq:mriscx_Instr*) => do
       let mut instrs : Array Expr := #[]
@@ -302,7 +302,7 @@ private def getLabelInstrs (arch : DecodedArch) (lbl : TSyntax `mriscx_label) : 
   | _ =>
       throwError "expected label block"
 
-private def mkCodeExprFromSyntax (arch : DecodedArch) (syn : TSyntax `mriscx_syntax) : TermElabM Expr := do
+private def mkCodeExprFromSyntax (arch : ArchSpec) (syn : TSyntax `mriscx_syntax) : TermElabM Expr := do
   match syn with
   | `(mriscx_syntax| mriscx
       $lbls:mriscx_label*

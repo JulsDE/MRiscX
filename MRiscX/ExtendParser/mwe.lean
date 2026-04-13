@@ -11,9 +11,7 @@ def abd : ArchSpec := mkInstrSet RV64 Instr execute
   LoadAddress:
     { syntax : la (a:register), (m:immediate),
       semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc,
-      -- specification: ⦃P ⟦x[a] ← m; pc++⟧⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄ }
-      specification: true
-    }
+      specification: ⦃P ⟦x[a] <- m; pc++⟧⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄  }
   LoadImmediate:
     { syntax : li (a:register), (m:immediate),
       semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
@@ -29,6 +27,8 @@ def abd : ArchSpec := mkInstrSet RV64 Instr execute
 
 
 mkType abd
+
+#eval abd.specs[0].spec
 
 def execute : MState Instr → Instr → MState Instr :=
 fun ms instr =>
@@ -106,6 +106,8 @@ theorem ms_addRegiseter_pc_eq_pc : ∀ (ms : MState Instr) (r : RegisterName) (v
   unfold MState.addRegisterAt
   intros ms r v
   by_cases d: r.nr = 0 <;> simp [d]
+
+
 def triple :=
   hoare_triple_up (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter
     (fun ms => MState.terminated ms = false)
@@ -177,7 +179,7 @@ theorem spec_li (dst : RegisterName) (val : UInt64) (P : Assertion (MState Instr
         rw [o, l]
         simp
         unfold MState.addRegisterAt
-        by_cases d: dst.nr = 0 <;>( simp [d] ; unfold MState.incPc ; simp ; exact o)
+        by_cases d: dst.nr = 0 <;> (simp [d] ; unfold MState.incPc ; simp ; exact o)
     . rw [MachineStateI_getPc_eq_mstate_getPc]
       unfold MState.runOneStep execute
       rw [o, l]

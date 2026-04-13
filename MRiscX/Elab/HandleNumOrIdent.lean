@@ -1,4 +1,4 @@
-import MRiscX.Parser.AssemblySyntax
+import MRiscX.ExtendParser.GenerateConcreteSyntax
 import Lean
 open Nat Lean PrettyPrinter Expr Meta Elab
 
@@ -18,11 +18,14 @@ def mkUInt64Lit (n : UInt64) : Expr :=
     (mkRawNatLit n.toNat)
     (mkApp (mkConst ``UInt64.instOfNat) (mkRawNatLit n.toNat))
 
+private def trimAsciiStr (s : String) : String :=
+  (s.trimAscii).toString
+
 def parseMriscxNumOrIdentToTerm (s : Syntax) : TermElabM Term := do
   match s with
-  | `(mriscx_num_or_ident | $a:num) =>
+  | `(num_or_ident | $a:num) =>
       return a
-  | `(mriscx_num_or_ident | $a:ident) => do
+  | `(num_or_ident | $a:ident) => do
       if let some decl := (← getLCtx).findFromUserName? a.getId then
         if ← isDefEq decl.type (mkConst ``UInt64) then
           return a
@@ -34,9 +37,9 @@ def parseMriscxNumOrIdentToTerm (s : Syntax) : TermElabM Term := do
 
 
 
-def parseTermToMriscxNumOrIdent (s : TSyntax `term) : TSyntax `mriscx_num_or_ident :=
+def parseTermToMriscxNumOrIdent (s : TSyntax `term) : TSyntax `num_or_ident :=
   match s with
-  | `(mriscx_num_or_ident | $a:mriscx_num_or_ident) =>
+  | `(num_or_ident | $a:num_or_ident) =>
       a
   -- | _ => throwError "Unexpected syntax"
 
@@ -57,11 +60,16 @@ To be able to check if the variable has already been declared, the MetaM
 Monad is required. For this reason, we return a TermElabM Expr, which has to be
 lifted afterwards.
 -/
-def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
+partial def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
+  if s.isOfKind `choice then
+    try
+      return (← parseMriscxNumOrIdent (s.getArg 0))
+    catch _ =>
+      return (← parseMriscxNumOrIdent (s.getArg 1))
   match s with
-  | `(mriscx_num_or_ident | $a:num) =>
+  | `(num_or_ident | $a:num) =>
       return mkUIntOfNat a.getNat
-  | `(mriscx_num_or_ident | $a:ident) => do
+  | `(num_or_ident | $a:ident) => do
       if let some decl := (← getLCtx).findFromUserName? a.getId then
         if ← isDefEq decl.type (mkConst ``UInt64) then
           return decl.toExpr
@@ -69,7 +77,21 @@ def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
           throwError "Expected type UInt64 for identifier"
       else
         throwError s!"Identifier {a} not found in context"
-  | _ => throwError "Unexpected syntax {s}"
+  | `(immediate | $a:num_or_ident) =>
+      parseMriscxNumOrIdent a
+  | _ =>
+      let txt := trimAsciiStr (s.reprint.getD (toString s))
+      match txt.toNat? with
+      | some n =>
+          return mkUIntOfNat n
+      | none =>
+          if let some decl := (← getLCtx).findFromUserName? (Name.mkSimple txt) then
+            if ← isDefEq decl.type (mkConst ``UInt64) then
+              return decl.toExpr
+            else
+              throwError "Expected type UInt64 for identifier"
+          else
+            throwError s!"Unexpected syntax {s}"
 
 
 /--
@@ -105,10 +127,10 @@ def checkIfVariableToTerm (t : TSyntax `ident) (identWithDot : Bool) : TermElabM
 
   return (← `(term| $(quote t.getId.getString!)))
 
-def numOrIdentToSyntax (t:TSyntax `term) : UnexpandM (TSyntax `mriscx_num_or_ident) := do
+def numOrIdentToSyntax (t:TSyntax `term) : UnexpandM (TSyntax `num_or_ident) := do
   match t with
-  | `(UInt64.ofNat $n:num) => return ←`(mriscx_num_or_ident | $n:num)
+  | `(UInt64.ofNat $n:num) => return ←`(num_or_ident | $n:num)
   | `($n:num) =>
-    return ←`(mriscx_num_or_ident | $n:num)
-  | `($i:ident) => return ←`(mriscx_num_or_ident | $i:ident)
+    return ←`(num_or_ident | $n:num)
+  | `($i:ident) => return ←`(num_or_ident | $i:ident)
   | _ => throw ()

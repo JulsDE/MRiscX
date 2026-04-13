@@ -1,7 +1,10 @@
 import Lean
+-- import MRiscX.Elab.HandleNumOrIdent
+-- import MRiscX.Elab.HandleRegister
+import MRiscX.Parser.HoareSyntax
 import MRiscX.Elab.HandleNumOrIdent
 import MRiscX.Elab.HandleRegister
-import MRiscX.Parser.HoareSyntax
+import MRiscX.Hoare.HoareCore
 open Lean Elab
 
 /-
@@ -34,7 +37,17 @@ the functioncalls should be made.
 These HoareAssignments are used for the specification of the instruction.
 -/
 
-/-
+-- def adsf {α InstrType CodeType RegisterNrType RegisterValType PcType}
+--     [MachineStateI α InstrType CodeType RegisterNrType RegisterValType PcType]
+--     (a : α)  :=
+--   (MachineStateI.getPc InstrType CodeType RegisterNrType RegisterValType a)
+
+-- def adsf' {α InstrType CodeType RegisterNrType RegisterValType PcType}
+--     [MachineStateI α InstrType CodeType RegisterNrType RegisterValType PcType]
+--     (a : α) (b : RegisterNrType) :=
+--   @MachineStateI.getRegisterAt α InstrType CodeType RegisterNrType RegisterValType PcType _ a b
+
+  /-
 This function is similar to expandCDot?.
 It traverses the given syntax and searches for patterns to replace the keywords
 defined as syntax terminals with the actual functions calls
@@ -51,34 +64,57 @@ where
   -/
   go : Syntax → TermElabM Syntax
   | _stx@`(⸨terminated⸩) =>
-    return ←`(term | $(mkIdent `MState.terminated) ($curState))
-  | _stx@`(x[$r:mriscx_registers]) => do
+    return ←`(term | $(mkIdent `MachineStateI.getTerminated)  $(mkIdent `InstrType)
+                                                              $(mkIdent `CodeType)
+                                                              $(mkIdent `RegisterNrType)
+                                                              $(mkIdent `RegisterValType)
+                                                              $(mkIdent `PcType)
+                                                              ($curState))
+  | _stx@`(x[$r:register]) => do
     match r with
-    | `(mriscx_registers | $a:mriscx_registers_bare)
-    | `(mriscx_registers | $a:mriscx_registers_abi) =>
+    | `(register | $a:register_bare)
+    | `(register | $a:register_abi) =>
       let some nr := getCorrespondingRegisterName? ⟨a⟩
                   | throwError s!"Could not get a valid RegisterNr from {a}"
 
       let t : TSyntax `term := Syntax.mkNumLit s!"{nr.nr}"
-      return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
-              ($(mkIdent `RegisterName.mk)
-              ($(mkIdent `RegisterNr.ofUInt64) $t) $(Syntax.mkStrLit nr.name)))
-    | `(mriscx_registers | x $i:mriscx_num_or_ident) =>
+      return ←`(term | $(mkIdent `MachineStateI.getRegisterAt)  $(mkIdent `InstrType)
+                                                              $(mkIdent `CodeType)
+                                                              -- $(mkIdent `RegisterNrType)
+                                                              -- $(mkIdent `RegisterValType)
+                                                              $(mkIdent `PcType)
+                                                              ($curState)
+                                                              ($(mkIdent `RegisterName.mk)
+                                                              ($(mkIdent `RegisterNr.ofUInt64) $t)
+                                                              $(Syntax.mkStrLit nr.name)))
+    | `(register | x $i:num_or_ident) =>
 
       let newR ← parseMriscxNumOrIdentToTerm i
       match newR with
       | `(term | $n:num) =>
         let name := s!"{n.getNat}"
-        return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
-              ($(mkIdent `RegisterName.mk)
-              ($(mkIdent `RegisterNr.ofUInt64) $newR) $(Syntax.mkStrLit name)))
+        return ←`(term | $(mkIdent `MachineStateI.getRegisterAt)  $(mkIdent `InstrType)
+                                                                  $(mkIdent `CodeType)
+                                                                  -- $(mkIdent `RegisterNrType)
+                                                                  -- $(mkIdent `RegisterValType)
+                                                                  $(mkIdent `PcType)
+                                                                  ($curState)
+                                                                  ($(mkIdent `RegisterName.mk)
+                                                                  ($(mkIdent `RegisterNr.ofUInt64) $newR)
+                                                                  $(Syntax.mkStrLit name)))
       | `(term | $i:ident) =>
         let name := i.getId.getString!
-        return ←`(term | $(mkIdent `MState.getRegisterAt) ($curState)
-              ($(mkIdent `RegisterName.mk)
-              ($(mkIdent `RegisterNr.ofUInt64) $newR) $(Syntax.mkStrLit name)))
-      | _ => throwError "no plan"
-    | _ => throwError "fail haha"
+        return ←`(term | $(mkIdent `MachineStateI.getRegisterAt)  $(mkIdent `InstrType)
+                                                                  $(mkIdent `CodeType)
+                                                                  -- $(mkIdent `RegisterNrType)
+                                                                  -- $(mkIdent `RegisterValType)
+                                                                  $(mkIdent `PcType)
+                                                                  ($curState)
+                                                                  ($(mkIdent `RegisterName.mk)
+                                                                  ($(mkIdent `RegisterNr.ofUInt64) $newR)
+                                                                  $(Syntax.mkStrLit name)))
+      | _ => throwError "fail1"
+    | _ => throwError "fail2"
   | _stx@`(mem[$t:term]) => do
     let et ← replaceKeywords t curState
     return ←`(term | $(mkIdent `MState.getMemoryAt) ($curState) ($(⟨et⟩)))
@@ -89,7 +125,12 @@ where
     let newS ← checkIfVariableToTerm s true
     return ←`(term | $(mkIdent `MState.getLabelAt) ($curState) $newS)
   | _stx@`(⸨pc⸩) => do
-    return ←`(term | $(mkIdent `MState.pc) ($curState))
+    return ←`(term | $(mkIdent `MachineStateI.getPc)  $(mkIdent `InstrType)
+                                                      $(mkIdent `CodeType)
+                                                      $(mkIdent `RegisterNrType)
+                                                      $(mkIdent `RegisterValType)
+                                                      -- $(mkIdent `PcType)
+                                                      ($curState))
   | stx => match stx with
     | .node _ k args => do
       let args ← args.mapM go
@@ -110,7 +151,7 @@ partial def getHoareAssignmentArray (stx: TSyntax `hoare_assignment_chain)
     return ←(getHoareAssignmentArray s (curArr.push t))
   | _ => throwError s!"hoare assignment {stx} term not known!"
 
--- def mkRegisterNameTermFromNumOrIdent (i : TSyntax `mriscx_num_or_ident) :=
+-- def mkRegisterNameTermFromNumOrIdent (i : TSyntax `num_or_ident) :=
 
 
 /-
@@ -120,8 +161,8 @@ Parse the TSyntax to the actual function calls
 def foldTermArray (element: TSyntax `hoare_assignment) (curTerm: TSyntax `term) :
     TermElabM (TSyntax `term) := do
   match element with
-  | `(hoare_assignment | x[$r:mriscx_num_or_ident] ← $t:term)
-  | `(hoare_assignment | x[$r:mriscx_num_or_ident] <- $t:term) => do
+  | `(hoare_assignment | x[$r:num_or_ident] ← $t:term)
+  | `(hoare_assignment | x[$r:num_or_ident] <- $t:term) => do
     let valOfNewR ← parseMriscxNumOrIdentToTerm r
     let name ← `(@toString $(mkIdent `UInt64) $(mkIdent `instToStringUInt64) $valOfNewR)
 

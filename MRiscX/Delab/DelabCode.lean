@@ -1,5 +1,5 @@
 import MRiscX.AbstractSyntax.MState
-import MRiscX.Parser.AssemblySyntax
+import MRiscX.ExtendParser.GenerateConcreteSyntax
 import MRiscX.Elab.CodeElaborator
 import MRiscX.AbstractSyntax.Instr
 open Lean PrettyPrinter Delaborator SubExpr Expr Nat
@@ -96,7 +96,7 @@ def termToInstr (t: TSyntax `term) : UnexpandM (TSyntax `mriscx_Instr) := do
   | `(Instr.LoadWordImmediate $dst $addr) => do
     let dstNum  ← getRegisterTerm dst
     let addrNum ← numOrIdentToSyntax addr
-    `(mriscx_Instr| lw $dstNum, $addrNum:mriscx_num_or_ident
+    `(mriscx_Instr| lw $dstNum, $addrNum:num_or_ident
     )
 
   | `(Instr.LoadWordReg $dst $addr) => do

@@ -1,4 +1,5 @@
 import MRiscX.ExtendParser.ExprDecoder
+import MRiscX.ExtendParser.GenerateInstrAndSyntax
 import Lean
 
 open Lean
@@ -24,13 +25,13 @@ private def parserNameEq (n : Name) (expected : String) : Bool :=
   let txt := toString (n.eraseMacroScopes)
   txt == expected || txt.endsWith s!".{expected}"
 
-private def isRegisterHole (h : DecodedHole) : Bool :=
+private def isRegisterHole (h : Hole) : Bool :=
   parserNameEq h.parser "register"
 
-private def isImmediateHole (h : DecodedHole) : Bool :=
+private def isImmediateHole (h : Hole) : Bool :=
   parserNameEq h.parser "immediate"
 
-private def isLabelHole (h : DecodedHole) : Bool :=
+private def isLabelHole (h : Hole) : Bool :=
   parserNameEq h.parser "label"
 
 private def isPunctuationTok (tok : String) : Bool :=
@@ -40,7 +41,7 @@ private def isPunctuationTok (tok : String) : Bool :=
 private def isOpenBracketTok (tok : String) : Bool :=
   tok == "(" || tok == "[" || tok == "{"
 
-private def instrTextOfCtor (ctor : DecodedCtor) : String :=
+private def instrTextOfCtor (ctor : InstrSpec) : String :=
   let rec go (i : Nat) (acc : String) : String :=
     if h : i < ctor.pieces.size then
       let piece := ctor.pieces[i]
@@ -77,13 +78,13 @@ private def instrTextOfCtor (ctor : DecodedCtor) : String :=
       acc
   trimAsciiStr (go 0 "")
 
-private def holesOfCtor (ctor : DecodedCtor) : Array DecodedHole :=
+private def holesOfCtor (ctor : InstrSpec) : Array Hole :=
   ctor.pieces.foldl (init := #[]) fun acc piece =>
     match piece with
     | .lit _   => acc
     | .hole h  => acc.push h
 
-private def binderTypeText (h : DecodedHole) (hoareStyle : Bool) : String :=
+private def binderTypeText (h : Hole) (hoareStyle : Bool) : String :=
   if hoareStyle then
     if isRegisterHole h then
       "UInt64"
@@ -96,7 +97,7 @@ private def binderTypeText (h : DecodedHole) (hoareStyle : Bool) : String :=
   else
     h.tyText
 
-private def mkBinderTexts (ctor : DecodedCtor) (hoareStyle : Bool) : Array String := Id.run do
+private def mkBinderTexts (ctor : InstrSpec) (hoareStyle : Bool) : Array String := Id.run do
   let mut names : Array Name := #[]
   let mut binders : Array String := #[]
   if hoareStyle then
@@ -111,7 +112,7 @@ private def mkBinderTexts (ctor : DecodedCtor) (hoareStyle : Bool) : Array Strin
       names := names.push n
   return binders
 
-private def mkSpecBodyText (ctor : DecodedCtor) : (String × Bool) :=
+private def mkSpecBodyText (ctor : InstrSpec) : (String × Bool) :=
   let raw := trimAsciiStr ctor.specText
   if raw.startsWith "⦃" then
     let instr := instrTextOfCtor ctor
@@ -126,9 +127,9 @@ private def mkSpecBodyText (ctor : DecodedCtor) : (String × Bool) :=
 
 private def mkSpecDefCmd
     (ref : Syntax)
-    (ctor : DecodedCtor) :
+    (ctor : InstrSpec) :
     CommandElabM (TSyntax `command) := do
-  let specName := s!"specification_{ctor.ctorName.eraseMacroScopes}"
+  let specName := s!"specification_{ctor.instrName.eraseMacroScopes}"
   let (body, hoareStyle) := mkSpecBodyText ctor
   let binders := String.intercalate " " (mkBinderTexts ctor hoareStyle).toList
   let cmdTxt := joinLines
