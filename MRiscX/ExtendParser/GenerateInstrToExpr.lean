@@ -7,9 +7,19 @@ private def joinLines (xs : List String) : String :=
   String.intercalate "\n" xs
 
 private def parseCommandStr (ref : Syntax) (s : String) : CommandElabM (TSyntax `command) := do
+  let rec reanchor (stx : Syntax) : Syntax :=
+    match stx with
+    | .node _ k args =>
+        .node (.fromRef ref (canonical := true)) k (args.map reanchor)
+    | .atom _ val =>
+        .atom (.fromRef ref (canonical := true)) val
+    | .ident _ rawVal val preresolved =>
+        .ident (.fromRef ref (canonical := true)) rawVal val preresolved
+    | .missing =>
+        .missing
   match Lean.Parser.runParserCategory (← getEnv) `command s "<mkGetInstrExpr>" with
   | .ok stx =>
-      pure ⟨stx⟩
+      pure ⟨reanchor stx⟩
   | .error err =>
       throwErrorAt ref s!"generated command failed:\n\n{s}\n\n{err}"
 
@@ -104,20 +114,20 @@ private def mkInstrAltLines (arch : ArchSpec) (spec : InstrSpec) : CommandElabM 
   lines := lines.push s!"      return (Lean.mkAppN (Lean.mkConst `{ctorConst}) {ctorArgs})"
   pure lines.toList
 
-def mkGetInstrExprCmd (arch : ArchSpec) : CommandElabM (TSyntax `command) := do
+def mkGetInstrExprCmd (ref : Syntax) (arch : ArchSpec) : CommandElabM (TSyntax `command) := do
   let mut altLines : List String := []
   for spec in arch.specs do
     altLines := altLines ++ (← mkInstrAltLines arch spec)
   let cmdText := joinLines <|
-    ["def getInstrExpr (t : TSyntax `mriscx_Instr) : TermElabM Expr := do",
+    ["def getInstrExpr (t : Lean.TSyntax `mriscx_Instr) : Lean.Elab.Term.TermElabM Lean.Expr := do",
      "  match t with"] ++
     altLines ++
     [s!"    | _ => throwError \"unknown instruction for architecture {arch.name.eraseMacroScopes}\""]
-  parseCommandStr Syntax.missing cmdText
+  parseCommandStr ref cmdText
 
-def mkTest : CommandElabM (TSyntax `command) := do
+def mkTest (ref : Syntax) : CommandElabM (TSyntax `command) := do
   let cmdText := joinLines
     [ "elab \"⟪\" entry:mriscx_Instr \"⟫\" : term => do"
     , "  return (← getInstrExpr entry)"
     ]
-  parseCommandStr Syntax.missing cmdText
+  parseCommandStr ref cmdText

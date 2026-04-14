@@ -1,55 +1,21 @@
 import MRiscX.AbstractSyntax.MState
 import MRiscX.ExtendParser.AbstractSyntaxForGen
-import MRiscX.ExtendParser.GenerateConcreteSyntax
-import MRiscX.ExtendParser.GenerateInstrToExpr
-import MRiscX.Hoare.HoareAssignmentElab
+import MRiscX.ExtendParser.CommandElabShared
+import MRiscX.ExtendParser.GeneralSyntax
 import MRiscX.ExtendParser.GenerateElaborator
+import MRiscX.Elab.HandleRegister
+import MRiscX.Hoare.HoareAssignmentElab
 import Mathlib.Data.Set.Basic
-
 import Lean
 
 open Lean
 open Lean Elab Command
 open Lean.Parser.Command
 open Lean.Parser.Term
-
-/-
-  Placeholders used in instruction syntax signatures.
--/
-
-
-
-/-! Helpers -/
-
-private partial def leafTokenText? : Syntax → Option String
-  | Syntax.ident _ rawVal _ _ =>
-      some (toString rawVal)
-  | Syntax.atom _ val =>
-      some val
-  | Syntax.node _ _ args =>
-      let rec go (i : Nat) : Option String :=
-        if h : i < args.size then
-          match leafTokenText? (args[i]'h) with
-          | some s => some s
-          | none   => go (i + 1)
-        else
-          none
-      go 0
-  | Syntax.missing =>
-      none
-
-private def joinLines (xs : List String) : String :=
-  String.intercalate "\n" xs
-
-private def parseCommandStr (ref : Syntax) (s : String) : CommandElabM (TSyntax `command) := do
-  match Parser.runParserCategory (← getEnv) `command s "<mkInstrSet>" with
-  | .ok stx =>
-      pure ⟨stx⟩
-  | .error err =>
-      throwErrorAt ref s!"generated command failed:\n\n{s}\n\n{err}"
+open MRiscX.ExtendParser.CommandElabShared
 
 private def trimAsciiLocal (s : String) : String :=
-  (s.trimAscii).toString
+  trimAsciiStr s
 
 private def numOrIdentAsTerm (s : TSyntax `num_or_ident) : TermElabM (TSyntax `term) := do
   match s with
@@ -179,9 +145,6 @@ elab "⧼" t:term "⧽" : term => do
   let newT ← elabInstrSetHoareTerm t
   return (← Lean.Elab.Term.elabTerm (← `(term| $newT:term)) none)
 
-private def parserTextEq (p : String) (expected : String) : Bool :=
-  p == expected || p.endsWith s!".{expected}"
-
 private def isRegisterHole (h : Hole) : Bool :=
   parserTextEq h.parser "register"
 
@@ -285,6 +248,7 @@ private def instrTextOfSpec (spec : InstrSpec) : String :=
   trimAsciiLocal (go 0 "")
 
 private def mkSpecDefCmd
+    (ref : Syntax)
     (arch : ArchSpec)
     (spec : InstrSpec) :
     CommandElabM (TSyntax `command) := do
@@ -309,97 +273,14 @@ private def mkSpecDefCmd
         ,s!"    ({LbTxt})"
         ,s!"    ({instrCtorTxt})"
         ]
-      parseCommandStr Syntax.missing cmdTxt
+      parseCommandStr ref cmdTxt "<mkAll>"
   | _ =>
       let binders := String.intercalate " " (mkSpecBinderTexts arch spec false).toList
       let cmdTxt := joinLines
         [s!"def {specName} {binders} : Prop :="
         ,s!"  {rawSpec}"
         ]
-      parseCommandStr Syntax.missing cmdTxt
-
-
-/-! Parse DSL into persisted specs -/
-
-private def fieldsOfInputPieces (pieces : Array Piece) : Array Hole :=
-  pieces.foldl (init := #[]) fun acc piece =>
-    match piece with
-    | .lit _    => acc
-    | .hole h   => acc.push h
-
-private def ensureNoDuplicateFieldNames
-    (ctorName : Name)
-    (fields : Array Hole) :
-    CommandElabM Unit := do
-  let mut seen : Array Name := #[]
-  for h in fields do
-    let n := h.name.eraseMacroScopes
-    if seen.contains n then
-      throwError s!"duplicate placeholder name `{n}` in constructor `{ctorName}`"
-    seen := seen.push n
-
-private def elabPiece (piece : TSyntax `instr_set_piece) : CommandElabM Piece := do
-  match piece with
-  | `(instr_set_piece| $h:instr_set_hole) =>
-      match h with
-      | `(instr_set_hole| ($name:ident : $parser:stx)) =>
-          let n := name.getId.eraseMacroScopes
-          match parser with
-          | `(stx | register) =>
-              pure <| .hole { name := n, ty := "RegisterName", parser := "register" }
-          | `(stx | label) =>
-              pure <| .hole { name := n, ty := "String", parser := "label" }
-          | `(stx | immediate) =>
-              pure <| .hole { name := n, ty := "UInt64", parser := "immediate" }
-          | _ =>
-              throwErrorAt parser "unknown hole parser category (expected register | immediate | label)"
-      | _ =>
-          throwErrorAt h "invalid placeholder"
-  | _ =>
-      match leafTokenText? piece.raw with
-      | some tok =>
-          pure <| .lit tok
-      | none =>
-          throwErrorAt piece "failed to reconstruct token text"
-
-private def extractPieces
-    (sig : TSyntax `instr_set_sig) :
-    CommandElabM (Array Piece) := do
-  match sig with
-  | `(instr_set_sig| $[$pieces:instr_set_piece]*) =>
-      pieces.mapM elabPiece
-  | _ =>
-      throwErrorAt sig "invalid syntax signature"
-
-private def mkCtorSpec
-    (entry : TSyntax `instr_set_entry) :
-    CommandElabM InstrSpec := do
-  match entry with
-  | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term, specification : $spec:instr_set_spec }) => do
-      let pieces ← extractPieces sig
-      let holes := fieldsOfInputPieces pieces
-      let ctorName := ctorName.getId.eraseMacroScopes
-      let arch : InstrSpec := {
-          instrName := ctorName,
-          ref := entry.raw.reprint.getD (toString entry.raw),
-          pieces := pieces,
-          sem := sem.raw.reprint.getD (toString sem.raw),
-          hoareDesc := spec
-
-      }
-      ensureNoDuplicateFieldNames ctorName holes
-      return arch
-  | _ =>
-      throwErrorAt entry "invalid instruction entry"
-
-
-/-! Code generation from persisted ArchSpec -/
-
-private def fieldsOfDecodedPieces (pieces : Array Piece) : Array Hole :=
-  pieces.foldl (init := #[]) fun acc piece =>
-    match piece with
-    | .lit _   => acc
-    | .hole h  => acc.push h
+      parseCommandStr ref cmdTxt "<mkAll>"
 
 private def mkCtorTypeText (typeName : Name) (holes : Array Hole) : String :=
   let resultTy := toString typeName
@@ -411,10 +292,11 @@ private def mkCtorTypeText (typeName : Name) (holes : Array Hole) : String :=
 
 private def mkCtorLine (typeName : Name) (spec : InstrSpec) : String :=
   let ctor := toString spec.instrName
-  let ty := mkCtorTypeText typeName (fieldsOfDecodedPieces spec.pieces)
+  let ty := mkCtorTypeText typeName (fieldsOfInputPieces spec.pieces)
   s!"  | {ctor} : {ty}"
 
 private def mkInductiveCmd
+    (ref : Syntax)
     (arch : ArchSpec) :
     CommandElabM (TSyntax `command) := do
   let typeName := arch.typeName
@@ -423,14 +305,14 @@ private def mkInductiveCmd
     [s!"inductive {typeName} : Type where"] ++
     ctorLines ++
     ["deriving Repr, BEq, Inhabited"]
-  parseCommandStr Syntax.missing cmdText
+  parseCommandStr ref cmdText "<mkAll>"
 
 private def mkPatArgText (h : Hole) : String :=
   s!"({h.name} : {h.ty})"
 
 private def mkAltLine (spec : InstrSpec) : String :=
   let ctor := toString spec.instrName
-  let holes := fieldsOfDecodedPieces spec.pieces
+  let holes := fieldsOfInputPieces spec.pieces
   let pat :=
     if holes.isEmpty then
       s!".{ctor}"
@@ -439,9 +321,8 @@ private def mkAltLine (spec : InstrSpec) : String :=
       s!".{ctor} {args}"
   s!"  | {pat} => ({spec.sem}) _ms"
 
-
-
 private def mkExecuteCmd
+    (ref : Syntax)
     (arch : ArchSpec) :
     CommandElabM (TSyntax `command) := do
   let typeName := arch.typeName
@@ -452,49 +333,217 @@ private def mkExecuteCmd
     , "  match _instr with"
     ] ++
     altLines
-  parseCommandStr Syntax.missing cmdText
+  parseCommandStr ref cmdText "<mkAll>"
 
-/-! Elaborators -/
+private def quoteStringLit (s : String) : String :=
+  let escaped :=
+    s.toList.foldl (init := "") fun acc c =>
+      acc ++
+        match c with
+        | '"' => "\\\""
+        | '\\' => "\\\\"
+        | '\n' => "\\n"
+        | '\t' => "\\t"
+        | '\r' => "\\r"
+        | c    => String.singleton c
+  "\"" ++ escaped ++ "\""
 
-def tres (stx : TSyntax `instr_set_spec) : CommandElabM (TSyntax `term) := do
-  return ⟨stx⟩
+private def parseStx (ref : Syntax) (input : String) : CommandElabM (TSyntax `stx) := do
+  match Parser.runParserCategory (← getEnv) `stx input "<mkAllSyntax>" with
+  | .ok stx =>
+      pure ⟨stx⟩
+  | .error err =>
+      throwErrorAt ref s!"error while generating stx from `{input}`:\n{err}"
 
+private def isIdentLikeTok (tok : String) : Bool :=
+  let rec loop : List Char → Bool
+    | []      => true
+    | c :: cs => (c.isAlphanum || c == '_' || c == '\'') && loop cs
+  tok.length > 0 && loop tok.toList
 
+private def isPunctuationSyntaxTok (tok : String) : Bool :=
+  tok == ","  || tok == ";"  || tok == ":"  || tok == "." ||
+  tok == "+"  || tok == "-"  || tok == "*"  || tok == "/" ||
+  tok == "="  || tok == "<"  || tok == ">"  ||
+  tok == "<=" || tok == ">="
 
+private def decorateAtomText (tok : String) (isFirst : Bool) (hasNext : Bool) : String :=
+  if (tok == "," || tok == ";" || tok == ":") && hasNext then
+    tok ++ " "
+  else if isIdentLikeTok tok && isFirst && hasNext then
+    tok ++ " "
+  else
+    tok
 
--- @[command_elab mkTypeCmd]
--- def elabMkTypeImpl : CommandElab :=
---   elabMkType
+private def useNonReservedAtom (tok : String) (isFirst : Bool) : Bool :=
+  if isIdentLikeTok tok then
+    !(isFirst && tok.length > 1)
+  else
+    isPunctuationSyntaxTok tok
 
--- @[command_elab mkExecutionCmd]
--- def elabMkExecutionImpl : CommandElab :=
---   elabMkExecution
+private def mkLiteralStx
+    (ref : Syntax)
+    (tok : String)
+    (isFirst : Bool)
+    (hasNext : Bool) :
+    CommandElabM (TSyntax `stx) := do
+  let txt := decorateAtomText tok isFirst hasNext
+  let txtQ := quoteStringLit txt
+  if useNonReservedAtom tok isFirst then
+    parseStx ref s!"&{txtQ}"
+  else
+    parseStx ref txtQ
 
+private def mkSyntaxItems (ref : Syntax) (spec : InstrSpec) : CommandElabM (Array (TSyntax `stx)) := do
+  let mut items : Array (TSyntax `stx) := #[]
+  let nPieces := spec.pieces.size
+  for i in [0:nPieces] do
+    let hasNext := i + 1 < nPieces
+    match spec.pieces[i]! with
+    | Piece.lit tok =>
+        items := items.push (← mkLiteralStx ref tok (i == 0) hasNext)
+    | Piece.hole hole =>
+        items := items.push (← parseStx ref (toString hole.parser))
+  let terminator : TSyntax `stx ← `(stx| withPosition(Lean.Parser.semicolonOrLinebreak ppDedent(ppLine)))
+  pure <| items.push terminator
 
+private def mkInstrSyntaxCmdForCtor (ref : Syntax) (spec : InstrSpec) : CommandElabM (TSyntax `command) := do
+  let items ← mkSyntaxItems ref spec
+  `(command| syntax $[$items:stx]* : mriscx_Instr)
+
+private def parserNameEq (p : String) (expected : String) : Bool :=
+  parserTextEq p expected
+
+private def holeNameText (h : Hole) : String :=
+  toString (h.name.eraseMacroScopes)
+
+private def holeExprNameText (h : Hole) : String :=
+  s!"exprOf_{holeNameText h}"
+
+private def piecePatternText (piece : Piece) : String :=
+  match piece with
+  | .lit tok =>
+      tok
+  | .hole h =>
+      s!"${holeNameText h}:{h.parser}"
+
+private def mkInstrPatternText (pieces : Array Piece) (withSemicolon : Bool) : String :=
+  let body := String.intercalate " " (pieces.toList.map piecePatternText)
+  if withSemicolon then
+    body ++ " ;"
+  else
+    body
+
+private def appendName : Name → Name → Name
+  | p, .anonymous => p
+  | p, .str q s   => .str (appendName p q) s
+  | p, .num q n   => .num (appendName p q) n
+
+private def qualifyCtorName (typeName ctorName : Name) : Name :=
+  let t := typeName.eraseMacroScopes
+  let c := ctorName.eraseMacroScopes
+  match c with
+  | .str .anonymous _ =>
+      appendName t c
+  | .num .anonymous _ =>
+      appendName t c
+  | _ =>
+      c
+
+private def mkHoleParseLines
+    (spec : InstrSpec) :
+    CommandElabM (Array String × Array String) := do
+  let mut lines : Array String := #[]
+  let mut argExprNames : Array String := #[]
+  let mut prevLitTok : Option String := none
+  for piece in spec.pieces do
+    match piece with
+    | .lit tok =>
+        prevLitTok := some tok
+    | .hole h =>
+        let holeName := holeNameText h
+        let exprName := holeExprNameText h
+        if parserNameEq h.parser "register" then
+          lines := lines.push s!"      let {exprName} ← getCorrespondingRegister {holeName}"
+        else if parserNameEq h.parser "immediate" then
+          lines := lines.push s!"      let {exprName} ←"
+          lines := lines.push s!"        match {holeName} with"
+          lines := lines.push s!"        | `(immediate | $n:num_or_ident) => parseMriscxNumOrIdent n"
+          lines := lines.push s!"        | _ => throwError \"unexpected immediate syntax\""
+        else if parserNameEq h.parser "label" then
+          let withDotTxt := if prevLitTok == some "." then "true" else "false"
+          lines := lines.push s!"      let {exprName} ←"
+          lines := lines.push s!"        match {holeName} with"
+          lines := lines.push s!"        | `(label | $lbl:ident) => parseLabelname lbl {withDotTxt}"
+          lines := lines.push s!"        | _ => throwError \"unexpected label syntax\""
+        else
+          throwError s!"unsupported placeholder parser `{h.parser}` in instruction `{spec.instrName.eraseMacroScopes}`"
+        argExprNames := argExprNames.push exprName
+        prevLitTok := none
+  pure (lines, argExprNames)
+
+private def mkInstrAltLines (arch : ArchSpec) (spec : InstrSpec) : CommandElabM (List String) := do
+  let patNoSemi := mkInstrPatternText spec.pieces false
+  let patWithSemi := mkInstrPatternText spec.pieces true
+  let (holeParseLines, argExprNames) ← mkHoleParseLines spec
+  let ctorConst := toString (qualifyCtorName arch.typeName spec.instrName)
+  let ctorArgs :=
+    if argExprNames.isEmpty then
+      "#[]"
+    else
+      s!"#[{String.intercalate ", " argExprNames.toList}]"
+  let mut lines : Array String := #[
+    s!"    | `(mriscx_Instr | {patNoSemi}\n    )",
+    s!"    | `(mriscx_Instr | {patWithSemi}) => do"
+  ]
+  for l in holeParseLines do
+    lines := lines.push l
+  lines := lines.push s!"      return (Lean.mkAppN (Lean.mkConst `{ctorConst}) {ctorArgs})"
+  pure lines.toList
+
+private def mkGetInstrExprCmd (ref : Syntax) (arch : ArchSpec) : CommandElabM (TSyntax `command) := do
+  let mut altLines : List String := []
+  for spec in arch.specs do
+    altLines := altLines ++ (← mkInstrAltLines arch spec)
+  let cmdText := joinLines <|
+    ["def getInstrExpr (t : Lean.TSyntax `mriscx_Instr) : Lean.Elab.Term.TermElabM Lean.Expr := do",
+     "  match t with"] ++
+    altLines ++
+    [s!"    | _ => throwError \"unknown instruction for architecture {arch.name.eraseMacroScopes}\""]
+  parseCommandStr ref cmdText "<mkAll>"
+
+private def mkTest (ref : Syntax) : CommandElabM (TSyntax `command) := do
+  let cmdText := joinLines
+    [ "elab \"⟪\" entry:mriscx_Instr \"⟫\" : term => do"
+    , "  return (← getInstrExpr entry)"
+    ]
+  parseCommandStr ref cmdText "<mkAll>"
 
 elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_entry*: command => do
-  let specs ← (entries.mapM mkCtorSpec)
+  let specs ← entries.mapM mkInstrSpecFromEntry
   let arch : ArchSpec := {
     name     := archName.getId.eraseMacroScopes
     typeName := typeName.getId.eraseMacroScopes
     execName := execName.getId.eraseMacroScopes
     specs    := specs
   }
-  let indCmd ← mkInductiveCmd arch
+  let ref := archName.raw
+  let indCmd ← mkInductiveCmd ref arch
   for instr in arch.specs do
-    let syn ← mkSyntaxCmdForCtor instr
-    elabCommand syn
+    let syn ← mkInstrSyntaxCmdForCtor ref instr
+    withRef archName do
+      elabCommand syn
   logInfo s!"Created type {arch.typeName} for {arch.name}"
-  -- logInfo s!"{arch.specs[0]!.hoareDesc}"
-  elabCommand indCmd
-  elabCommand (← mkGetInstrExprCmd arch)
-  elabCommand (← mkTest)
+  withRef archName do
+    elabCommand indCmd
+  withRef archName do
+    elabCommand (← mkGetInstrExprCmd ref arch)
+  withRef archName do
+    elabCommand (← mkTest ref)
   for instr in arch.specs do
-    elabCommand (← mkSpecDefCmd arch instr)
-  -- `mkTest` may emit extra elaborators/commands; keep it opt-in at call sites.
-  -- elabCommand (← mkTest)
-  let exeCmd ← mkExecuteCmd arch
-  elabCommand exeCmd
+    withRef archName do
+      elabCommand (← mkSpecDefCmd ref arch instr)
+  let exeCmd ← mkExecuteCmd ref arch
+  withRef archName do
+    elabCommand exeCmd
   liftIO <| activeArchRef.set (some arch)
-  -- let ad : TSyntax `term ← tres arch.specs[0]!.hoareDesc
-  -- elabCommand (←`(#check $ad))

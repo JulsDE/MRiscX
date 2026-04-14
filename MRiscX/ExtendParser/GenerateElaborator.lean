@@ -1,5 +1,6 @@
 import MRiscX.AbstractSyntax.MState
 import MRiscX.ExtendParser.AbstractSyntaxForGen
+import MRiscX.ExtendParser.CommandElabShared
 import MRiscX.ExtendParser.GeneralSyntax
 import Lean
 
@@ -85,93 +86,6 @@ private def splitHoleTexts (pieces : Array Piece) (raw : String) : Option (Array
     some holes
   else
     none
-
-private partial def leafTokenText? : Syntax → Option String
-  | Syntax.ident _ rawVal _ _ =>
-      some (toString rawVal)
-  | Syntax.atom _ val =>
-      some val
-  | Syntax.node _ _ args =>
-      let rec go (i : Nat) : Option String :=
-        if h : i < args.size then
-          match leafTokenText? (args[i]'h) with
-          | some s => some s
-          | none   => go (i + 1)
-        else
-          none
-      go 0
-  | Syntax.missing =>
-      none
-
-private def fieldsOfInputPieces (pieces : Array Piece) : Array Hole :=
-  pieces.foldl (init := #[]) fun acc piece =>
-    match piece with
-    | .lit _    => acc
-    | .hole h   => acc.push h
-
-private def ensureNoDuplicateFieldNames
-    (ctorName : Name)
-    (fields : Array Hole) :
-    CommandElabM Unit := do
-  let mut seen : Array Name := #[]
-  for h in fields do
-    let n := h.name.eraseMacroScopes
-    if seen.contains n then
-      throwError s!"duplicate placeholder name `{n}` in constructor `{ctorName}`"
-    seen := seen.push n
-
-private def elabPiece (piece : TSyntax `instr_set_piece) : CommandElabM Piece := do
-  match piece with
-  | `(instr_set_piece| $h:instr_set_hole) =>
-      match h with
-      | `(instr_set_hole| ($name:ident : $parser:stx)) =>
-          let n := name.getId.eraseMacroScopes
-          match parser with
-          | `(stx | register) =>
-              pure <| .hole { name := n, ty := "RegisterName", parser := "register" }
-          | `(stx | label) =>
-              pure <| .hole { name := n, ty := "String", parser := "label" }
-          | `(stx | immediate) =>
-              pure <| .hole { name := n, ty := "UInt64", parser := "immediate" }
-          | _ =>
-              throwErrorAt parser "unknown hole parser category (expected register | immediate | label)"
-      | _ =>
-          throwErrorAt h "invalid placeholder"
-  | _ =>
-      match leafTokenText? piece.raw with
-      | some tok =>
-          pure <| .lit tok
-      | none =>
-          throwErrorAt piece "failed to reconstruct token text"
-
-private def extractPieces
-    (sig : TSyntax `instr_set_sig) :
-    CommandElabM (Array Piece) := do
-  match sig with
-  | `(instr_set_sig| $[$pieces:instr_set_piece]*) =>
-      pieces.mapM elabPiece
-  | _ =>
-      throwErrorAt sig "invalid syntax signature"
-
-private def mkInstrSpec
-    (entry : TSyntax `instr_set_entry) :
-    CommandElabM InstrSpec := do
-  match entry with
-  | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term, specification : $spec:instr_set_spec }) => do
-      let pieces ← extractPieces sig
-      let holes := fieldsOfInputPieces pieces
-      let ctorName := ctorName.getId.eraseMacroScopes
-      let instrSpec : InstrSpec := {
-          instrName := ctorName,
-          ref := entry.raw.reprint.getD (toString entry.raw),
-          pieces := pieces,
-          sem := sem.raw.reprint.getD (toString sem.raw),
-          hoareDesc := spec
-      }
-      ensureNoDuplicateFieldNames ctorName holes
-      return instrSpec
-  | _ =>
-      throwErrorAt entry "invalid instruction entry"
 
 private def parseTermStx (txt : String) : TermElabM (TSyntax `term) := do
   match Parser.runParserCategory (← getEnv) `term txt "<mkElaborator>" with
@@ -300,16 +214,13 @@ private def parseRegisterExpr (txt : String) : TermElabM Expr := do
           else
             throwError s!"invalid register `{txt}`"
 
-private def parserTextEq (p : String) (expected : String) : Bool :=
-  p == expected || p.endsWith s!".{expected}"
-
 private def holeExprFromText (hole : Hole) (txt : String) : TermElabM Expr := do
   let p := hole.parser
-  if parserTextEq p "register" then
+  if MRiscX.ExtendParser.CommandElabShared.parserTextEq p "register" then
     parseRegisterExpr txt
-  else if parserTextEq p "label" then
+  else if MRiscX.ExtendParser.CommandElabShared.parserTextEq p "label" then
     pure (mkStrLit (trimAsciiStr txt))
-  else if parserTextEq p "immediate" then
+  else if MRiscX.ExtendParser.CommandElabShared.parserTextEq p "immediate" then
     elabTermFromText txt (some (mkConst ``UInt64 []))
   else
     let tyExpr ← elabTermFromText hole.ty none
@@ -317,11 +228,11 @@ private def holeExprFromText (hole : Hole) (txt : String) : TermElabM Expr := do
 
 private def defaultHoleExpr (hole : Hole) : TermElabM Expr := do
   let p := hole.parser
-  if parserTextEq p "register" then
+  if MRiscX.ExtendParser.CommandElabShared.parserTextEq p "register" then
     pure (mkRegisterExpr 0 "zero")
-  else if parserTextEq p "label" then
+  else if MRiscX.ExtendParser.CommandElabShared.parserTextEq p "label" then
     pure (mkStrLit "")
-  else if parserTextEq p "immediate" then
+  else if MRiscX.ExtendParser.CommandElabShared.parserTextEq p "immediate" then
     pure (mkUInt64LitExpr 0)
   else
     let tyExpr ← elabTermFromText hole.ty none
@@ -417,11 +328,28 @@ private def mkCodeExprFromSyntax (arch : ArchSpec) (syn : TSyntax `mriscx_syntax
   | _ =>
       throwError "expected `mriscx ... end` syntax"
 
+def elabMkElaborator : CommandElab := fun stx => do
+  match stx with
+  | `(command| mkElaborator $archName:ident $typeName:ident $execName:ident $entries:instr_set_entry*) => do
+      let specs ← entries.mapM MRiscX.ExtendParser.CommandElabShared.mkInstrSpecFromEntry
+      let arch : ArchSpec := {
+        name := archName.getId.eraseMacroScopes
+        typeName := typeName.getId.eraseMacroScopes
+        execName := execName.getId.eraseMacroScopes
+        specs := specs
+      }
+      liftIO <| activeArchRef.set (some arch)
+  | _ =>
+      throwUnsupportedSyntax
+
+@[command_elab mkElaboratorCmd]
+def elabMkElaboratorImpl : CommandElab :=
+  elabMkElaborator
 
 @[term_elab mriscxTerm]
 def elabMriscxGenerated : TermElab := fun stx expectedType? => do
   let some arch ← liftM (m := TermElabM) <| activeArchRef.get
-    | throwError "no active architecture elaborator; Failed generating elaborator for the architecture"
+    | throwError "no active architecture elaborator; run `mkElaborator <archName> <typeName> <execName> ...` or `mkAll ...` first"
   match stx with
   | `(term| $syn:mriscx_syntax) =>
       let e ← mkCodeExprFromSyntax arch syn

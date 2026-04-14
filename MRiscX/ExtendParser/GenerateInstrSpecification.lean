@@ -1,85 +1,27 @@
-import MRiscX.ExtendParser.ExprDecoder
-import MRiscX.ExtendParser.GenerateInstrAndSyntax
+import MRiscX.AbstractSyntax.MState
+import MRiscX.ExtendParser.AbstractSyntaxForGen
+import MRiscX.ExtendParser.CommandElabShared
+import MRiscX.ExtendParser.GenerateElaborator
 import Lean
 
 open Lean
 open Lean Elab Command
+open MRiscX.ExtendParser.CommandElabShared
 
 syntax (name := mkSpecsCmd)
   "mkSpecs " ident : command
 
-private def joinLines (xs : List String) : String :=
-  String.intercalate "\n" xs
-
-private def trimAsciiStr (s : String) : String :=
-  (s.trimAscii).toString
-
-private def parseCommandStr (ref : Syntax) (s : String) : CommandElabM (TSyntax `command) := do
-  match Parser.runParserCategory (← getEnv) `command s "<mkSpecs>" with
-  | .ok stx =>
-      pure ⟨stx⟩
-  | .error err =>
-      throwErrorAt ref s!"generated command failed:\n\n{s}\n\n{err}"
-
-private def parserNameEq (n : Name) (expected : String) : Bool :=
-  let txt := toString (n.eraseMacroScopes)
-  txt == expected || txt.endsWith s!".{expected}"
-
 private def isRegisterHole (h : Hole) : Bool :=
-  parserNameEq h.parser "register"
+  parserTextEq h.parser "register"
 
 private def isImmediateHole (h : Hole) : Bool :=
-  parserNameEq h.parser "immediate"
+  parserTextEq h.parser "immediate"
 
 private def isLabelHole (h : Hole) : Bool :=
-  parserNameEq h.parser "label"
+  parserTextEq h.parser "label"
 
-private def isPunctuationTok (tok : String) : Bool :=
-  tok == "," || tok == ";" || tok == ":" || tok == "." ||
-  tok == ")" || tok == "]" || tok == "}"
-
-private def isOpenBracketTok (tok : String) : Bool :=
-  tok == "(" || tok == "[" || tok == "{"
-
-private def instrTextOfCtor (ctor : InstrSpec) : String :=
-  let rec go (i : Nat) (acc : String) : String :=
-    if h : i < ctor.pieces.size then
-      let piece := ctor.pieces[i]
-      let next? :=
-        if hNext : i + 1 < ctor.pieces.size then
-          some ctor.pieces[i + 1]
-        else
-          none
-      let addSpaceAfterHole :=
-        match next? with
-        | some (.lit tok) => !(isPunctuationTok tok)
-        | some _ => true
-        | none => false
-      let acc :=
-        match piece with
-        | .lit tok =>
-            if tok == "," then
-              acc ++ ", "
-            else if i == 0 then
-              if next?.isSome then acc ++ tok ++ " " else acc ++ tok
-            else if isPunctuationTok tok then
-              acc ++ tok
-            else if isOpenBracketTok tok then
-              acc ++ tok
-            else
-              if next?.isSome then acc ++ tok ++ " " else acc ++ tok
-        | .hole h' =>
-            let nameTxt := toString (h'.name.eraseMacroScopes)
-            let holeTxt :=
-              if isRegisterHole h' then s!"x {nameTxt}" else nameTxt
-            if addSpaceAfterHole then acc ++ holeTxt ++ " " else acc ++ holeTxt
-      go (i + 1) acc
-    else
-      acc
-  trimAsciiStr (go 0 "")
-
-private def holesOfCtor (ctor : InstrSpec) : Array Hole :=
-  ctor.pieces.foldl (init := #[]) fun acc piece =>
+private def holesOfSpec (spec : InstrSpec) : Array Hole :=
+  spec.pieces.foldl (init := #[]) fun acc piece =>
     match piece with
     | .lit _   => acc
     | .hole h  => acc.push h
@@ -93,76 +35,94 @@ private def binderTypeText (h : Hole) (hoareStyle : Bool) : String :=
     else if isLabelHole h then
       "String"
     else
-      h.tyText
+      h.ty
   else
-    h.tyText
+    h.ty
 
-private def mkBinderTexts (ctor : InstrSpec) (hoareStyle : Bool) : Array String := Id.run do
-  let mut names : Array Name := #[]
+private def mkSpecBinderTexts (arch : ArchSpec) (spec : InstrSpec) (hoareStyle : Bool) : Array String := Id.run do
+  let mut seen : Array Name := #[]
   let mut binders : Array String := #[]
   if hoareStyle then
-    binders := binders.push "(P : Assertion)"
-    binders := binders.push "(pc : UInt64)"
-    names := names.push `P
-    names := names.push `pc
-  for h in holesOfCtor ctor do
+    binders := binders.push s!"[runable_mstate : runable (MState {arch.typeName})]"
+    binders := binders.push s!"(P : MState {arch.typeName} → Prop)"
+    binders := binders.push "(pc : ProgramCounter)"
+    seen := seen.push `P
+    seen := seen.push `pc
+  for h in holesOfSpec spec do
     let n := h.name.eraseMacroScopes
-    if !names.contains n then
+    if !seen.contains n then
       binders := binders.push s!"({n} : {binderTypeText h hoareStyle})"
-      names := names.push n
+      seen := seen.push n
   return binders
 
-private def mkSpecBodyText (ctor : InstrSpec) : (String × Bool) :=
-  let raw := trimAsciiStr ctor.specText
-  if raw.startsWith "⦃" then
-    let instr := instrTextOfCtor ctor
-    let instr := if instr.endsWith ";" then instr else instr ++ ";"
-    (joinLines
-      [s!"hoare ⟪{instr}⟫"
-      ,raw
-      ,"end"
-      ], true)
+private def mkInstrCtorArgText (h : Hole) : String :=
+  let nameTxt := toString (h.name.eraseMacroScopes)
+  if isRegisterHole h then
+    s!"(RegisterName.mk (RegisterNr.ofUInt64 {nameTxt}) (@toString UInt64 instToStringUInt64 {nameTxt}))"
   else
-    (raw, false)
+    nameTxt
+
+private def instrCtorTextOfSpec (arch : ArchSpec) (spec : InstrSpec) : String :=
+  let ctor := s!"{arch.typeName}.{spec.instrName.eraseMacroScopes}"
+  let args := (holesOfSpec spec).toList.map mkInstrCtorArgText
+  if args.isEmpty then
+    ctor
+  else
+    s!"{ctor} {String.intercalate " " args}"
 
 private def mkSpecDefCmd
     (ref : Syntax)
-    (ctor : InstrSpec) :
+    (arch : ArchSpec)
+    (spec : InstrSpec) :
     CommandElabM (TSyntax `command) := do
-  let specName := s!"specification_{ctor.instrName.eraseMacroScopes}"
-  let (body, hoareStyle) := mkSpecBodyText ctor
-  let binders := String.intercalate " " (mkBinderTexts ctor hoareStyle).toList
-  let cmdTxt := joinLines
-    [s!"def {specName} {binders} : Prop :="
-    ,s!"  {body}"
-    ]
-  let parsed? ←
-    try
-      pure (some (← parseCommandStr ref cmdTxt))
-    catch _ =>
-      pure none
-  match parsed? with
-  | some cmd =>
-      pure cmd
-  | none =>
-      if hoareStyle then
-        throwErrorAt ref
-          "failed to elaborate generated Hoare specification. Make sure your file imports the Hoare elaborator and syntax modules before running `mkSpecs`."
-      else
-        throwErrorAt ref s!"failed to elaborate generated specification:\n{cmdTxt}"
+  let specName := s!"specification_{spec.instrName.eraseMacroScopes}"
+  let rawSpec := trimAsciiStr (spec.hoareDesc.raw.reprint.getD (toString spec.hoareDesc.raw))
+  match spec.hoareDesc with
+  | `(instr_set_spec| ⦃$pre:term⦄ $l:term ↦ ⟨$L_w:term | $L_b:term⟩ ⦃$post:term⦄) => do
+      let preTxt := pre.raw.reprint.getD (toString pre.raw)
+      let postTxt := post.raw.reprint.getD (toString post.raw)
+      let lTxt := l.raw.reprint.getD (toString l.raw)
+      let LwTxt := L_w.raw.reprint.getD (toString L_w.raw)
+      let LbTxt := L_b.raw.reprint.getD (toString L_b.raw)
+      let instrCtorTxt := instrCtorTextOfSpec arch spec
+      let binders := String.intercalate " " (mkSpecBinderTexts arch spec true).toList
+      let cmdTxt := joinLines
+        [s!"def {specName} {binders} : Prop :="
+        ,s!"  hoare_triple_up_1 (MState {arch.typeName}) {arch.typeName} (Code {arch.typeName}) RegisterName UInt64 ProgramCounter"
+        ,s!"    (⧼{preTxt}⧽)"
+        ,s!"    (⧼{postTxt}⧽)"
+        ,s!"    ({lTxt})"
+        ,s!"    ({LwTxt})"
+        ,s!"    ({LbTxt})"
+        ,s!"    ({instrCtorTxt})"
+        ]
+      parseCommandStr ref cmdTxt "<mkSpecs>"
+  | _ =>
+      let binders := String.intercalate " " (mkSpecBinderTexts arch spec false).toList
+      let cmdTxt := joinLines
+        [s!"def {specName} {binders} : Prop :="
+        ,s!"  {rawSpec}"
+        ]
+      parseCommandStr ref cmdTxt "<mkSpecs>"
 
 def elabMkSpecs : CommandElab := fun stx => do
   match stx with
   | `(command| mkSpecs $archName:ident) => do
-      let arch ← resolveArchFromIdent archName
+      let some arch ← liftIO activeArchRef.get
+        | throwErrorAt archName "no active architecture found; run `mkAll` or `mkElaborator` first"
+      let expected := archName.getId.eraseMacroScopes
+      if arch.name.eraseMacroScopes != expected then
+        throwErrorAt archName s!"active architecture is `{arch.name}`, but `mkSpecs` was called for `{expected}`"
       let nsName := s!"{arch.typeName.eraseMacroScopes}Specs"
-      let nsCmd ← parseCommandStr archName.raw s!"namespace {nsName}"
-      elabCommand nsCmd
-      for ctor in arch.ctors do
-        let cmd ← mkSpecDefCmd archName.raw ctor
-        elabCommand cmd
-      let endCmd ← parseCommandStr archName.raw s!"end {nsName}"
-      elabCommand endCmd
+      let nsCmd ← parseCommandStr archName.raw s!"namespace {nsName}" "<mkSpecs>"
+      withRef archName do
+        elabCommand nsCmd
+      for spec in arch.specs do
+        withRef archName do
+          elabCommand (← mkSpecDefCmd archName.raw arch spec)
+      let endCmd ← parseCommandStr archName.raw s!"end {nsName}" "<mkSpecs>"
+      withRef archName do
+        elabCommand endCmd
   | _ =>
       throwUnsupportedSyntax
 

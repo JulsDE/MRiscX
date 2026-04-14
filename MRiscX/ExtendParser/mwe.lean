@@ -101,6 +101,65 @@ L : Set UInt64
     (fun st => P st ∧ ¬st.terminated = true) pc {pc + 1} L (Instr.LoadAddress dst addr)
 
 -/
+#print specification_LoadImmediate
+
+theorem spec_la (P : Assertion (MState Instr)) (pc : ProgramCounter) (dst val : UInt64) :
+    specification_LoadAddress P pc dst val:= by
+  unfold specification_LoadAddress hoare_triple_up_1
+  intros h j ms l n p
+  -- rintro ⟨i, o⟩
+  rw [MachineStateI_currInstr_eq_mstate_currInstr] at l
+  rw [MachineStateI_getPc_eq_mstate_getPc] at n
+  exists ms.runOneStep
+  unfold weak
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      .
+        rw [runable_runNStep_eq_mstate_runNStep, runNSteps_1_eq_runOneStep]
+      . constructor
+        . rw [MachineStateI_getPc_eq_mstate_getPc]
+          unfold MState.runOneStep execute
+          simp
+          rw [l]
+          simp
+          unfold MState.incPc
+          simp
+          rw [ms_addRegiseter_pc_eq_pc]
+          exact n
+        . rintro n' ⟨left, right⟩
+          simp at right
+          rw [right] at left
+          contradiction
+  . constructor
+    . simp
+      constructor
+      . unfold MState.runOneStep execute
+        rw [l]
+        simp
+        have : (ms.addRegisterAt dst val).incPc = ms.incPc.addRegisterAt dst val := by
+          unfold MState.addRegisterAt MState.incPc
+          rw [o]
+          by_cases d: dst.nr = 0 <;> simp [d]
+          exact o
+        rw [this]
+        exact i
+      . unfold MState.runOneStep execute
+        rw [l]
+        simp
+        unfold MState.addRegisterAt
+        by_cases d: dst.nr = 0 <;> (simp [d] ; unfold MState.incPc ; simp ; exact o)
+    . rw [MachineStateI_getPc_eq_mstate_getPc]
+      unfold MState.runOneStep execute
+      rw [l]
+      simp
+      unfold MState.incPc
+      simp [ms_addRegiseter_pc_eq_pc]
+      exact n
+  sorry
+
 theorem spec_li (dst : RegisterName) (val : UInt64) (P : Assertion (MState Instr))
           (pc : ProgramCounter) :
   hoare_triple_up_1 (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter
@@ -128,7 +187,8 @@ theorem spec_li (dst : RegisterName) (val : UInt64) (P : Assertion (MState Instr
       . constructor
         . rw [MachineStateI_getPc_eq_mstate_getPc]
           unfold MState.runOneStep execute
-          rw [o, l]
+          simp
+          rw [l]
           simp
           unfold MState.incPc
           simp
@@ -142,7 +202,7 @@ theorem spec_li (dst : RegisterName) (val : UInt64) (P : Assertion (MState Instr
     . simp
       constructor
       . unfold MState.runOneStep execute
-        rw [o, l]
+        rw [l]
         simp
         have : (ms.addRegisterAt dst val).incPc = ms.incPc.addRegisterAt dst val := by
           unfold MState.addRegisterAt MState.incPc
@@ -152,13 +212,13 @@ theorem spec_li (dst : RegisterName) (val : UInt64) (P : Assertion (MState Instr
         rw [this]
         exact i
       . unfold MState.runOneStep execute
-        rw [o, l]
+        rw [l]
         simp
         unfold MState.addRegisterAt
         by_cases d: dst.nr = 0 <;> (simp [d] ; unfold MState.incPc ; simp ; exact o)
     . rw [MachineStateI_getPc_eq_mstate_getPc]
       unfold MState.runOneStep execute
-      rw [o, l]
+      rw [l]
       simp
       unfold MState.incPc
       simp [ms_addRegiseter_pc_eq_pc]
