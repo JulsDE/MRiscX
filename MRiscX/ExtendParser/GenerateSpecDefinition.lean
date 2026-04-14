@@ -28,7 +28,7 @@ private def holesOfSpec (spec : InstrSpec) : Array Hole :=
 private def binderTypeText (h : Hole) (hoareStyle : Bool) : String :=
   if hoareStyle then
     if isRegisterHole h then
-      "UInt64"
+      "RegisterName"
     else if isImmediateHole h then
       "UInt64"
     else if isLabelHole h then
@@ -56,10 +56,7 @@ private def mkSpecBinderTexts (arch : ArchSpec) (spec : InstrSpec) (hoareStyle :
 
 private def mkInstrCtorArgText (h : Hole) : String :=
   let nameTxt := toString (h.name.eraseMacroScopes)
-  if isRegisterHole h then
-    s!"(RegisterName.mk (RegisterNr.ofUInt64 {nameTxt}) (@toString UInt64 instToStringUInt64 {nameTxt}))"
-  else
-    nameTxt
+  nameTxt
 
 private def instrCtorTextOfSpec (arch : ArchSpec) (spec : InstrSpec) : String :=
   let ctor := s!"{arch.typeName}.{spec.instrName.eraseMacroScopes}"

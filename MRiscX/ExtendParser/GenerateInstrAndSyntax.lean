@@ -47,21 +47,27 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
   }
   let ref := archName.raw
   let indCmd ← mkInductiveCmd ref arch
+  -- concrete Syntax
   for instr in arch.specs do
     let syn ← mkSyntaxCmdForCtor instr
     withRef archName do
       elabCommand syn
-  logInfo s!"Created type {arch.typeName} for {arch.name}"
+  -- inductive instr type
   withRef archName do
     elabCommand indCmd
+  -- Instr to Expr
   withRef archName do
     elabCommand (← mkGetInstrExprCmd ref arch)
+  -- Elab for single Instr TODO automate
   withRef archName do
     elabCommand (← mkTest ref)
+  -- Instr Specification
   for instr in arch.specs do
     withRef archName do
       elabCommand (← MRiscX.ExtendParser.GenerateSpecDefinition.mkSpecDefCmd ref arch instr "<mkAll>")
+  -- Execute command
   let exeCmd ← mkExecuteCmd ref arch
   withRef archName do
     elabCommand exeCmd
+  -- elaboration
   liftIO <| activeArchRef.set (some arch)
