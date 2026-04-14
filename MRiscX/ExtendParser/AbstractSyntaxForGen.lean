@@ -1,4 +1,5 @@
 import Lean
+import MRiscX.AbstractSyntax.MState
 
 open Lean
 open Lean Elab Command

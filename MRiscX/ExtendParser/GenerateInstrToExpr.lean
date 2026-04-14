@@ -1,30 +1,12 @@
 import MRiscX.ExtendParser.AbstractSyntaxForGen
+import MRiscX.ExtendParser.CommandElabShared
 import MRiscX.Elab.HandleRegister
 
 open Lean Meta Elab Command
-
-private def joinLines (xs : List String) : String :=
-  String.intercalate "\n" xs
-
-private def parseCommandStr (ref : Syntax) (s : String) : CommandElabM (TSyntax `command) := do
-  let rec reanchor (stx : Syntax) : Syntax :=
-    match stx with
-    | .node _ k args =>
-        .node (.fromRef ref (canonical := true)) k (args.map reanchor)
-    | .atom _ val =>
-        .atom (.fromRef ref (canonical := true)) val
-    | .ident _ rawVal val preresolved =>
-        .ident (.fromRef ref (canonical := true)) rawVal val preresolved
-    | .missing =>
-        .missing
-  match Lean.Parser.runParserCategory (← getEnv) `command s "<mkGetInstrExpr>" with
-  | .ok stx =>
-      pure ⟨reanchor stx⟩
-  | .error err =>
-      throwErrorAt ref s!"generated command failed:\n\n{s}\n\n{err}"
+open MRiscX.ExtendParser.CommandElabShared
 
 private def parserNameEq (p : String) (expected : String) : Bool :=
-  p == expected || p.endsWith s!".{expected}"
+  parserTextEq p expected
 
 private def holeNameText (h : Hole) : String :=
   toString (h.name.eraseMacroScopes)
@@ -123,11 +105,11 @@ def mkGetInstrExprCmd (ref : Syntax) (arch : ArchSpec) : CommandElabM (TSyntax `
      "  match t with"] ++
     altLines ++
     [s!"    | _ => throwError \"unknown instruction for architecture {arch.name.eraseMacroScopes}\""]
-  parseCommandStr ref cmdText
+  parseCommandStr ref cmdText "<mkGetInstrExpr>"
 
 def mkTest (ref : Syntax) : CommandElabM (TSyntax `command) := do
   let cmdText := joinLines
     [ "elab \"⟪\" entry:mriscx_Instr \"⟫\" : term => do"
     , "  return (← getInstrExpr entry)"
     ]
-  parseCommandStr ref cmdText
+  parseCommandStr ref cmdText "<mkGetInstrExpr>"

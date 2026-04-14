@@ -14,7 +14,9 @@ mkAll RV64 Instr execute
   LoadAddress:
     { syntax : la (a:register), (m:immediate),
       semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc,
-      specification: ⦃P ⟦x[a] <- m; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄}
+      specification:  ⦃P ⟦x[a] <- m; pc++⟧ ∧ ¬⸨terminated⸩⦄
+                      pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄}
   LoadImmediate:
     { syntax : li (a:register), (m:immediate),
       semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
@@ -35,7 +37,9 @@ def MState.runNSteps (ms : MState Instr) (n : Nat) :=
 instance instRunable : runable (MState Instr) where
   runOneStep := MState.runOneStep
   runNSteps := MState.runNSteps
-
+#check mriscx
+        first : li x3, 1
+        end
 def c := mriscx
         f: li x1, 1
         end
