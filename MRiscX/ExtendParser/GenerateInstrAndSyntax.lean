@@ -372,23 +372,31 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
     execName := execName.getId.eraseMacroScopes
     specs    := specs
   }
+
   let ref := archName.raw
-  let indCmd ← mkInductiveCmd ref arch
+  -- concrete Syntax
   for instr in arch.specs do
     let syn ← mkInstrSyntaxCmdForCtor ref instr
     withRef archName do
       elabCommand syn
-  logInfo s!"Created type {arch.typeName} for {arch.name}"
+
+  -- inductive type
+  let indCmd ← mkInductiveCmd ref arch
   withRef archName do
     elabCommand indCmd
+  -- instr to Expr
   withRef archName do
     elabCommand (← mkGetInstrExprCmd ref arch)
+  -- Elab for single Instr
   withRef archName do
     elabCommand (← mkTest ref)
+  -- Instr Spec
   for instr in arch.specs do
     withRef archName do
       elabCommand (← mkSpecDefCmd ref arch instr)
+  -- Execute function
   let exeCmd ← mkExecuteCmd ref arch
   withRef archName do
     elabCommand exeCmd
+  -- elaborator
   liftIO <| activeArchRef.set (some arch)

@@ -328,28 +328,28 @@ private def mkCodeExprFromSyntax (arch : ArchSpec) (syn : TSyntax `mriscx_syntax
   | _ =>
       throwError "expected `mriscx ... end` syntax"
 
-def elabMkElaborator : CommandElab := fun stx => do
-  match stx with
-  | `(command| mkElaborator $archName:ident $typeName:ident $execName:ident $entries:instr_set_entry*) => do
-      let specs ← entries.mapM MRiscX.ExtendParser.CommandElabShared.mkInstrSpecFromEntry
-      let arch : ArchSpec := {
-        name := archName.getId.eraseMacroScopes
-        typeName := typeName.getId.eraseMacroScopes
-        execName := execName.getId.eraseMacroScopes
-        specs := specs
-      }
-      liftIO <| activeArchRef.set (some arch)
-  | _ =>
-      throwUnsupportedSyntax
+-- def elabMkElaborator : CommandElab := fun stx => do
+--   match stx with
+--   | `(command| mkElaborator $archName:ident $typeName:ident $execName:ident $entries:instr_set_entry*) => do
+--       let specs ← entries.mapM MRiscX.ExtendParser.CommandElabShared.mkInstrSpecFromEntry
+--       let arch : ArchSpec := {
+--         name := archName.getId.eraseMacroScopes
+--         typeName := typeName.getId.eraseMacroScopes
+--         execName := execName.getId.eraseMacroScopes
+--         specs := specs
+--       }
+--       liftIO <| activeArchRef.set (some arch)
+--   | _ =>
+--       throwUnsupportedSyntax
 
-@[command_elab mkElaboratorCmd]
-def elabMkElaboratorImpl : CommandElab :=
-  elabMkElaborator
+-- @[command_elab mkElaboratorCmd]
+-- def elabMkElaboratorImpl : CommandElab :=
+--   elabMkElaborator
 
 @[term_elab mriscxTerm]
 def elabMriscxGenerated : TermElab := fun stx expectedType? => do
   let some arch ← liftM (m := TermElabM) <| activeArchRef.get
-    | throwError "no active architecture elaborator; run `mkElaborator <archName> <typeName> <execName> ...` or `mkAll ...` first"
+    | throwError "no active architecture elaborator; run `mkAll ...` first"
   match stx with
   | `(term| $syn:mriscx_syntax) =>
       let e ← mkCodeExprFromSyntax arch syn
