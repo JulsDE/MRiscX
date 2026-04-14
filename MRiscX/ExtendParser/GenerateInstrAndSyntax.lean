@@ -1,9 +1,9 @@
 import MRiscX.AbstractSyntax.MState
-import MRiscX.ExtendParser.ExprDecoder
+import MRiscX.ExtendParser.AbstractSyntaxForGen
 import MRiscX.ExtendParser.GenerateConcreteSyntax
 import MRiscX.ExtendParser.GenerateInstrToExpr
 import MRiscX.Hoare.HoareAssignmentElab
--- import MRiscX.ExtendParser.GenerateElaborator
+import MRiscX.ExtendParser.GenerateElaborator
 import Mathlib.Data.Set.Basic
 
 import Lean
@@ -16,103 +16,6 @@ open Lean.Parser.Term
 /-
   Placeholders used in instruction syntax signatures.
 -/
-
-
-syntax num : num_or_ident
-syntax ident : num_or_ident
-
-syntax &"x" num_or_ident : register
-syntax "x0" : register
-
-syntax num_or_ident : immediate
-syntax ident : label
-
-declare_syntax_cat instr_set_hoare_assignment
-declare_syntax_cat instr_set_hoare_assignment_chain
-declare_syntax_cat instr_set_hoare_assignment_term
-
-syntax "x[" num_or_ident "]" "←" term : instr_set_hoare_assignment
-syntax "x[" num_or_ident "]" "<-" term : instr_set_hoare_assignment
-syntax "x[" register "]" "←" term : instr_set_hoare_assignment
-syntax "x[" register "]" "<-" term : instr_set_hoare_assignment
-syntax "mem[" term &"]" "←" term : instr_set_hoare_assignment
-syntax "mem[" term &"]" "<-" term : instr_set_hoare_assignment
-syntax ident "++" : instr_set_hoare_assignment
-syntax ident "←" term : instr_set_hoare_assignment
-syntax ident "<-" term : instr_set_hoare_assignment
-
-syntax "⟦⟧" : instr_set_hoare_assignment_term
-syntax instr_set_hoare_assignment : instr_set_hoare_assignment_chain
-syntax instr_set_hoare_assignment ";" instr_set_hoare_assignment : instr_set_hoare_assignment_chain
-syntax instr_set_hoare_assignment ";" instr_set_hoare_assignment_chain : instr_set_hoare_assignment_chain
-syntax "⟦" instr_set_hoare_assignment_chain "⟧" : instr_set_hoare_assignment_term
-
-syntax "⟦⟧" : term
-syntax "⟦" instr_set_hoare_assignment_chain "⟧" : term
-syntax "x[" register "]" : term
-syntax "x[" num_or_ident "]" : term
-syntax "mem[" term "]" : term
-syntax "labels[" ident "]" : term
-syntax "labels[" &"." ident "]" : term
-syntax "⸨pc⸩" : term
-syntax "⸨terminated⸩": term
-
-declare_syntax_cat instr_set_hole
-syntax register : instr_set_hole
-syntax immediate : instr_set_hole
-syntax label : instr_set_hole
-syntax "(" ident ":" stx ")" : instr_set_hole
-
-declare_syntax_cat instr_set_piece
-syntax instr_set_hole : instr_set_piece
-syntax ident : instr_set_piece
-syntax num   : instr_set_piece
-syntax str   : instr_set_piece
-syntax char  : instr_set_piece
-syntax ","   : instr_set_piece
-syntax ";"   : instr_set_piece
-syntax ":"   : instr_set_piece
-syntax "."   : instr_set_piece
-syntax "+"   : instr_set_piece
-syntax "-"   : instr_set_piece
-syntax "*"   : instr_set_piece
-syntax "/"   : instr_set_piece
-syntax "="   : instr_set_piece
-syntax "<"   : instr_set_piece
-syntax ">"   : instr_set_piece
-syntax "<="  : instr_set_piece
-syntax ">="  : instr_set_piece
-
-declare_syntax_cat instr_set_sig
-syntax ((!( ("," "semantics" ":") )) instr_set_piece)+ : instr_set_sig
-
-declare_syntax_cat instr_set_spec
--- syntax instr_set_spec : term
-syntax "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄" : instr_set_spec
-syntax ((!("⦃")) term) : instr_set_spec
-
-declare_syntax_cat instr_set_entry
-syntax ident ":" "{"
-  "syntax" ":" instr_set_sig ","
-  "semantics" ":" term ","
-  "specification" ":" instr_set_spec
-  "}" : instr_set_entry
-syntax ident ":" "{"
-  "syntax" ":" instr_set_sig ","
-  "semantics" ":" term
-  ppLine "specification" ":" instr_set_spec
-  "}" : instr_set_entry
-
-syntax (name := mkInstrSetTerm)
-  "mkInstrSet " ident ident ident ppLine withPosition((colGe instr_set_entry)+) : term
-
-syntax (name := mkTypeCmd)
-  "mkType " ident : command
-
-syntax (name := mkExecutionCmd)
-  "mkExecution " ident : command
-
-
 
 
 
@@ -144,6 +47,276 @@ private def parseCommandStr (ref : Syntax) (s : String) : CommandElabM (TSyntax 
       pure ⟨stx⟩
   | .error err =>
       throwErrorAt ref s!"generated command failed:\n\n{s}\n\n{err}"
+
+private def trimAsciiLocal (s : String) : String :=
+  (s.trimAscii).toString
+
+private def numOrIdentAsTerm (s : TSyntax `num_or_ident) : TermElabM (TSyntax `term) := do
+  match s with
+  | `(num_or_ident| $n:num) =>
+      `(term| $n:num)
+  | `(num_or_ident| $i:ident) =>
+      `(term| $i:ident)
+  | _ =>
+      throwError "unsupported num_or_ident in instruction-set hoare assignment"
+
+private def registerIndexAsTerm (r : TSyntax `register) : TermElabM (TSyntax `term) := do
+  if let some reg := getCorrespondingRegisterName? r then
+    let n : TSyntax `num := Syntax.mkNumLit s!"{reg.nr}"
+    `(term| $n:num)
+  else
+    match r with
+    | `(register| x $i:num_or_ident) =>
+        numOrIdentAsTerm i
+    | _ =>
+        throwError "unsupported register in instruction-set hoare assignment"
+
+private def mkRegisterNameFromIdx (idx : TSyntax `term) : TermElabM (TSyntax `term) := do
+  `(term| RegisterName.mk (RegisterNr.ofUInt64 $idx:term) (@toString UInt64 instToStringUInt64 $idx:term))
+
+private partial def replaceInstrSetKeywords (stx : Term) (stateTerm : TSyntax `term) : TermElabM Syntax := do
+  go stx
+where
+  go : Syntax → TermElabM Syntax
+  | _stx@`(⸨terminated⸩) =>
+      `(term| ($stateTerm:term).terminated)
+  | _stx@`(⸨pc⸩) =>
+      `(term| ($stateTerm:term).pc)
+  | stx =>
+      match stx with
+      | .node _ k args => do
+          let args ← args.mapM go
+          return .node (.fromRef stx (canonical := true)) k args
+      | _ => pure stx
+
+private partial def getInstrSetAssignmentArray
+    (stx : TSyntax `instr_set_hoare_assignment_chain)
+    (curArr : Array (TSyntax `instr_set_hoare_assignment)) :
+    TermElabM (Array (TSyntax `instr_set_hoare_assignment)) := do
+  match stx with
+  | `(instr_set_hoare_assignment_chain| $t:instr_set_hoare_assignment) =>
+      return curArr.push t
+  | `(instr_set_hoare_assignment_chain| $t1:instr_set_hoare_assignment ; $t2:instr_set_hoare_assignment) =>
+      return (curArr.push t1).push t2
+  | `(instr_set_hoare_assignment_chain| $t:instr_set_hoare_assignment ; $s:instr_set_hoare_assignment_chain) =>
+      return (← getInstrSetAssignmentArray s (curArr.push t))
+  | _ =>
+      throwError "unknown instruction-set hoare assignment chain"
+
+private def foldInstrSetAssignment
+    (element : TSyntax `instr_set_hoare_assignment)
+    (curTerm : TSyntax `term) :
+    TermElabM (TSyntax `term) := do
+  match element with
+  | `(instr_set_hoare_assignment| x[$r:num_or_ident] ← $t:term)
+  | `(instr_set_hoare_assignment| x[$r:num_or_ident] <- $t:term) => do
+      let idx ← numOrIdentAsTerm r
+      let reg ← mkRegisterNameFromIdx idx
+      let newT : TSyntax `term := ⟨← replaceInstrSetKeywords t curTerm⟩
+      `(term| MState.addRegisterAt ($curTerm) $reg $newT)
+  | `(instr_set_hoare_assignment| x[$r:register] ← $t:term)
+  | `(instr_set_hoare_assignment| x[$r:register] <- $t:term) => do
+      let idx ← registerIndexAsTerm r
+      let reg ← mkRegisterNameFromIdx idx
+      let newT : TSyntax `term := ⟨← replaceInstrSetKeywords t curTerm⟩
+      `(term| MState.addRegisterAt ($curTerm) $reg $newT)
+  | `(instr_set_hoare_assignment| mem[$m:term] ← $t:term)
+  | `(instr_set_hoare_assignment| mem[$m:term] <- $t:term) => do
+      let newM : TSyntax `term := ⟨← replaceInstrSetKeywords m curTerm⟩
+      let newT : TSyntax `term := ⟨← replaceInstrSetKeywords t curTerm⟩
+      `(term| MState.addMemory ($curTerm) $newM $newT)
+  | `(instr_set_hoare_assignment| pc++) =>
+      `(term| MState.incInstrCounter (MState.incPc ($curTerm)))
+  | `(instr_set_hoare_assignment| $pc:ident ++)
+    =>
+      if pc.getId == `pc then
+        `(term| MState.incInstrCounter (MState.incPc ($curTerm)))
+      else
+        throwError "only `pc++` is supported in instruction-set hoare assignment"
+  | `(instr_set_hoare_assignment| $pc:ident ← $i:term)
+  | `(instr_set_hoare_assignment| $pc:ident <- $i:term) =>
+      if pc.getId == `pc then
+        `(term| MState.incInstrCounter (MState.setPc ($curTerm) $i:term))
+      else
+        throwError "only `pc <- ...` is supported in instruction-set hoare assignment"
+  | _ =>
+      throwError "unknown instruction-set hoare assignment element"
+
+private def generateInstrSetAssignmentSyntax
+    (hChain : TSyntax `instr_set_hoare_assignment_chain)
+    (stateTerm : TSyntax `term) : TermElabM Syntax := do
+  let termArray ← getInstrSetAssignmentArray hChain #[]
+  let result : TSyntax `term ← termArray.foldrM foldInstrSetAssignment stateTerm
+  pure result.raw
+
+private partial def rewriteInstrSetAssignmentTerms (stx : Syntax) (stateTerm : TSyntax `term) : TermElabM Syntax := do
+  withFreshMacroScope do
+    go stx
+where
+  go : Syntax → TermElabM Syntax
+  | _stx@`(term| ⟦⟧) =>
+      return stateTerm.raw
+  | _stx@`(term| ⟦$h:instr_set_hoare_assignment_chain⟧) => do
+      return (← generateInstrSetAssignmentSyntax h stateTerm)
+  | stx =>
+      match stx with
+      | .node _ k args => do
+          let args ← args.mapM go
+          return .node (.fromRef stx (canonical := true)) k args
+      | _ => pure stx
+
+private def processInstrSetHoareTerm (stx : Term) (stateTerm : TSyntax `term) : TermElabM Syntax := do
+  let rewritten ← rewriteInstrSetAssignmentTerms stx.raw stateTerm
+  replaceInstrSetKeywords ⟨rewritten⟩ stateTerm
+
+private partial def elabInstrSetHoareTerm (stx : Term) : TermElabM Term := do
+  let stId : TSyntax `ident := mkIdent `st
+  let stTerm : TSyntax `term ← `(term| $stId:ident)
+  let newStx ← processInstrSetHoareTerm stx stTerm
+  return (← `(term| fun $stId:ident => ($(⟨newStx⟩))))
+
+elab "⧼" t:term "⧽" : term => do
+  let newT ← elabInstrSetHoareTerm t
+  return (← Lean.Elab.Term.elabTerm (← `(term| $newT:term)) none)
+
+private def parserTextEq (p : String) (expected : String) : Bool :=
+  p == expected || p.endsWith s!".{expected}"
+
+private def isRegisterHole (h : Hole) : Bool :=
+  parserTextEq h.parser "register"
+
+private def isImmediateHole (h : Hole) : Bool :=
+  parserTextEq h.parser "immediate"
+
+private def isLabelHole (h : Hole) : Bool :=
+  parserTextEq h.parser "label"
+
+private def holesOfSpec (spec : InstrSpec) : Array Hole :=
+  spec.pieces.foldl (init := #[]) fun acc piece =>
+    match piece with
+    | .lit _   => acc
+    | .hole h  => acc.push h
+
+private def binderTypeText (h : Hole) (hoareStyle : Bool) : String :=
+  if hoareStyle then
+    if isRegisterHole h then
+      "UInt64"
+    else if isImmediateHole h then
+      "UInt64"
+    else if isLabelHole h then
+      "String"
+    else
+      h.ty
+  else
+    h.ty
+
+private def mkSpecBinderTexts (arch : ArchSpec) (spec : InstrSpec) (hoareStyle : Bool) : Array String := Id.run do
+  let mut seen : Array Name := #[]
+  let mut binders : Array String := #[]
+  if hoareStyle then
+    binders := binders.push s!"[runable_mstate : runable (MState {arch.typeName})]"
+    binders := binders.push s!"(P : MState {arch.typeName} → Prop)"
+    binders := binders.push "(pc : ProgramCounter)"
+    seen := seen.push `P
+    seen := seen.push `pc
+  for h in holesOfSpec spec do
+    let n := h.name.eraseMacroScopes
+    if !seen.contains n then
+      binders := binders.push s!"({n} : {binderTypeText h hoareStyle})"
+      seen := seen.push n
+  return binders
+
+private def isPunctuationTok (tok : String) : Bool :=
+  tok == "," || tok == ";" || tok == ":" || tok == "." ||
+  tok == ")" || tok == "]" || tok == "}"
+
+private def isOpenBracketTok (tok : String) : Bool :=
+  tok == "(" || tok == "[" || tok == "{"
+
+private def mkInstrCtorArgText (h : Hole) : String :=
+  let nameTxt := toString (h.name.eraseMacroScopes)
+  if isRegisterHole h then
+    s!"(RegisterName.mk (RegisterNr.ofUInt64 {nameTxt}) (@toString UInt64 instToStringUInt64 {nameTxt}))"
+  else
+    nameTxt
+
+private def instrCtorTextOfSpec (arch : ArchSpec) (spec : InstrSpec) : String :=
+  let ctor := s!"{arch.typeName}.{spec.instrName.eraseMacroScopes}"
+  let args := (holesOfSpec spec).toList.map mkInstrCtorArgText
+  if args.isEmpty then
+    ctor
+  else
+    s!"{ctor} {String.intercalate " " args}"
+
+private def instrTextOfSpec (spec : InstrSpec) : String :=
+  let rec go (i : Nat) (acc : String) : String :=
+    if h : i < spec.pieces.size then
+      let piece := spec.pieces[i]
+      let next? :=
+        if hNext : i + 1 < spec.pieces.size then
+          some spec.pieces[i + 1]
+        else
+          none
+      let addSpaceAfterHole :=
+        match next? with
+        | some (.lit tok) => !(isPunctuationTok tok)
+        | some _ => true
+        | none => false
+      let acc :=
+        match piece with
+        | .lit tok =>
+            if tok == "," then
+              acc ++ ", "
+            else if i == 0 then
+              if next?.isSome then acc ++ tok ++ " " else acc ++ tok
+            else if isPunctuationTok tok then
+              acc ++ tok
+            else if isOpenBracketTok tok then
+              acc ++ tok
+            else
+              if next?.isSome then acc ++ tok ++ " " else acc ++ tok
+        | .hole h' =>
+            let nameTxt := toString (h'.name.eraseMacroScopes)
+            let holeTxt := if isRegisterHole h' then s!"x {nameTxt}" else nameTxt
+            if addSpaceAfterHole then acc ++ holeTxt ++ " " else acc ++ holeTxt
+      go (i + 1) acc
+    else
+      acc
+  trimAsciiLocal (go 0 "")
+
+private def mkSpecDefCmd
+    (arch : ArchSpec)
+    (spec : InstrSpec) :
+    CommandElabM (TSyntax `command) := do
+  let specName := s!"specification_{spec.instrName.eraseMacroScopes}"
+  let rawSpec := trimAsciiLocal (spec.hoareDesc.raw.reprint.getD (toString spec.hoareDesc.raw))
+  match spec.hoareDesc with
+  | `(instr_set_spec| ⦃$pre:term⦄ $l:term ↦ ⟨$L_w:term | $L_b:term⟩ ⦃$post:term⦄) => do
+      let preTxt := pre.raw.reprint.getD (toString pre.raw)
+      let postTxt := post.raw.reprint.getD (toString post.raw)
+      let lTxt := l.raw.reprint.getD (toString l.raw)
+      let LwTxt := L_w.raw.reprint.getD (toString L_w.raw)
+      let LbTxt := L_b.raw.reprint.getD (toString L_b.raw)
+      let instrCtorTxt := instrCtorTextOfSpec arch spec
+      let binders := String.intercalate " " (mkSpecBinderTexts arch spec true).toList
+      let cmdTxt := joinLines
+        [s!"def {specName} {binders} : Prop :="
+        ,s!"  hoare_triple_up_1 (MState {arch.typeName}) {arch.typeName} (Code {arch.typeName}) RegisterName UInt64 ProgramCounter"
+        ,s!"    (⧼{preTxt}⧽)"
+        ,s!"    (⧼{postTxt}⧽)"
+        ,s!"    ({lTxt})"
+        ,s!"    ({LwTxt})"
+        ,s!"    ({LbTxt})"
+        ,s!"    ({instrCtorTxt})"
+        ]
+      parseCommandStr Syntax.missing cmdTxt
+  | _ =>
+      let binders := String.intercalate " " (mkSpecBinderTexts arch spec false).toList
+      let cmdTxt := joinLines
+        [s!"def {specName} {binders} : Prop :="
+        ,s!"  {rawSpec}"
+        ]
+      parseCommandStr Syntax.missing cmdTxt
 
 
 /-! Parse DSL into persisted specs -/
@@ -266,95 +439,26 @@ private def mkAltLine (spec : InstrSpec) : String :=
       s!".{ctor} {args}"
   s!"  | {pat} => ({spec.sem}) _ms"
 
-def adf (name : Name) : CommandElabM (TSyntax `ident) := do
-  let n := mkIdent name
-  return ⟨n⟩
 
 
-
-
-
-
-
-private def mkCtorPattern (ctorName : TSyntax `ident) (fields : Array (TSyntax `ident × TSyntax `term)) :
-    CommandElabM (TSyntax `term) := do
-  let argPats ← fields.mapM fun (name, _) => `(term| $name:ident)
-  if argPats.isEmpty then
-    `(term| .$ctorName:ident)
-  else
-    `(term| .$ctorName:ident $argPats*)
-
-private def mkMStateEndoType
-    (stateAlias : TSyntax `ident) :
-    CommandElabM (TSyntax `term) :=
-  `(term| $stateAlias:ident → $stateAlias:ident)
-
-
--- private def mkExecuteAlt
---     (stateAlias : TSyntax `ident)
---     (stateIdent : TSyntax `ident)
---     (spec : InstrSpec) :
---     CommandElabM (TSyntax ``matchAlt) := do
---   let pat ← mkCtorPattern (mkIdent spec.instrName) (fieldsOfPieces spec.pieces)
---   let sem := spec.sem
---   let semTy ← mkMStateEndoType stateAlias
---   let semFn : TSyntax `term ← `(term| show $semTy:term from $sem:term)
---   let rhs : TSyntax `term ← `(term| $semFn:term $stateIdent:ident)
---   `(matchAltExpr| | $pat:term => $rhs:term)
-
-
-
-
--- private def mkExecuteCmd
---     (arch : ArchSpec) :
---     CommandElabM (TSyntax `command) := do
---   let typeName := arch.typeName
---   let execName := arch.execName
---   let alts ← arch.specs.mapM (mkExecuteAlt stateAlias stateIdent)
---   `(command|
---     def $(mkIdent execName) ($(mkIdent `_ms) : $(mkIdent `MState) $(mkIdent `Isntr))
---           ($(mkIdent `_instr) : $(mkIdent execName)) : $(mkIdent `MState) $(mkIdent `Isntr) :=
---       match $(mkIdent `_ms):ident with
---       $altLines:matchAlt*)
+private def mkExecuteCmd
+    (arch : ArchSpec) :
+    CommandElabM (TSyntax `command) := do
+  let typeName := arch.typeName
+  let execName := arch.execName
+  let altLines := arch.specs.toList.map mkAltLine
+  let cmdText := joinLines <|
+    [ s!"def {execName} (_ms : MState {typeName}) (_instr : {typeName}) : MState {typeName} :="
+    , "  match _instr with"
+    ] ++
+    altLines
+  parseCommandStr Syntax.missing cmdText
 
 /-! Elaborators -/
 
 def tres (stx : TSyntax `instr_set_spec) : CommandElabM (TSyntax `term) := do
   return ⟨stx⟩
 
-
-
-  -- | `(term| mkInstrSet $archName:ident $typeName:ident $execName:ident $entries:instr_set_entry*) => do
-  --     let specs ← liftM <| liftCommandElabM (entries.mapM mkCtorSpec)
-  --     let arch : ArchSpec := {
-  --       name     := archName.getId.eraseMacroScopes
-  --       typeName := typeName.getId.eraseMacroScopes
-  --       execName := execName.getId.eraseMacroScopes
-  --       specs    := specs
-  --     }
-
-  --     pure (toExpr arch)
-  -- | _ =>
-  --     throwUnsupportedSyntax
-
--- def elabMkType : CommandElab := fun stx => do
---   match stx with
---   | `(command| mkType $archName:ident) => do
---       let arch ← resolveArchFromIdent archName
---       let indCmd ← mkInductiveCmd arch
---       logInfo s!"Created type {arch.typeName} for {arch.archName}"
---       elabCommand indCmd
---   | _ =>
---       throwUnsupportedSyntax
-
--- def elabMkExecution : CommandElab := fun stx => do
---   match stx with
---   | `(command| mkExecution $archName:ident) => do
---       let arch ← resolveArchFromIdent archName
---       let execCmd ← mkExecuteCmd arch
---       elabCommand execCmd
---   | _ =>
---       throwUnsupportedSyntax
 
 
 
@@ -376,62 +480,21 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
     execName := execName.getId.eraseMacroScopes
     specs    := specs
   }
-  let ad : TSyntax `term ← `($(mkIdent arch.name))
   let indCmd ← mkInductiveCmd arch
   for instr in arch.specs do
     let syn ← mkSyntaxCmdForCtor instr
     elabCommand syn
-  -- let exeCmd ← mkExecuteCmd arch
   logInfo s!"Created type {arch.typeName} for {arch.name}"
   -- logInfo s!"{arch.specs[0]!.hoareDesc}"
   elabCommand indCmd
   elabCommand (← mkGetInstrExprCmd arch)
   elabCommand (← mkTest)
+  for instr in arch.specs do
+    elabCommand (← mkSpecDefCmd arch instr)
   -- `mkTest` may emit extra elaborators/commands; keep it opt-in at call sites.
   -- elabCommand (← mkTest)
-  -- elabCommand exeCmd
+  let exeCmd ← mkExecuteCmd arch
+  elabCommand exeCmd
+  liftIO <| activeArchRef.set (some arch)
   -- let ad : TSyntax `term ← tres arch.specs[0]!.hoareDesc
   -- elabCommand (←`(#check $ad))
-
-
-mkAll RV64 Instr execute
-  LoadAddress:
-    { syntax : la (a:register), (m:immediate),
-      semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc,
-      specification: ⦃P ⟦x[a] <- m; pc++⟧⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄}
-  LoadImmediate:
-    { syntax : li (a:register), (m:immediate),
-      semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
-      specification: true }
-  Jump:
-    { syntax : j (lbl:label),
-      semantics: fun ms => (MState.jump ms lbl),
-      specification: True }
-  PANIC:
-    { syntax : PANIC,
-      semantics: fun ms => (MState.setTerminated ms true),
-      specification: True }
-
-#check ⟪j oaijdfsoi;⟫
-
-
-elab "mriscx" t:mriscx_label* "end" : term => do
-  return mkNatLit 0
-
-#check mriscx
-        first: li x0, 1
-        end
-
-#print getInstrExpr
-
-def execute : MState Instr → Instr → MState Instr :=
-fun ms instr =>
-  if ms.terminated then ms
-  else
-    match instr with
-    | Instr.LoadAddress a m => (fun ms => (ms.addRegisterAt a m).incPc) ms
-    | Instr.LoadImmediate a m => (fun ms => (ms.addRegisterAt a m).incPc) ms
-    | Instr.Jump lbl => (fun ms => ms.jump lbl) ms
-    | Instr.PANIC => (fun ms => ms.setTerminated true) ms
-#print Instr
--- #print execute

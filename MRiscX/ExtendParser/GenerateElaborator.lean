@@ -1,13 +1,13 @@
 import MRiscX.AbstractSyntax.MState
-import MRiscX.ExtendParser.ExprDecoder
-import MRiscX.ExtendParser.GenerateConcreteSyntax
+import MRiscX.ExtendParser.AbstractSyntaxForGen
+import MRiscX.ExtendParser.GeneralSyntax
 import Lean
 
 open Lean
 open Lean Elab Command Term
 
 syntax (name := mkElaboratorCmd)
-  "mkElaborator " ident : command
+  "mkElaborator " ident ident ident ppLine withPosition((colGe instr_set_entry)+) : command
 
 initialize activeArchRef : IO.Ref (Option ArchSpec) ← IO.mkRef none
 
@@ -86,6 +86,93 @@ private def splitHoleTexts (pieces : Array Piece) (raw : String) : Option (Array
   else
     none
 
+private partial def leafTokenText? : Syntax → Option String
+  | Syntax.ident _ rawVal _ _ =>
+      some (toString rawVal)
+  | Syntax.atom _ val =>
+      some val
+  | Syntax.node _ _ args =>
+      let rec go (i : Nat) : Option String :=
+        if h : i < args.size then
+          match leafTokenText? (args[i]'h) with
+          | some s => some s
+          | none   => go (i + 1)
+        else
+          none
+      go 0
+  | Syntax.missing =>
+      none
+
+private def fieldsOfInputPieces (pieces : Array Piece) : Array Hole :=
+  pieces.foldl (init := #[]) fun acc piece =>
+    match piece with
+    | .lit _    => acc
+    | .hole h   => acc.push h
+
+private def ensureNoDuplicateFieldNames
+    (ctorName : Name)
+    (fields : Array Hole) :
+    CommandElabM Unit := do
+  let mut seen : Array Name := #[]
+  for h in fields do
+    let n := h.name.eraseMacroScopes
+    if seen.contains n then
+      throwError s!"duplicate placeholder name `{n}` in constructor `{ctorName}`"
+    seen := seen.push n
+
+private def elabPiece (piece : TSyntax `instr_set_piece) : CommandElabM Piece := do
+  match piece with
+  | `(instr_set_piece| $h:instr_set_hole) =>
+      match h with
+      | `(instr_set_hole| ($name:ident : $parser:stx)) =>
+          let n := name.getId.eraseMacroScopes
+          match parser with
+          | `(stx | register) =>
+              pure <| .hole { name := n, ty := "RegisterName", parser := "register" }
+          | `(stx | label) =>
+              pure <| .hole { name := n, ty := "String", parser := "label" }
+          | `(stx | immediate) =>
+              pure <| .hole { name := n, ty := "UInt64", parser := "immediate" }
+          | _ =>
+              throwErrorAt parser "unknown hole parser category (expected register | immediate | label)"
+      | _ =>
+          throwErrorAt h "invalid placeholder"
+  | _ =>
+      match leafTokenText? piece.raw with
+      | some tok =>
+          pure <| .lit tok
+      | none =>
+          throwErrorAt piece "failed to reconstruct token text"
+
+private def extractPieces
+    (sig : TSyntax `instr_set_sig) :
+    CommandElabM (Array Piece) := do
+  match sig with
+  | `(instr_set_sig| $[$pieces:instr_set_piece]*) =>
+      pieces.mapM elabPiece
+  | _ =>
+      throwErrorAt sig "invalid syntax signature"
+
+private def mkInstrSpec
+    (entry : TSyntax `instr_set_entry) :
+    CommandElabM InstrSpec := do
+  match entry with
+  | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term, specification : $spec:instr_set_spec }) => do
+      let pieces ← extractPieces sig
+      let holes := fieldsOfInputPieces pieces
+      let ctorName := ctorName.getId.eraseMacroScopes
+      let instrSpec : InstrSpec := {
+          instrName := ctorName,
+          ref := entry.raw.reprint.getD (toString entry.raw),
+          pieces := pieces,
+          sem := sem.raw.reprint.getD (toString sem.raw),
+          hoareDesc := spec
+      }
+      ensureNoDuplicateFieldNames ctorName holes
+      return instrSpec
+  | _ =>
+      throwErrorAt entry "invalid instruction entry"
+
 private def parseTermStx (txt : String) : TermElabM (TSyntax `term) := do
   match Parser.runParserCategory (← getEnv) `term txt "<mkElaborator>" with
   | .ok stx =>
@@ -97,7 +184,7 @@ private def elabTermFromText (txt : String) (expectedType? : Option Expr := none
   let stx ← parseTermStx txt
   Lean.Elab.Term.elabTerm stx expectedType?
 
-private def mkUInt64Lit (n : UInt64) : Expr :=
+private def mkUInt64LitExpr (n : UInt64) : Expr :=
   mkApp3
     (mkConst ``OfNat.ofNat [levelZero])
     (mkConst ``UInt64)
@@ -206,36 +293,39 @@ private def parseRegisterExpr (txt : String) : TermElabM Expr := do
             else
               match rest.toNat? with
               | some n =>
-                  pure (mkRegisterExprFromUInt64Expr (mkUInt64Lit n.toUInt64) s)
+                  pure (mkRegisterExprFromUInt64Expr (mkUInt64LitExpr n.toUInt64) s)
               | none =>
                   let nExpr ← elabTermFromText rest (some (mkConst ``UInt64 []))
                   pure (mkRegisterExprFromUInt64Expr nExpr s)
           else
             throwError s!"invalid register `{txt}`"
 
+private def parserTextEq (p : String) (expected : String) : Bool :=
+  p == expected || p.endsWith s!".{expected}"
+
 private def holeExprFromText (hole : Hole) (txt : String) : TermElabM Expr := do
-  let p := hole.parser.eraseMacroScopes
-  if p == `register || p == Name.mkSimple "register" then
+  let p := hole.parser
+  if parserTextEq p "register" then
     parseRegisterExpr txt
-  else if p == `label || p == Name.mkSimple "label" then
+  else if parserTextEq p "label" then
     pure (mkStrLit (trimAsciiStr txt))
-  else if p == `immediate || p == Name.mkSimple "immediate" then
+  else if parserTextEq p "immediate" then
     elabTermFromText txt (some (mkConst ``UInt64 []))
   else
-    let tyExpr ← elabTermFromText hole.tyText none
+    let tyExpr ← elabTermFromText hole.ty none
     elabTermFromText txt (some tyExpr)
 
 private def defaultHoleExpr (hole : Hole) : TermElabM Expr := do
-  let p := hole.parser.eraseMacroScopes
-  if p == `register || p == Name.mkSimple "register" then
+  let p := hole.parser
+  if parserTextEq p "register" then
     pure (mkRegisterExpr 0 "zero")
-  else if p == `label || p == Name.mkSimple "label" then
+  else if parserTextEq p "label" then
     pure (mkStrLit "")
-  else if p == `immediate || p == Name.mkSimple "immediate" then
-    pure (mkUInt64Lit 0)
+  else if parserTextEq p "immediate" then
+    pure (mkUInt64LitExpr 0)
   else
-    let tyExpr ← elabTermFromText hole.tyText none
-    elabTermFromText s!"(default : {hole.tyText})" (some tyExpr)
+    let tyExpr ← elabTermFromText hole.ty none
+    elabTermFromText s!"(default : {hole.ty})" (some tyExpr)
 
 private def appendName : Name → Name → Name
   | p, .anonymous => p
@@ -265,12 +355,12 @@ private def mkInstrExprForCtor (arch : ArchSpec) (spec : InstrSpec) (holeTexts :
           args := args.push (← holeExprFromText h holeTexts[holeIdx])
           holeIdx := holeIdx + 1
         else
-          throwError s!"internal error: missing hole text in `{spec.ctorName}`"
-  let ctorConst := qualifyCtorName arch.typeName spec.ctorName
+          throwError s!"internal error: missing hole text in `{spec.instrName}`"
+  let ctorConst := qualifyCtorName arch.typeName spec.instrName
   pure (mkAppN (.const ctorConst []) args)
 
 private def mkDefaultInstrExpr (arch : ArchSpec) : TermElabM Expr := do
-  let some first := arch.ctors[0]?
+  let some first := arch.specs[0]?
     | throwError "architecture has no constructors; cannot build default instruction map entry"
   let mut args : Array Expr := #[]
   for piece in first.pieces do
@@ -279,18 +369,18 @@ private def mkDefaultInstrExpr (arch : ArchSpec) : TermElabM Expr := do
         pure ()
     | .hole h =>
         args := args.push (← defaultHoleExpr h)
-  let ctorConst := qualifyCtorName arch.typeName first.ctorName
+  let ctorConst := qualifyCtorName arch.typeName first.instrName
   pure (mkAppN (.const ctorConst []) args)
 
 private def mkInstrExpr (arch : ArchSpec) (instr : TSyntax `mriscx_Instr) : TermElabM Expr := do
   let txt := instr.raw.reprint.getD (toString instr.raw)
-  for spec in arch.ctors do
+  for spec in arch.specs do
     match splitHoleTexts spec.pieces txt with
     | some holeTexts =>
         return (← mkInstrExprForCtor arch spec holeTexts)
     | none =>
         pure ()
-  throwError s!"unknown instruction syntax `{sanitizeInstrText txt}` for architecture `{arch.archName}`"
+  throwError s!"unknown instruction syntax `{sanitizeInstrText txt}` for architecture `{arch.name}`"
 
 private def getLabelInstrs (arch : ArchSpec) (lbl : TSyntax `mriscx_label) : TermElabM (String × Array Expr) := do
   match lbl with
@@ -318,31 +408,20 @@ private def mkCodeExprFromSyntax (arch : ArchSpec) (syn : TSyntax `mriscx_syntax
 
       let mut pc : UInt64 := 0
       for (lbl, instrs) in labeledInstrs do
-        labelMap ← Lean.Meta.mkAppM ``PMap.put #[mkStrLit lbl, mkUInt64Lit pc, labelMap]
+        labelMap ← Lean.Meta.mkAppM ``PMap.put #[mkStrLit lbl, mkUInt64LitExpr pc, labelMap]
         for iExpr in instrs do
-          instrMap ← Lean.Meta.mkAppM ``TMap.put #[mkUInt64Lit pc, iExpr, instrMap]
+          instrMap ← Lean.Meta.mkAppM ``TMap.put #[mkUInt64LitExpr pc, iExpr, instrMap]
           pc := pc + 1
 
       pure (mkAppN (Lean.mkConst ``Code.mk []) #[instrTy, labelMap, instrMap])
   | _ =>
       throwError "expected `mriscx ... end` syntax"
 
-def elabMkElaborator : CommandElab := fun stx => do
-  match stx with
-  | `(command| mkElaborator $archName:ident) => do
-      let arch ← resolveArchFromIdent archName
-      liftIO <| activeArchRef.set (some arch)
-  | _ =>
-      throwUnsupportedSyntax
-
-@[command_elab mkElaboratorCmd]
-def elabMkElaboratorImpl : CommandElab :=
-  elabMkElaborator
 
 @[term_elab mriscxTerm]
 def elabMriscxGenerated : TermElab := fun stx expectedType? => do
   let some arch ← liftM (m := TermElabM) <| activeArchRef.get
-    | throwError "no active architecture elaborator; run `mkElaborator <archSpec>` first"
+    | throwError "no active architecture elaborator; Failed generating elaborator for the architecture"
   match stx with
   | `(term| $syn:mriscx_syntax) =>
       let e ← mkCodeExprFromSyntax arch syn

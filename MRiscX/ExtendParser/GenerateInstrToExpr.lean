@@ -1,4 +1,4 @@
-import MRiscX.ExtendParser.ExprDecoder
+import MRiscX.ExtendParser.AbstractSyntaxForGen
 import MRiscX.Elab.HandleRegister
 
 open Lean Meta Elab Command

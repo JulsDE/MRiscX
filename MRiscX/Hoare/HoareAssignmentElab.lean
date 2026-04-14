@@ -64,12 +64,7 @@ where
   -/
   go : Syntax → TermElabM Syntax
   | _stx@`(⸨terminated⸩) =>
-    return ←`(term | $(mkIdent `MachineStateI.getTerminated)  $(mkIdent `InstrType)
-                                                              $(mkIdent `CodeType)
-                                                              $(mkIdent `RegisterNrType)
-                                                              $(mkIdent `RegisterValType)
-                                                              $(mkIdent `PcType)
-                                                              ($curState))
+    return ←`(term | $(mkIdent `MachineStateI.getTerminated) _ _ _ _ _ ($curState))
   | _stx@`(x[$r:register]) => do
     match r with
     | `(register | $a:register_bare)
@@ -78,41 +73,29 @@ where
                   | throwError s!"Could not get a valid RegisterNr from {a}"
 
       let t : TSyntax `term := Syntax.mkNumLit s!"{nr.nr}"
-      return ←`(term | $(mkIdent `MachineStateI.getRegisterAt)  $(mkIdent `InstrType)
-                                                              $(mkIdent `CodeType)
-                                                              -- $(mkIdent `RegisterNrType)
-                                                              -- $(mkIdent `RegisterValType)
-                                                              $(mkIdent `PcType)
-                                                              ($curState)
-                                                              ($(mkIdent `RegisterName.mk)
-                                                              ($(mkIdent `RegisterNr.ofUInt64) $t)
-                                                              $(Syntax.mkStrLit nr.name)))
+      return ←`(term | $(mkIdent `MachineStateI.getRegisterAt) _ _ _
+                          ($curState)
+                          ($(mkIdent `RegisterName.mk)
+                            ($(mkIdent `RegisterNr.ofUInt64) $t)
+                            $(Syntax.mkStrLit nr.name)))
     | `(register | x $i:num_or_ident) =>
 
       let newR ← parseMriscxNumOrIdentToTerm i
       match newR with
       | `(term | $n:num) =>
         let name := s!"{n.getNat}"
-        return ←`(term | $(mkIdent `MachineStateI.getRegisterAt)  $(mkIdent `InstrType)
-                                                                  $(mkIdent `CodeType)
-                                                                  -- $(mkIdent `RegisterNrType)
-                                                                  -- $(mkIdent `RegisterValType)
-                                                                  $(mkIdent `PcType)
-                                                                  ($curState)
-                                                                  ($(mkIdent `RegisterName.mk)
-                                                                  ($(mkIdent `RegisterNr.ofUInt64) $newR)
-                                                                  $(Syntax.mkStrLit name)))
+        return ←`(term | $(mkIdent `MachineStateI.getRegisterAt) _ _ _
+                            ($curState)
+                            ($(mkIdent `RegisterName.mk)
+                              ($(mkIdent `RegisterNr.ofUInt64) $newR)
+                              $(Syntax.mkStrLit name)))
       | `(term | $i:ident) =>
         let name := i.getId.getString!
-        return ←`(term | $(mkIdent `MachineStateI.getRegisterAt)  $(mkIdent `InstrType)
-                                                                  $(mkIdent `CodeType)
-                                                                  -- $(mkIdent `RegisterNrType)
-                                                                  -- $(mkIdent `RegisterValType)
-                                                                  $(mkIdent `PcType)
-                                                                  ($curState)
-                                                                  ($(mkIdent `RegisterName.mk)
-                                                                  ($(mkIdent `RegisterNr.ofUInt64) $newR)
-                                                                  $(Syntax.mkStrLit name)))
+        return ←`(term | $(mkIdent `MachineStateI.getRegisterAt) _ _ _
+                            ($curState)
+                            ($(mkIdent `RegisterName.mk)
+                              ($(mkIdent `RegisterNr.ofUInt64) $newR)
+                              $(Syntax.mkStrLit name)))
       | _ => throwError "fail1"
     | _ => throwError "fail2"
   | _stx@`(mem[$t:term]) => do
@@ -125,12 +108,7 @@ where
     let newS ← checkIfVariableToTerm s true
     return ←`(term | $(mkIdent `MState.getLabelAt) ($curState) $newS)
   | _stx@`(⸨pc⸩) => do
-    return ←`(term | $(mkIdent `MachineStateI.getPc)  $(mkIdent `InstrType)
-                                                      $(mkIdent `CodeType)
-                                                      $(mkIdent `RegisterNrType)
-                                                      $(mkIdent `RegisterValType)
-                                                      -- $(mkIdent `PcType)
-                                                      ($curState))
+    return ←`(term | $(mkIdent `MachineStateI.getPc) _ _ _ _ ($curState))
   | stx => match stx with
     | .node _ k args => do
       let args ← args.mapM go
@@ -169,7 +147,7 @@ def foldTermArray (element: TSyntax `hoare_assignment) (curTerm: TSyntax `term) 
     let newR ← `($(mkIdent `RegisterName.mk) ($(mkIdent `RegisterNr.ofUInt64) $valOfNewR) $name)
     let newT := ⟨←replaceKeywords t curTerm⟩
     -- let newV := ← parseMriscxNumOrIdentToTerm v
-    return ←`(term | $(mkIdent `MState.addRegister) ($curTerm) $newR $newT)
+    return ←`(term | $(mkIdent `MState.addRegisterAt) ($curTerm) $newR $newT)
   -- | `(hoare_assignment | x[$r:mriscx_registers] ← $t:term)
   -- | `(hoare_assignment | x[$r:mriscx_registers] <- $t:term) => do
   --   let valOfNewR ← parseMriscxNumOrIdentToTerm r

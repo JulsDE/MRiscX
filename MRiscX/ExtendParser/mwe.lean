@@ -1,17 +1,20 @@
 import MRiscX.ExtendParser.GenerateInstrAndSyntax
 import MRiscX.ExtendParser.GenerateConcreteSyntax
 import MRiscX.ExtendParser.GenerateElaborator
-import MRiscX.ExtendParser.GenerateInstrSpecification
+-- import MRiscX.ExtendParser.GenerateInstrSpecification
 import MRiscX.Hoare.HoareCore
 
--- import MRiscX.Elab.HoareElaborator
 
-/-- Example architecture using the generated DSL. -/
-def abd : ArchSpec := mkInstrSet RV64 Instr execute
+
+mkAll RV64 Instr execute
+  PANIC:
+    { syntax : PANIC,
+      semantics: fun ms => (MState.setTerminated ms true),
+      specification: True }
   LoadAddress:
     { syntax : la (a:register), (m:immediate),
       semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc,
-      specification: ⦃P ⟦x[a] <- m; pc++⟧⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄  }
+      specification: ⦃P ⟦x[a] <- m; pc++⟧⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄}
   LoadImmediate:
     { syntax : li (a:register), (m:immediate),
       semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
@@ -20,28 +23,6 @@ def abd : ArchSpec := mkInstrSet RV64 Instr execute
     { syntax : j (lbl:label),
       semantics: fun ms => (MState.jump ms lbl),
       specification: True }
-  PANIC:
-    { syntax : PANIC,
-      semantics: fun ms => (MState.setTerminated ms true),
-      specification: True }
-
-
-mkType abd
-
-#eval abd.specs[0].spec
-
-def execute : MState Instr → Instr → MState Instr :=
-fun ms instr =>
-  if ms.terminated then ms
-  else
-    match instr with
-    | Instr.LoadAddress a m => (fun ms => (ms.addRegisterAt a m).incPc) ms
-    | Instr.LoadImmediate a m => (fun ms => (ms.addRegisterAt a m).incPc) ms
-    | Instr.Jump lbl => (fun ms => ms.jump lbl) ms
-    | Instr.PANIC => (fun ms => ms.setTerminated true) ms
--- mkExecution abd
--- #print abc
--- #print execute
 
 def MState.runOneStep (ms : MState Instr) :=
   execute ms (ms.getCurrInstr)
@@ -54,11 +35,6 @@ def MState.runNSteps (ms : MState Instr) (n : Nat) :=
 instance instRunable : runable (MState Instr) where
   runOneStep := MState.runOneStep
   runNSteps := MState.runNSteps
-
--- MachineStateI (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter
-
-mkSyntax abd
-mkElaborator abd
 
 def c := mriscx
         f: li x1, 1
