@@ -14,7 +14,7 @@ mkAll RV64 Instr execute
   LoadAddress:
     { syntax : la (a:register), (m:immediate),
       semantics: fun (ms) => (MState.addRegisterAt ms a m).incPc,
-      specification: ⦃P ⟦x[a] <- m; pc++⟧⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄}
+      specification: ⦃P ⟦x[a] <- m; pc++⟧ ∧ ¬⸨terminated⸩⦄ pc ↦ ⟨{pc + 1} | {n : UInt64 | n ≠ pc + 1}⟩ ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄}
   LoadImmediate:
     { syntax : li (a:register), (m:immediate),
       semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
@@ -106,8 +106,9 @@ L : Set UInt64
 theorem spec_la (P : Assertion (MState Instr)) (pc : ProgramCounter) (dst val : UInt64) :
     specification_LoadAddress P pc dst val:= by
   unfold specification_LoadAddress hoare_triple_up_1
-  intros h j ms l n p
-  -- rintro ⟨i, o⟩
+  intros h j ms l n
+  rintro ⟨i, o⟩
+  simp at o
   rw [MachineStateI_currInstr_eq_mstate_currInstr] at l
   rw [MachineStateI_getPc_eq_mstate_getPc] at n
   exists ms.runOneStep
@@ -123,7 +124,7 @@ theorem spec_la (P : Assertion (MState Instr)) (pc : ProgramCounter) (dst val : 
         . rw [MachineStateI_getPc_eq_mstate_getPc]
           unfold MState.runOneStep execute
           simp
-          rw [l]
+          rw [o, l]
           simp
           unfold MState.incPc
           simp

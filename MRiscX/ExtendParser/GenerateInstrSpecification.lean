@@ -2,6 +2,7 @@ import MRiscX.AbstractSyntax.MState
 import MRiscX.ExtendParser.AbstractSyntaxForGen
 import MRiscX.ExtendParser.CommandElabShared
 import MRiscX.ExtendParser.GenerateElaborator
+import MRiscX.ExtendParser.GenerateInstrSetHoareRewrite
 import Lean
 
 open Lean
