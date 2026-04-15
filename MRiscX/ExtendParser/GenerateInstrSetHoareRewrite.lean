@@ -66,32 +66,32 @@ private def foldInstrSetAssignment
   | `(instr_set_hoare_assignment| x[$r:num_or_ident] ← $t:term)
   | `(instr_set_hoare_assignment| x[$r:num_or_ident] <- $t:term) => do
       let idx ← numOrIdentAsTerm r
-      let reg ← mkRegisterNameFromIdx idx
+      -- let reg ← mkRegisterNameFromIdx idx
       let newT : TSyntax `term := ⟨← replaceInstrSetKeywords t curTerm⟩
-      `(term| MState.addRegisterAt ($curTerm) $reg $newT)
+      `(term| MState.addRegisterAt ($curTerm) $idx $newT)
   | `(instr_set_hoare_assignment| x[$r:register] ← $t:term)
   | `(instr_set_hoare_assignment| x[$r:register] <- $t:term) => do
       let idx ← registerIndexAsTerm r
-      let reg ← mkRegisterNameFromIdx idx
+      -- let reg ← mkRegisterNameFromIdx idx
       let newT : TSyntax `term := ⟨← replaceInstrSetKeywords t curTerm⟩
-      `(term| MState.addRegisterAt ($curTerm) $reg $newT)
+      `(term| MState.addRegisterAt ($curTerm) $idx $newT)
   | `(instr_set_hoare_assignment| mem[$m:term] ← $t:term)
   | `(instr_set_hoare_assignment| mem[$m:term] <- $t:term) => do
       let newM : TSyntax `term := ⟨← replaceInstrSetKeywords m curTerm⟩
       let newT : TSyntax `term := ⟨← replaceInstrSetKeywords t curTerm⟩
       `(term| MState.addMemory ($curTerm) $newM $newT)
   | `(instr_set_hoare_assignment| pc++) =>
-      `(term| MState.incInstrCounter (MState.incPc ($curTerm)))
+      `(term| (MState.incPc ($curTerm)))
   | `(instr_set_hoare_assignment| $pc:ident ++)
     =>
       if pc.getId == `pc then
-        `(term| MState.incInstrCounter (MState.incPc ($curTerm)))
+        `(term| (MState.incPc ($curTerm)))
       else
         throwError "only `pc++` is supported in instruction-set hoare assignment"
   | `(instr_set_hoare_assignment| $pc:ident ← $i:term)
   | `(instr_set_hoare_assignment| $pc:ident <- $i:term) =>
       if pc.getId == `pc then
-        `(term| MState.incInstrCounter (MState.setPc ($curTerm) $i:term))
+        `(term| (MState.setPc ($curTerm) $i:term))
       else
         throwError "only `pc <- ...` is supported in instruction-set hoare assignment"
   | _ =>

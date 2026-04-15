@@ -1,4 +1,4 @@
-import MRiscX.ExtendParser.GenerateInstrAndSyntax
+import MRiscX.ExtendParser.GenerateAll
 import MRiscX.ExtendParser.GenerateConcreteSyntax
 import MRiscX.ExtendParser.GenerateElaborator
 -- import MRiscX.ExtendParser.GenerateInstrSpecification
@@ -38,7 +38,10 @@ instance instRunable : runable (MState Instr) where
   runOneStep := MState.runOneStep
   runNSteps := MState.runNSteps
 #check mriscx
-        first : li x3, 1
+        first :
+                li x3, 1
+                li x 33, 1
+                li t0, 1
         end
 def c := mriscx
         f: li x1, 1
@@ -107,7 +110,7 @@ L : Set UInt64
 -/
 #print specification_LoadImmediate
 
-theorem spec_la (P : Assertion (MState Instr)) (pc : ProgramCounter) (dst val : UInt64) :
+theorem spec_la (P : Assertion (MState Instr)) (pc : ProgramCounter) (dst : RegisterName) (val : UInt64) :
     specification_LoadAddress P pc dst val:= by
   unfold specification_LoadAddress hoare_triple_up_1
   intros h j ms l n
@@ -150,20 +153,23 @@ theorem spec_la (P : Assertion (MState Instr)) (pc : ProgramCounter) (dst val : 
           by_cases d: dst.nr = 0 <;> simp [d]
           exact o
         rw [this]
+        rw [o]
+        simp at *
         exact i
       . unfold MState.runOneStep execute
         rw [l]
         simp
         unfold MState.addRegisterAt
-        by_cases d: dst.nr = 0 <;> (simp [d] ; unfold MState.incPc ; simp ; exact o)
+        by_cases d: dst.nr = 0 <;> (simp [d] ; unfold MState.incPc ; rw [o] ; simp)
     . rw [MachineStateI_getPc_eq_mstate_getPc]
       unfold MState.runOneStep execute
       rw [l]
       simp
       unfold MState.incPc
       simp [ms_addRegiseter_pc_eq_pc]
+      rw [o]
+      simp
       exact n
-  sorry
 
 theorem spec_li (dst : RegisterName) (val : UInt64) (P : Assertion (MState Instr))
           (pc : ProgramCounter) :
