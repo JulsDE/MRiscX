@@ -111,8 +111,8 @@ theorem WL_TO_BL: ∀ (c : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : Set
     simp
     constructor
     . intros hx h
-      apply Set.mem_union_left ; apply Set.mem_of_subset_of_mem <;> try assumption
-      apply Set.diff_subset
+      apply Set.mem_union_right
+      exact Set.mem_union_left L_b h
     . intros hx h
       apply Set.mem_union_left
       apply HLSubL_w.left h
@@ -435,7 +435,7 @@ Requires:
           | inl hlt =>
               specialize hsafe n' ⟨hn'le, hlt⟩
               simp at hsafe
-              push_neg at hsafe
+              push Not at hsafe
               rcases hsafe with ⟨⟨-, hnotLw⟩, hnotLb⟩
               simp
               exact ⟨hnotLw, hnotLb⟩
