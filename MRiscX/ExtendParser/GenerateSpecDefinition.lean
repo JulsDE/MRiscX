@@ -43,7 +43,6 @@ private def mkSpecBinderTexts (arch : ArchSpec) (spec : InstrSpec) (hoareStyle :
   let mut seen : Array Name := #[]
   let mut binders : Array String := #[]
   if hoareStyle then
-    binders := binders.push s!"[runable_mstate : runable (MState {arch.typeName})]"
     binders := binders.push s!"(P : MState {arch.typeName} → Prop)"
     binders := binders.push "(pc : ProgramCounter)"
     seen := seen.push `P
@@ -83,10 +82,11 @@ def mkSpecDefCmd
       let LwTxt := L_w.raw.reprint.getD (toString L_w.raw)
       let LbTxt := L_b.raw.reprint.getD (toString L_b.raw)
       let instrCtorTxt := instrCtorTextOfSpec arch spec
+
       let binders := String.intercalate " " (mkSpecBinderTexts arch spec true).toList
       logInfo s!"{binders}"
       let cmdTxt := joinLines
-        [s!"def {specName} {binders} : Prop :="
+        [s!"def {specName} [runable_mstate : runable (MState {arch.typeName})]: Prop := ∀ {binders},"
         ,s!"  hoare_triple_up_1 (MState {arch.typeName}) {arch.typeName} (Code {arch.typeName}) RegisterName UInt64 ProgramCounter"
         ,s!"    (⧼{preTxt}⧽)"
         ,s!"    (⧼{postTxt}⧽)"
