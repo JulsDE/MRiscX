@@ -39,7 +39,12 @@ private def binderTypeText (h : Hole) (hoareStyle : Bool) : String :=
   else
     h.ty
 
-private def mkSpecBinderTexts (arch : ArchSpec) (spec : InstrSpec) (hoareStyle : Bool) : Array String := Id.run do
+private def mkSpecBinderTexts
+    (arch : ArchSpec)
+    (spec : InstrSpec)
+    (hoareStyle : Bool)
+    (extraBinders : Array (Name × String) := #[]) :
+    Array String := Id.run do
   let mut seen : Array Name := #[]
   let mut binders : Array String := #[]
   if hoareStyle then
@@ -52,7 +57,54 @@ private def mkSpecBinderTexts (arch : ArchSpec) (spec : InstrSpec) (hoareStyle :
     if !seen.contains n then
       binders := binders.push s!"({n} : {binderTypeText h hoareStyle})"
       seen := seen.push n
+  for (n, tyTxt) in extraBinders do
+    if !seen.contains n then
+      binders := binders.push s!"({n} : {tyTxt})"
+      seen := seen.push n
   return binders
+
+private def termText (t : TSyntax `term) : String :=
+  t.raw.reprint.getD (toString t.raw)
+
+private def isIdentChar (c : Char) : Bool :=
+  c.isAlphanum || c == '_' || c == '\''
+
+private def tokenizeLikeLeanIdent (s : String) : Array String := Id.run do
+  let mut out : Array String := #[]
+  let mut cur := ""
+  for c in s.toList do
+    if isIdentChar c then
+      cur := cur.push c
+    else if !cur.isEmpty then
+      out := out.push cur
+      cur := ""
+  if !cur.isEmpty then
+    out := out.push cur
+  return out
+
+private def collectSomeIdentNamesFromText (s : String) : Array Name := Id.run do
+  let toks := tokenizeLikeLeanIdent s
+  let mut out : Array Name := #[]
+  for i in [:toks.size] do
+    if toks[i]! == "some" && i + 1 < toks.size then
+      let n := Name.mkSimple toks[i + 1]!
+      if !out.contains n then
+        out := out.push n
+  return out
+
+private def mkProgramCounterBindersFromHoareTerms
+    (terms : Array (TSyntax `term)) :
+    Array (Name × String) := Id.run do
+  let mut names : Array Name := #[]
+  for t in terms do
+    let found := collectSomeIdentNamesFromText (termText t)
+    for n in found do
+      if !names.contains n then
+        names := names.push n
+  let mut out : Array (Name × String) := #[]
+  for n in names do
+    out := out.push (n, "ProgramCounter")
+  return out
 
 private def mkInstrCtorArgText (h : Hole) : String :=
   let nameTxt := toString (h.name.eraseMacroScopes)
@@ -76,15 +128,14 @@ def mkSpecDefCmd
   let rawSpec := trimAsciiStr (spec.hoareDesc.raw.reprint.getD (toString spec.hoareDesc.raw))
   match spec.hoareDesc with
   | `(instr_set_spec| ⦃$pre:term⦄ $l:term ↦ ⟨$L_w:term | $L_b:term⟩ ⦃$post:term⦄) => do
-      let preTxt := pre.raw.reprint.getD (toString pre.raw)
-      let postTxt := post.raw.reprint.getD (toString post.raw)
-      let lTxt := l.raw.reprint.getD (toString l.raw)
-      let LwTxt := L_w.raw.reprint.getD (toString L_w.raw)
-      let LbTxt := L_b.raw.reprint.getD (toString L_b.raw)
+      let preTxt := termText pre
+      let postTxt := termText post
+      let lTxt := termText l
+      let LwTxt := termText L_w
+      let LbTxt := termText L_b
       let instrCtorTxt := instrCtorTextOfSpec arch spec
-
-      let binders := String.intercalate " " (mkSpecBinderTexts arch spec true).toList
-      logInfo s!"{binders}"
+      let pcBinders := mkProgramCounterBindersFromHoareTerms #[pre, l, L_w, L_b, post]
+      let binders := String.intercalate " " (mkSpecBinderTexts arch spec true pcBinders).toList
       let cmdTxt := joinLines
         [s!"def {specName} [runable_mstate : runable (MState {arch.typeName})]: Prop := ∀ {binders},"
         ,s!"  hoare_triple_up_1 (MState {arch.typeName}) {arch.typeName} (Code {arch.typeName}) RegisterName UInt64 ProgramCounter"

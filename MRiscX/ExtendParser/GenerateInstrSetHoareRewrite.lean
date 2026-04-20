@@ -1,6 +1,7 @@
 import MRiscX.AbstractSyntax.MState
 import MRiscX.ExtendParser.GeneralSyntax
 import MRiscX.Elab.HandleRegister
+import MRiscX.Elab.HandleNumOrIdent
 import Lean
 
 open Lean
@@ -37,6 +38,18 @@ where
       `(term| ($stateTerm:term).terminated)
   | _stx@`(⸨pc⸩) =>
       `(term| ($stateTerm:term).pc)
+  | _stx@`(x[$r:register]) => do
+      let idx ← registerIndexAsTerm r
+      `(term| MState.getRegisterAt ($stateTerm:term) $idx)
+  | _stx@`(x[$r:num_or_ident]) => do
+      let idx ← numOrIdentAsTerm r
+      `(term| MState.getRegisterAt ($stateTerm:term) $idx)
+  | _stx@`(labels[$s:ident]) => do
+      let lblTerm ← checkIfVariableToTerm s false
+      `(term| MState.getLabelAt ($stateTerm:term) $lblTerm:term)
+  | _stx@`(labels[.$s:ident]) => do
+      let lblTerm ← checkIfVariableToTerm s true
+      `(term| MState.getLabelAt ($stateTerm:term) $lblTerm:term)
   | stx =>
       match stx with
       | .node _ k args => do
