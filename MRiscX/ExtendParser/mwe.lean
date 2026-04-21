@@ -171,6 +171,13 @@ L : Set UInt64
 #print specification_Jump
 #print specification_JumpEqZero_true
 #print specification_JumpEqZero_false
+#check ((RV64.get? "LoadImmediate")).get!.prop
+#check RV64["LoadImmediate"].get!.prop
+
+def a := RV64["LoadImmediate"].get!.proof? = (POption.some (by
+  sorry
+  ))
+
 
 theorem spec_beqz_true :
   specification_JumpEqZero_true := by

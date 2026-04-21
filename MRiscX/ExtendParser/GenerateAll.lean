@@ -6,6 +6,7 @@ import MRiscX.ExtendParser.GenerateElaborator
 import MRiscX.ExtendParser.GenerateExecuteFunction
 import MRiscX.ExtendParser.GenerateInstrToExpr
 import MRiscX.ExtendParser.GenerateSpecDefinition
+import MRiscX.ExtendParser.SpecRegistry
 import Lean
 
 open Lean
@@ -37,6 +38,37 @@ private def mkInductiveCmd
     ["deriving Repr, BEq, Inhabited"]
   parseCommandStr ref cmdText "<mkAll>"
 
+private def quoteStringLit (s : String) : String :=
+  let escaped :=
+    s.toList.foldl (init := "") fun acc c =>
+      acc ++
+        match c with
+        | '\"' => "\\\""
+        | '\\' => "\\\\"
+        | '\n' => "\\n"
+        | '\t' => "\\t"
+        | '\r' => "\\r"
+        | c    => String.singleton c
+  "\"" ++ escaped ++ "\""
+
+private def mkSpecRegistryCmd
+    (ref : Syntax)
+    (arch : ArchSpec) :
+    CommandElabM (TSyntax `command) := do
+  let archDefName := toString arch.name
+  let archTypeName := toString arch.typeName
+  let mut insertLines : List String := []
+  for spec in arch.specs do
+    for (key, specDefName) in MRiscX.ExtendParser.GenerateSpecDefinition.specRegistryItems spec do
+      let keyQ := quoteStringLit key
+      let propTxt := s!"(∀ [Runnable (MState {archTypeName})], {specDefName})"
+      insertLines := insertLines ++
+        ["  |>.insert " ++ keyQ ++ " { prop := " ++ propTxt ++ ", proof? := POption.none }"]
+  let cmdText := joinLines <|
+    [s!"def {archDefName} : Std.HashMap String Entry :="
+    ,"  (∅ : Std.HashMap String Entry)"] ++ insertLines
+  parseCommandStr ref cmdText "<mkAll>"
+
 elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_entry*: command => do
   let specs ← entries.mapM mkInstrSpecFromEntry
   let arch : ArchSpec := {
@@ -66,6 +98,9 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
     for cmd in (← MRiscX.ExtendParser.GenerateSpecDefinition.mkSpecDefCmds ref arch instr "<mkAll>") do
       withRef archName do
         elabCommand cmd
+  -- Specification registry map
+  withRef archName do
+    elabCommand (← mkSpecRegistryCmd ref arch)
   -- Execute command
   let exeCmd ← mkExecuteCmd ref arch
   withRef archName do

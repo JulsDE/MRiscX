@@ -146,6 +146,24 @@ private def mkHoareSpecDefCmd
     ]
   parseCommandStr ref cmdTxt origin
 
+def specRegistryItems (spec : InstrSpec) : Array (String × String) :=
+  let instrKey := toString (spec.instrName.eraseMacroScopes)
+  let baseSpecName := s!"specification_{spec.instrName.eraseMacroScopes}"
+  let raw := spec.hoareDesc.raw
+  if raw.getKind == `instrSetSpecHoare then
+    let args := raw.getArgs
+    if args.size = 14 then
+      let tail := args[13]!
+      let tailArgs := tail.getArgs
+      if tailArgs.isEmpty then
+        #[(instrKey, baseSpecName)]
+      else
+        #[(instrKey ++ "_true", baseSpecName ++ "_true"), (instrKey ++ "_false", baseSpecName ++ "_false")]
+    else
+      #[(instrKey, baseSpecName)]
+  else
+    #[(instrKey, baseSpecName)]
+
 def mkSpecDefCmds
     (ref : Syntax)
     (arch : ArchSpec)
