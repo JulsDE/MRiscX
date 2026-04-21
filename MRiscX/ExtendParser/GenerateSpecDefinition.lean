@@ -118,42 +118,76 @@ private def instrCtorTextOfSpec (arch : ArchSpec) (spec : InstrSpec) : String :=
   else
     s!"{ctor} {String.intercalate " " args}"
 
-def mkSpecDefCmd
+private def mkHoareSpecDefCmd
+    (ref : Syntax)
+    (arch : ArchSpec)
+    (spec : InstrSpec)
+    (specName : String)
+    (pre l L_w L_b post : TSyntax `term)
+    (origin : String := "<generated-spec>") :
+    CommandElabM (TSyntax `command) := do
+  let preTxt := termText pre
+  let postTxt := termText post
+  let lTxt := termText l
+  let LwTxt := termText L_w
+  let LbTxt := termText L_b
+  let instrCtorTxt := instrCtorTextOfSpec arch spec
+  let pcBinders := mkProgramCounterBindersFromHoareTerms #[pre, l, L_w, L_b, post]
+  let binders := String.intercalate " " (mkSpecBinderTexts arch spec true pcBinders).toList
+  let cmdTxt := joinLines
+    [s!"def {specName} [runable_mstate : runable (MState {arch.typeName})]: Prop := ∀ {binders},"
+    ,s!"  hoare_triple_up_1 (MState {arch.typeName}) {arch.typeName} (Code {arch.typeName}) RegisterName UInt64 ProgramCounter"
+    ,s!"    (⧼{preTxt}⧽)"
+    ,s!"    (⧼{postTxt}⧽)"
+    ,s!"    ({lTxt})"
+    ,s!"    ({LwTxt})"
+    ,s!"    ({LbTxt})"
+    ,s!"    ({instrCtorTxt})"
+    ]
+  parseCommandStr ref cmdTxt origin
+
+def mkSpecDefCmds
     (ref : Syntax)
     (arch : ArchSpec)
     (spec : InstrSpec)
     (origin : String := "<generated-spec>") :
-    CommandElabM (TSyntax `command) := do
-  let specName := s!"specification_{spec.instrName.eraseMacroScopes}"
+    CommandElabM (Array (TSyntax `command)) := do
+  let baseSpecName := s!"specification_{spec.instrName.eraseMacroScopes}"
   let rawSpec := trimAsciiStr (spec.hoareDesc.raw.reprint.getD (toString spec.hoareDesc.raw))
-  match spec.hoareDesc with
-  | `(instr_set_spec| ⦃$pre:term⦄ $l:term ↦ ⟨$L_w:term | $L_b:term⟩ ⦃$post:term⦄) => do
-      let preTxt := termText pre
-      let postTxt := termText post
-      let lTxt := termText l
-      let LwTxt := termText L_w
-      let LbTxt := termText L_b
-      let instrCtorTxt := instrCtorTextOfSpec arch spec
-      let pcBinders := mkProgramCounterBindersFromHoareTerms #[pre, l, L_w, L_b, post]
-      let binders := String.intercalate " " (mkSpecBinderTexts arch spec true pcBinders).toList
-      let cmdTxt := joinLines
-        [s!"def {specName} [runable_mstate : runable (MState {arch.typeName})]: Prop := ∀ {binders},"
-        ,s!"  hoare_triple_up_1 (MState {arch.typeName}) {arch.typeName} (Code {arch.typeName}) RegisterName UInt64 ProgramCounter"
-        ,s!"    (⧼{preTxt}⧽)"
-        ,s!"    (⧼{postTxt}⧽)"
-        ,s!"    ({lTxt})"
-        ,s!"    ({LwTxt})"
-        ,s!"    ({LbTxt})"
-        ,s!"    ({instrCtorTxt})"
+  let raw := spec.hoareDesc.raw
+  if raw.getKind == `instrSetSpecHoare then
+    let args := raw.getArgs
+    if _h : args.size = 14 then
+      let pre : TSyntax `term := ⟨args[1]!⟩
+      let l : TSyntax `term := ⟨args[3]!⟩
+      let L_w : TSyntax `term := ⟨args[6]!⟩
+      let L_b : TSyntax `term := ⟨args[8]!⟩
+      let post : TSyntax `term := ⟨args[11]!⟩
+      let tail := args[13]!
+      let tailArgs := tail.getArgs
+      if tailArgs.isEmpty then
+        pure #[← mkHoareSpecDefCmd ref arch spec baseSpecName pre l L_w L_b post origin]
+      else if _h2 : tailArgs.size = 14 then
+        let pre2 : TSyntax `term := ⟨tailArgs[2]!⟩
+        let l2 : TSyntax `term := ⟨tailArgs[4]!⟩
+        let Lw2 : TSyntax `term := ⟨tailArgs[7]!⟩
+        let Lb2 : TSyntax `term := ⟨tailArgs[9]!⟩
+        let post2 : TSyntax `term := ⟨tailArgs[12]!⟩
+        pure #[
+          ← mkHoareSpecDefCmd ref arch spec (baseSpecName ++ "_true") pre l L_w L_b post origin,
+          ← mkHoareSpecDefCmd ref arch spec (baseSpecName ++ "_false") pre2 l2 Lw2 Lb2 post2 origin
         ]
-      parseCommandStr ref cmdTxt origin
-  | _ =>
-      let binders := String.intercalate " " (mkSpecBinderTexts arch spec false).toList
-      let cmdTxt := joinLines
-        [s!"def {specName} {binders} : Prop :="
-        ,s!"  {rawSpec}"
-        ]
-      parseCommandStr ref cmdTxt origin
+      else
+        throwErrorAt spec.hoareDesc "invalid second hoare triple syntax in specification"
+    else
+      throwErrorAt spec.hoareDesc "invalid hoare specification syntax"
+  else
+    let binders := String.intercalate " " (mkSpecBinderTexts arch spec false).toList
+    let cmdTxt := joinLines
+      [s!"def {baseSpecName} {binders} : Prop :="
+      ,s!"  {rawSpec}"
+      ]
+    pure #[← parseCommandStr ref cmdTxt origin]
 
 end MRiscX.ExtendParser.GenerateSpecDefinition
 
@@ -174,8 +208,9 @@ def elabMkSpecs : CommandElab := fun stx => do
       withRef archName do
         elabCommand nsCmd
       for spec in arch.specs do
-        withRef archName do
-          elabCommand (← MRiscX.ExtendParser.GenerateSpecDefinition.mkSpecDefCmd archName.raw arch spec "<mkSpecs>")
+        for cmd in (← MRiscX.ExtendParser.GenerateSpecDefinition.mkSpecDefCmds archName.raw arch spec "<mkSpecs>") do
+          withRef archName do
+            elabCommand cmd
       let endCmd ← parseCommandStr archName.raw s!"end {nsName}" "<mkSpecs>"
       withRef archName do
         elabCommand endCmd

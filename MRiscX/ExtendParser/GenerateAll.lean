@@ -63,8 +63,9 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
     elabCommand (← mkTest ref)
   -- Instr Specification
   for instr in arch.specs do
-    withRef archName do
-      elabCommand (← MRiscX.ExtendParser.GenerateSpecDefinition.mkSpecDefCmd ref arch instr "<mkAll>")
+    for cmd in (← MRiscX.ExtendParser.GenerateSpecDefinition.mkSpecDefCmds ref arch instr "<mkAll>") do
+      withRef archName do
+        elabCommand cmd
   -- Execute command
   let exeCmd ← mkExecuteCmd ref arch
   withRef archName do

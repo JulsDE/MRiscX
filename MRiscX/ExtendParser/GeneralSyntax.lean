@@ -194,7 +194,9 @@ syntax ((!( ("," "semantics" ":") )) instr_set_piece)+ : instr_set_sig
 
 declare_syntax_cat instr_set_spec
 -- syntax instr_set_spec : term
-syntax "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄" : instr_set_spec
+syntax (name := instrSetSpecHoare)
+  "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄"
+  (&"||" "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄")? : instr_set_spec
 syntax ((!("⦃")) term) : instr_set_spec
 
 declare_syntax_cat instr_set_entry

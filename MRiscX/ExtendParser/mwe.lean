@@ -45,10 +45,13 @@ mkAll RV64 Instr execute
                             else
                               MState.incPc ms
                             ,
-      specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some  newPc ∧ x[r] = 0 ∧ ¬⸨terminated⸩⦄
+      specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ x[r] = 0 ∧ ¬⸨terminated⸩⦄
                       pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
                       ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
-
+                      ||
+                      ⦃P ⟦pc++⟧ ∧ x[r] ≠ 0 ∧ ¬⸨terminated⸩⦄
+                      pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
     }
 
 
@@ -165,11 +168,12 @@ L : Set UInt64
 -/
 #print specification_LoadImmediate
 #print specification_Jump
-#print specification_JumpEqZero
+#print specification_JumpEqZero_true
+#print specification_JumpEqZero_false
 
-theorem spec_beqz :
-  specification_JumpEqZero := by
-  unfold specification_JumpEqZero hoare_triple_up_1
+theorem spec_beqz_true :
+  specification_JumpEqZero_true := by
+  unfold specification_JumpEqZero_true hoare_triple_up_1
   intros P pc r lbl newPc hinter hneq s curr getPc
   rintro ⟨P_true, hlbl, hreg, h_terminated⟩
   simp at curr

@@ -5,6 +5,7 @@ import MRiscX.Elab.HandleNumOrIdent
 import Lean
 
 open Lean
+open Lean Meta
 open Lean Elab Term
 
 private def numOrIdentAsTerm (s : TSyntax `num_or_ident) : TermElabM (TSyntax `term) := do
@@ -30,6 +31,24 @@ private def registerIndexAsTerm (r : TSyntax `register) : TermElabM (TSyntax `te
 private def mkRegisterNameFromIdx (idx : TSyntax `term) : TermElabM (TSyntax `term) := do
   `(term| RegisterName.mk (RegisterNr.ofUInt64 $idx:term) (@toString UInt64 instToStringUInt64 $idx:term))
 
+private def numOrIdentAsRegisterTerm (s : TSyntax `num_or_ident) : TermElabM (TSyntax `term) := do
+  match s with
+  | `(num_or_ident| $n:num) =>
+      let idx : TSyntax `term ← `(term| $n:num)
+      mkRegisterNameFromIdx idx
+  | `(num_or_ident| $i:ident) => do
+      if let some decl := (← getLCtx).findFromUserName? i.getId then
+        if ← isDefEq decl.type (mkConst ``RegisterName) then
+          `(term| $i:ident)
+        else
+          let idx : TSyntax `term ← `(term| $i:ident)
+          mkRegisterNameFromIdx idx
+      else
+        let idx : TSyntax `term ← `(term| $i:ident)
+        mkRegisterNameFromIdx idx
+  | _ =>
+      throwError "unsupported num_or_ident in instruction-set hoare term"
+
 private partial def replaceInstrSetKeywords (stx : Term) (stateTerm : TSyntax `term) : TermElabM Syntax := do
   go stx
 where
@@ -40,10 +59,11 @@ where
       `(term| ($stateTerm:term).pc)
   | _stx@`(x[$r:register]) => do
       let idx ← registerIndexAsTerm r
-      `(term| MState.getRegisterAt ($stateTerm:term) $idx)
+      let reg ← mkRegisterNameFromIdx idx
+      `(term| MState.getRegisterAt ($stateTerm:term) $reg)
   | _stx@`(x[$r:num_or_ident]) => do
-      let idx ← numOrIdentAsTerm r
-      `(term| MState.getRegisterAt ($stateTerm:term) $idx)
+      let reg ← numOrIdentAsRegisterTerm r
+      `(term| MState.getRegisterAt ($stateTerm:term) $reg)
   | _stx@`(labels[$s:ident]) => do
       let lblTerm ← checkIfVariableToTerm s false
       `(term| MState.getLabelAt ($stateTerm:term) $lblTerm:term)
