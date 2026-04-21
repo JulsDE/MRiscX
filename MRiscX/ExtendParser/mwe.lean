@@ -9,50 +9,51 @@ import MRiscX.Hoare.HoareCore
 
 mkAll RV64 Instr execute
   PANIC:
-    {
-      syntax : PANIC,
-      semantics: fun ms => (MState.setTerminated ms true),
-      specification: True
-    }
-  LoadAddress:
-    {
-      syntax : la (a:register), (m:immediate),
-      semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
-      specification:  ⦃P ⟦x[a] <- m; pc++⟧ ∧ ¬⸨terminated⸩⦄
-                      pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
-                      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄}
+  {
+    syntax : PANIC,
+    semantics: fun ms => (MState.setTerminated ms true),
+    specification: True
+  }
   LoadImmediate:
-    {
-      syntax : li (a:register), (m:immediate),
-      semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
-      specification:  ⦃P ⟦x[a] <- m; pc++⟧ ∧ ¬⸨terminated⸩⦄
-                      pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
-                      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
-    }
+  {
+    syntax : li (a:register), (m:immediate),
+    semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
+    specification:  ⦃P ⟦x[a] ← m; pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  LoadAddress:
+  {
+    syntax : la (a:register), (m:immediate),
+    semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
+    specification:  ⦃P ⟦x[a] ← m; pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
   Jump:
-    {
-      syntax : j (lbl:label),
-      semantics: fun ms => (MState.jump ms lbl),
-      specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ ¬⸨terminated⸩⦄
-                      pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
-                      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
-    }
+  {
+    syntax : j (lbl:label),
+    semantics: fun ms => (MState.jump ms lbl),
+    specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
   JumpEqZero:
-    {
-      syntax : beqz (r:register) (lbl:label),
-      semantics: fun ms =>  if (MState.getRegisterAt ms r == 0) then
-                              MState.jump ms lbl
-                            else
-                              MState.incPc ms
-                            ,
-      specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ x[r] = 0 ∧ ¬⸨terminated⸩⦄
-                      pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
-                      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
-                      ||
-                      ⦃P ⟦pc++⟧ ∧ x[r] ≠ 0 ∧ ¬⸨terminated⸩⦄
-                      pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
-                      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
-    }
+  {
+    syntax : beqz (r:register) (lbl:label),
+    semantics: fun ms =>  if (MState.getRegisterAt ms r == 0) then
+                            MState.jump ms lbl
+                          else
+                            MState.incPc ms
+                          ,
+    specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ x[r] = 0 ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+                    ||
+                    ⦃P ⟦pc++⟧ ∧ x[r] ≠ 0 ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
 
 
 def MState.runOneStep (ms : MState Instr) :=
@@ -63,7 +64,7 @@ def MState.runNSteps (ms : MState Instr) (n : Nat) :=
   | 0 => ms
   | n' + 1 => MState.runNSteps (ms.runOneStep) n'
 
-instance instRunable : runable (MState Instr) where
+instance instRunnable : Runnable (MState Instr) where
   runOneStep := MState.runOneStep
   runNSteps := MState.runNSteps
 #check mriscx
@@ -96,15 +97,15 @@ theorem MachineStateI_currInstr_eq_mstate_currInstr (ms : MState Instr) :
     simp
 
 @[simp]
-theorem runable_runOneStep_eq_mstate_runOneStep (ms : MState Instr) :
-  runable.runOneStep ms = ms.runOneStep := by
-  unfold runable.runOneStep instRunable
+theorem Runnable_runOneStep_eq_mstate_runOneStep (ms : MState Instr) :
+  Runnable.runOneStep ms = ms.runOneStep := by
+  unfold Runnable.runOneStep instRunnable
   simp
 
 @[simp]
-theorem runable_runNStep_eq_mstate_runNStep (ms : MState Instr) :
-  runable.runNSteps ms = ms.runNSteps := by
-  unfold runable.runNSteps instRunable
+theorem Runnable_runNStep_eq_mstate_runNStep (ms : MState Instr) :
+  Runnable.runNSteps ms = ms.runNSteps := by
+  unfold Runnable.runNSteps instRunnable
   simp
 
 @[simp]
@@ -236,7 +237,7 @@ theorem spec_la  :
     . simp
     . constructor
       .
-        rw [runable_runNStep_eq_mstate_runNStep, runNSteps_1_eq_runOneStep]
+        rw [Runnable_runNStep_eq_mstate_runNStep, runNSteps_1_eq_runOneStep]
       . constructor
         . rw [MachineStateI_getPc_eq_mstate_getPc]
           unfold MState.runOneStep execute

@@ -135,7 +135,7 @@ private def mkHoareSpecDefCmd
   let pcBinders := mkProgramCounterBindersFromHoareTerms #[pre, l, L_w, L_b, post]
   let binders := String.intercalate " " (mkSpecBinderTexts arch spec true pcBinders).toList
   let cmdTxt := joinLines
-    [s!"def {specName} [runable_mstate : runable (MState {arch.typeName})]: Prop := ∀ {binders},"
+    [s!"def {specName} [Runnable_mstate : Runnable (MState {arch.typeName})]: Prop := ∀ {binders},"
     ,s!"  hoare_triple_up_1 (MState {arch.typeName}) {arch.typeName} (Code {arch.typeName}) RegisterName UInt64 ProgramCounter"
     ,s!"    (⧼{preTxt}⧽)"
     ,s!"    (⧼{postTxt}⧽)"

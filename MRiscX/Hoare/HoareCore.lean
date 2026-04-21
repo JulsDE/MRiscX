@@ -31,10 +31,10 @@ variable (Instr : Type) (α InstrType CodeType RegisterNameType RegisterValType 
 
 
 
-abbrev Assertion (α : Type) [runable α] : Type := α → Prop
+abbrev Assertion (α : Type) [Runnable α] : Type := α → Prop
 
-def Assertion.And [runable α] (P Q : Assertion α) : Assertion α := fun st => (P st) ∧ (Q st)
-def Assertion.Not [runable α] (P : Assertion α) : Assertion α := fun st => ¬(P st)
+def Assertion.And [Runnable α] (P Q : Assertion α) : Assertion α := fun st => (P st) ∧ (Q st)
+def Assertion.Not [Runnable α] (P : Assertion α) : Assertion α := fun st => ¬(P st)
 
 
 
@@ -66,12 +66,12 @@ With the help of this relation, unambiguous statements can be made about the flo
 
 -/
 
-def weak [runable α] [MachineStateI α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType]
+def weak [Runnable α] [MachineStateI α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType]
           (s s' : α) (L_w L_b : Set ProgramCounterType) : Prop :=
-  ∃ (n:Nat), n > 0 ∧ runable.runNSteps s n = s' ∧
+  ∃ (n:Nat), n > 0 ∧ Runnable.runNSteps s n = s' ∧
     (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType s') ∈ L_w ∧
   ∀ (n':Nat), 0 < n' ∧ n' < n →
-  (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType) (runable.runNSteps s n') ∉ (L_w ∪ L_b)
+  (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType) (Runnable.runNSteps s n') ∉ (L_w ∪ L_b)
 
 
 /--
@@ -85,7 +85,7 @@ there exists a successor state `s'` for which both the relation
 `weak(s, L_w ∪ L_b, s')` and `Q(s')`, `I(s')` and `s'.pc ∉ L_w`
 are satisfied.
 -/
-def hoare_triple_up [h : runable α] [m : MachineStateI α InstrType CodeType RegisterNameType
+def hoare_triple_up [h : Runnable α] [m : MachineStateI α InstrType CodeType RegisterNameType
                                           RegisterValType ProgramCounterType]
   (P Q : Assertion α) (l : ProgramCounterType) (L_w L_b : Set ProgramCounterType)
   (c : CodeType)
@@ -106,7 +106,7 @@ Essentially the same as the `hoare_triple_up`, but instead of inspecting a whole
 this relation only focusses on the instruction which is executed next. This can be used to
 reason about single instructions in order to define their specification.
 -/
-def hoare_triple_up_1 [h : runable α]
+def hoare_triple_up_1 [h : Runnable α]
   [m : MachineStateI α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType]
   (P Q : Assertion α) (l : ProgramCounterType) (L_w L_b : Set ProgramCounterType) (i : InstrType)
 :=

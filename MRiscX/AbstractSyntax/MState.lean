@@ -32,7 +32,7 @@ class MachineStateI (γ : Type)
   currInstruction : γ → InstrType
 
 
-class runable (α) where
+class Runnable (α) where
   runOneStep: α → α
   runNSteps : α → Nat → α
 
