@@ -4,7 +4,24 @@ import MRiscX.ExtendParser.GenerateElaborator
 -- import MRiscX.ExtendParser.GenerateInstrSpecification
 import MRiscX.Hoare.HoareCore
 
-#check ({1}:Set Nat)
+
+
+-- Reference specification of the SHA-256 σ₀ function, defined once.
+def rotr32 (x : UInt32) (n : UInt32) : UInt32 :=
+  (x >>> n) ||| (x <<< (32 - n))
+
+
+def σ₀ (x : UInt32) : UInt32 :=
+  (rotr32 x 7) ^^^ (rotr32 x 18) ^^^ (x >>> 3)
+
+-- Machine-state helpers: extract the low 32 bits of a register and
+-- sign-extend a 32-bit result back into a 64-bit register (RV64 Zknh64).
+def lo32  (w : UInt64) : UInt32 := w.toUInt32
+def sext32 (x : UInt32) : UInt64 := UInt64.ofBitVec (x.toBitVec.signExtend 64)
+
+def MState.applySig0 {InstrType} (ms : MState InstrType) (dst src : RegisterName)
+    : (MState InstrType) :=
+  ms.addRegisterAt dst (sext32 (σ₀ (lo32 (ms.getRegisterAt src))))
 
 
 mkAll RV64 Instr execute
@@ -38,6 +55,14 @@ mkAll RV64 Instr execute
                     pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
+  Sha256Sig0:
+  { syntax : sha256sig0 (rs1:register) (rd:register),
+    semantics: fun ms => (ms.applySig0 rd rs1).incPc,
+    specification:
+      ⦃P ⟦x[rd] ← sext32 (σ₀ (lo32 x[rs1])) ; pc++⟧ ∧ ¬⸨terminated⸩⦄
+      pc ↦ ⟨{pc+1} | {n : UInt64 | n ≠ pc + 1}⟩
+      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
   JumpEqZero:
   {
     syntax : beqz (r:register) (lbl:label),
@@ -54,6 +79,7 @@ mkAll RV64 Instr execute
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
+
 
 
 def MState.runOneStep (ms : MState Instr) :=
@@ -76,6 +102,7 @@ instance instRunnable : Runnable (MState Instr) where
 def c := mriscx
         f: li x1, 1
         end
+
 
 @[simp]
 theorem MachineStateI_getPc_eq_mstate_getPc (ms : MState Instr) :
@@ -159,7 +186,7 @@ def triple :=
     {n : UInt64 | n ≠ 1}
     c
 /-
-P : Assertion
+P : Assertion<
 pc dst addr : UInt64
 L : Set UInt64
 ⊢ L = {n | n ≠ pc + 1} →
@@ -167,12 +194,6 @@ L : Set UInt64
     (fun st => P st ∧ ¬st.terminated = true) pc {pc + 1} L (Instr.LoadAddress dst addr)
 
 -/
-#print specification_LoadImmediate
-#print specification_Jump
-#print specification_JumpEqZero_true
-#print specification_JumpEqZero_false
-#check ((RV64.get? "LoadImmediate")).get!.prop
-#check RV64["LoadImmediate"].get!.prop
 
 def a := RV64["LoadImmediate"].get!.proof? = (POption.some (by
   sorry
@@ -220,6 +241,61 @@ theorem spec_beqz_true :
       rw [h_terminated, curr]
       simp [hreg]
       apply runOneStep_jump_succ' <;> assumption
+
+
+
+example : specification_Sha256Sig0 := by
+  unfold specification_Sha256Sig0
+  intros P pc rs1 rd h_inter h_neq s curr getPc
+  rintro ⟨pre, h_terminated⟩
+  simp at curr
+  simp at getPc
+  simp at h_terminated
+  exists s.runOneStep
+  simp
+  constructor
+  unfold weak
+  exists 1
+  simp
+  constructor
+  . unfold MState.runOneStep execute
+    rw [h_terminated, curr]
+    simp
+    have : (s.applySig0 rd rs1).incPc.pc = pc + 1 := by
+      . unfold MState.applySig0 MState.addRegisterAt
+        by_cases h: rd.nr == 0 <;> (simp [h] ; unfold MState.incPc ; rw [h_terminated] ; simp ; exact getPc)
+    rw  [this]
+  . intros n' hn'
+    intros hneq
+    rw [hneq] at hn'
+    contradiction
+  . constructor
+    constructor
+    . unfold MState.runOneStep execute
+      rw [h_terminated, curr]
+      simp
+      unfold MState.applySig0
+      have : (s.addRegisterAt rd (sext32 (σ₀ (lo32 (s.getRegisterAt rs1))))).incPc
+                = (s.incPc.addRegisterAt rd (sext32 (σ₀ (lo32 (s.incPc.getRegisterAt rs1))))) := by
+          unfold MState.addRegisterAt MState.incPc
+          rw [h_terminated]
+          by_cases d: rd.nr = 0 <;> simp [d]
+          exact h_terminated
+          unfold MState.getRegisterAt
+          simp
+      rw [this]
+      exact pre
+    . unfold MState.runOneStep execute
+      rw [h_terminated, curr]
+      simp
+      unfold MState.applySig0 MState.addRegisterAt
+      by_cases h: rd.nr == 0 <;> (simp [h] ; unfold MState.incPc ; rw [h_terminated])
+    . unfold MState.runOneStep execute
+      rw [h_terminated, curr]
+      simp
+      unfold MState.applySig0 MState.addRegisterAt
+      by_cases h : rd.nr == 0 <;> (simp [h] ; unfold MState.incPc ; simp ; exact getPc )
+
 
 
 theorem spec_j :
