@@ -55,6 +55,14 @@ mkAll RV64 Instr execute
                     pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
+  rotr32:
+  { syntax : rotr32 (dst:register) (r:register) (amt:immediate),
+    semantics: fun ms => (ms.addRegisterAt dst (sext32 (rotr32 (lo32 (ms.getRegisterAt r)) (amt.toUInt32)))).incPc,
+    specification:
+      ⦃P ⟦x[dst] ← sext32 (rotr32 (lo32 x[r]) (lo32 (amt))) ; pc++⟧ ∧ ¬⸨terminated⸩⦄
+      pc ↦ ⟨{pc+1} | {n : UInt64 | n ≠ pc + 1}⟩
+      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
   Sha256Sig0:
   { syntax : sha256sig0 (rs1:register) (rd:register),
     semantics: fun ms => (ms.applySig0 rd rs1).incPc,
