@@ -3,7 +3,7 @@ import MRiscX.ExtendParser.GenerateConcreteSyntax
 import MRiscX.ExtendParser.GenerateElaborator
 -- import MRiscX.ExtendParser.GenerateInstrSpecification
 import MRiscX.Hoare.HoareCore
-
+import Mathlib.Algebra.Polynomial.BigOperators
 
 
 -- Reference specification of the SHA-256 σ₀ function, defined once.
@@ -22,6 +22,43 @@ def sext32 (x : UInt32) : UInt64 := UInt64.ofBitVec (x.toBitVec.signExtend 64)
 def MState.applySig0 {InstrType} (ms : MState InstrType) (dst src : RegisterName)
     : (MState InstrType) :=
   ms.addRegisterAt dst (sext32 (σ₀ (lo32 (ms.getRegisterAt src))))
+
+-- theorem asdf: ∀ (w : Nat) (v : BitVec (w + 1)),
+--   BitVec.cpopNatRec v (w + 1) 0 = v.cpopNatRec (w) 0 + (v.getLsbD (w + 1)).toNat := by
+--   simp
+
+theorem sum_getLsbD_eq_cpopNatRec : ∀ (w : Nat) (v : BitVec w),
+    (∑ i : Fin w, (v.getLsbD i).toNat) = v.cpopNatRec w 0 := by
+  intros w
+  induction w with
+  | zero =>
+    simp
+  | succ n' IHn' =>
+    intro v
+    rw [BitVec.cpopNatRec_succ]
+
+    -- split the Fin (n'+1) sum into Fin n' plus the last index
+    rw [Fin.sum_univ_castSucc]
+
+    -- or equivalent theorem depending on imports
+
+    -- use IH on the low n' bits
+    specialize IHn' (v.extractLsb' 0 n')
+    simp at *
+    rw [IHn']
+
+    sorry
+
+
+theorem sum_eq_cpop : ∀ (u : UInt64) ,
+    BitVec.ofNat 64 (∑ x : Fin 64, u.toBitVec[x].toNat) = u.toBitVec.cpop := by
+  -- very slow, thats why i commented it. Searching for a lighter proof
+  -- intros u
+  -- simp
+  -- unfold Finset.sum BitVec.cpop
+  -- simp
+  -- grind
+  sorry
 
 
 mkAll RV64 Instr execute
@@ -57,7 +94,8 @@ mkAll RV64 Instr execute
   }
   rotr32:
   { syntax : rotr32 (dst:register) (r:register) (amt:immediate),
-    semantics: fun ms => (ms.addRegisterAt dst (sext32 (rotr32 (lo32 (ms.getRegisterAt r)) (amt.toUInt32)))).incPc,
+    semantics: fun ms => (ms.addRegisterAt dst (sext32 (rotr32 (lo32 (ms.getRegisterAt r))
+                          (amt.toUInt32)))).incPc,
     specification:
       ⦃P ⟦x[dst] ← sext32 (rotr32 (lo32 x[r]) (lo32 (amt))) ; pc++⟧ ∧ ¬⸨terminated⸩⦄
       pc ↦ ⟨{pc+1} | {n : UInt64 | n ≠ pc + 1}⟩
@@ -68,6 +106,16 @@ mkAll RV64 Instr execute
     semantics: fun ms => (ms.applySig0 rd rs1).incPc,
     specification:
       ⦃P ⟦x[rd] ← sext32 (σ₀ (lo32 x[rs1])) ; pc++⟧ ∧ ¬⸨terminated⸩⦄
+      pc ↦ ⟨{pc+1} | {n : UInt64 | n ≠ pc + 1}⟩
+      ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  CountSetBits:
+  {
+    syntax: cpop (rd:register), (rs:register),
+    semantics: fun ms => (ms.addRegisterAt rd (UInt64.ofBitVec
+                          ((ms.getRegisterAt rs).toBitVec.cpop))).incPc,
+    specification:
+      ⦃P ⟦x[rd] ← UInt64.ofNat (∑ i : Fin 64, ((x[rs]).toBitVec[i]).toNat) ; pc++⟧ ∧ ¬⸨terminated⸩⦄
       pc ↦ ⟨{pc+1} | {n : UInt64 | n ≠ pc + 1}⟩
       ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
@@ -87,6 +135,16 @@ mkAll RV64 Instr execute
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
+
+
+theorem sum_eq_cpop' : ∀ (s : MState Instr) (rs : RegisterName) ,
+  UInt64.ofNat (∑ x : Fin 64, (s.getRegisterAt rs).toBitVec[↑x].toNat) =
+    { toBitVec := (s.getRegisterAt rs).toBitVec.cpop } := by
+  intros ms rs
+  simp only [UInt64.ofNat]
+  rw [sum_eq_cpop]
+
+
 
 
 
@@ -177,6 +235,38 @@ theorem runOneStep_jump_succ : ∀ (s : MState Instr) (label : String) (newPc : 
   unfold MState.jump
   rw [hlabel]
 
+@[simp]
+theorem MState.incPc_eq_pc_plus_one (ms : MState Instr) :
+  ms.incPc = {ms with pc := ms.pc + 1} := by
+  unfold MState.incPc
+  simp
+
+open Lean Elab Tactic in
+elab "simp_addRegisterAt" : tactic => do
+  evalTactic (←`(tactic| unfold $(mkIdent `MState.addRegisterAt)))
+  evalTactic (←`(tactic| by_cases h: $(mkIdent `rd.nr) == 0 <;> simp [h]))
+
+@[simp]
+theorem MState.addRegisterAt_no_change_at_mem (ms : MState Instr) (rd : RegisterName) (v : UInt64) :
+  (ms.addRegisterAt rd v).memory = ms.memory := by
+  simp_addRegisterAt
+
+@[simp]
+theorem MState.addRegisterAt_no_change_at_code (ms : MState Instr) (rd : RegisterName) (v : UInt64) :
+  (ms.addRegisterAt rd v).code = ms.code := by
+  simp_addRegisterAt
+
+@[simp]
+theorem MState.addRegisterAt_no_change_at_pc (ms : MState Instr) (rd : RegisterName) (v : UInt64) :
+  (ms.addRegisterAt rd v).pc = ms.pc := by
+  simp_addRegisterAt
+
+@[simp]
+theorem MState.addRegisterAt_no_change_at_terminated (ms : MState Instr) (rd : RegisterName) (v : UInt64) :
+  (ms.addRegisterAt rd v).terminated = ms.terminated := by
+  simp_addRegisterAt
+
+
 
 theorem ms_addRegiseter_pc_eq_pc : ∀ (ms : MState Instr) (r : RegisterName) (v : UInt64),
     (MState.addRegisterAt ms r v).pc = ms.pc := by
@@ -206,6 +296,56 @@ L : Set UInt64
 def a := RV64["LoadImmediate"].get!.proof? = (POption.some (by
   sorry
   ))
+
+
+theorem spec_cpop :
+  specification_CountSetBits := by
+  unfold specification_CountSetBits
+  intros P pc rd rs h_inter h_neq s curr getPc
+  rintro ⟨pre, h_terminated⟩
+  exists s.runOneStep
+  unfold weak
+  simp at *
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      . simp
+      . constructor
+        . unfold MState.runOneStep execute
+          rw [h_terminated, curr]
+          simp
+          exact getPc
+        . intros n' hn'
+          aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp
+        unfold MState.getRegisterAt at pre
+        unfold MState.addRegisterAt at pre
+        unfold MState.addRegisterAt
+        simp at pre
+        by_cases h: rd.nr = 0
+        . rw [h] at pre
+          simp at pre
+          simp [h]
+          exact pre
+        . simp [h] at pre
+          simp [h]
+          rw [←sum_eq_cpop']
+          unfold MState.getRegisterAt
+          simp
+          exact pre
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_terminated]
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr]
+      exact getPc
+
 
 
 theorem spec_beqz_true :

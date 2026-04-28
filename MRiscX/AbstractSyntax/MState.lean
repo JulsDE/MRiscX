@@ -18,7 +18,6 @@ structure MState (Instr : Type) where
   pc: ProgramCounter
   code: Code Instr
   terminated: Bool
-  instrCounter : Nat
 
 class MachineStateI (γ : Type)
     (InstrType CodeType RegisterNrType RegisterValType ProgramCounterType: Type) where
@@ -159,8 +158,6 @@ namespace MState
   def setTerminated (bool:Bool) : MState InstrType :=
     {ms with terminated := bool}
 
-  def incInstrCounter :=
-    {ms with instrCounter := ms.instrCounter + 1}
 
   def getCode (ms : MState Instr) :=
     ms.code
