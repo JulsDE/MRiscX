@@ -2,6 +2,7 @@ import MRiscX.AbstractSyntax.MState
 import MRiscX.ExtendParser.AbstractSyntaxForGen
 import MRiscX.ExtendParser.CommandElabShared
 import MRiscX.ExtendParser.GenerateConcreteSyntax
+import MRiscX.ExtendParser.GenerateDelaborator
 import MRiscX.ExtendParser.GenerateElaborator
 import MRiscX.ExtendParser.GenerateExecuteFunction
 import MRiscX.ExtendParser.GenerateInstrToExpr
@@ -107,3 +108,7 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
     elabCommand exeCmd
   -- elaboration
   liftIO <| activeArchRef.set (some arch)
+  -- delaboration
+  for cmd in (← MRiscX.ExtendParser.GenerateDelaborator.mkDelaboratorCmds ref arch) do
+    withRef archName do
+      elabCommand cmd
