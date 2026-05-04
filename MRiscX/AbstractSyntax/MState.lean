@@ -116,22 +116,39 @@ namespace MState
                        ((i + 7) ↦ b7 ;
                         ms.memory))))))))}
 
-  def loadByte  (a : MemoryAddress) : Byte :=
+  def getMemAddrFromReg (r : RegisterName) : MemoryAddress :=
+    r.nr.toUInt64
+
+  def wordToUInt64_signed (w : Word) : UInt64 :=
+    UInt64.ofBitVec (w.signExtend 64)
+
+  def wordToUInt64_unsigned (w : Word) : UInt64 :=
+    UInt64.ofBitVec (w.zeroExtend 64)
+
+  instance : Coe RegisterName MemoryAddress where
+    coe := getMemAddrFromReg
+
+  instance : Coe Doubleword UInt64 where
+    coe := UInt64.ofBitVec
+
+
+  def loadByte_raw  (a : MemoryAddress) : Byte :=
     ms.memory.get a
 
-  def loadHalfword (addr : MemoryAddress) : Halfword :=
+  def loadHalfword_raw (addr : MemoryAddress) : Halfword :=
     let b0 := ms.memory.get addr
     let b1 := ms.memory.get (addr + 1)
     b1 ++ b0
 
-  def loadWord (addr : MemoryAddress) : Word :=
+
+  def loadWord_raw (addr : MemoryAddress) : Word :=
     let b0 := ms.memory.get addr
     let b1 := ms.memory.get (addr + 1)
     let b2 := ms.memory.get (addr + 2)
     let b3 := ms.memory.get (addr + 3)
     b3 ++ b2 ++ b1 ++ b0
 
-  def loadDoubleword (ms : MState Instr) (addr : MemoryAddress) : Doubleword :=
+  def loadDoubleword (addr : MemoryAddress) : Doubleword :=
     let b0 := ms.memory.get addr
     let b1 := ms.memory.get (addr + 1)
     let b2 := ms.memory.get (addr + 2)
@@ -141,6 +158,24 @@ namespace MState
     let b6 := ms.memory.get (addr + 6)
     let b7 := ms.memory.get (addr + 7)
     b7 ++ b6 ++ b5 ++ b4 ++ b3 ++ b2 ++ b1 ++ b0
+
+  def loadByte_signed (addr : MemoryAddress) : UInt64 :=
+    UInt64.ofBitVec ((loadByte_raw ms addr).signExtend  64)
+
+  def loadByte_unsigned (addr : MemoryAddress) : UInt64 :=
+    UInt64.ofBitVec ((loadByte_raw ms addr).zeroExtend  64)
+
+  def loadHalfword_signed (addr : MemoryAddress) : UInt64 :=
+    UInt64.ofBitVec ((loadHalfword_raw ms addr).signExtend  64)
+
+  def loadHalfword_unsigned (addr : MemoryAddress) : UInt64 :=
+    UInt64.ofBitVec ((loadHalfword_raw ms addr).zeroExtend  64)
+
+  def loadWord_signed (addr : MemoryAddress) : UInt64 :=
+    UInt64.ofBitVec ((loadWord_raw ms addr).signExtend  64)
+
+  def loadWord_unsigned (addr : MemoryAddress) : UInt64 :=
+    UInt64.ofBitVec ((loadWord_raw ms addr).zeroExtend  64)
 
 
   def getMemoryAt (i:MemoryAddress) : Byte :=

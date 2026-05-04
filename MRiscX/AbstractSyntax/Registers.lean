@@ -8,19 +8,24 @@ def MRISCX_REG_SIZE : UInt64 := 32
 
 abbrev RegisterNr := Fin (MRISCX_REG_SIZE.toNat)
 
-def RegisterNr.ofNat (n:Nat) : RegisterNr := Fin.mk (n % MRISCX_REG_SIZE.toNat)
+namespace RegisterNr
+def ofNat (n:Nat) : RegisterNr := Fin.mk (n % MRISCX_REG_SIZE.toNat)
                       (by
                         apply Nat.mod_lt
                         unfold MRISCX_REG_SIZE
                         simp)
-def RegisterNr.ofUInt64 (n:UInt64) : RegisterNr := Fin.mk (n.toNat % MRISCX_REG_SIZE.toNat)
+def ofUInt64 (n:UInt64) : RegisterNr := Fin.mk (n.toNat % MRISCX_REG_SIZE.toNat)
                           (by
                             apply Nat.mod_lt
                             unfold MRISCX_REG_SIZE
                             simp)
 
+def toUInt64 (r : RegisterNr) : UInt64 := UInt64.ofNat r.toNat
+
 instance InstRegisterNrOfNat (n : Nat) : OfNat RegisterNr n where
   ofNat := RegisterNr.ofNat n
+
+end RegisterNr
 
 
 structure RegisterName where

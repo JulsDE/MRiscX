@@ -83,7 +83,7 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
   -- concrete Syntax
   for instr in arch.specs do
     let syn ← mkSyntaxCmdForCtor instr
-    withRef archName do
+    withRef instr.src do
       elabCommand syn
   -- inductive instr type
   withRef archName do
@@ -96,16 +96,16 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
     elabCommand (← mkTest ref)
   -- Instr Specification
   for instr in arch.specs do
-    for cmd in (← MRiscX.ExtendParser.GenerateSpecDefinition.mkSpecDefCmds ref arch instr "<mkAll>") do
-      withRef archName do
+    for cmd in (← MRiscX.ExtendParser.GenerateSpecDefinition.mkSpecDefCmds instr.hoareDesc.raw arch instr "<mkAll>") do
+      withRef instr.hoareDesc.raw do
         elabCommand cmd
   -- Specification registry map
   withRef archName do
     elabCommand (← mkSpecRegistryCmd ref arch)
   -- Execute command
-  let exeCmd ← mkExecuteCmd ref arch
-  withRef archName do
-    elabCommand exeCmd
+  for exeCmd in (← mkExecuteCmds ref arch) do
+    withRef archName do
+      elabCommand exeCmd
   -- elaboration
   liftIO <| activeArchRef.set (some arch)
   -- delaboration

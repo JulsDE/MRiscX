@@ -158,6 +158,13 @@ syntax "⟦" instr_set_hoare_assignment_chain "⟧" : term
 syntax "x[" register "]" : term
 syntax "x[" num_or_ident "]" : term
 syntax "mem[" term "]" : term
+syntax "mem_ub[" term "]" : term
+syntax "mem_sb[" term "]" : term
+syntax "mem_uh[" term "]" : term
+syntax "mem_sh[" term "]" : term
+syntax "mem_uw[" term "]" : term
+syntax "mem_sw[" term "]" : term
+syntax "mem_d[" term "]" : term
 syntax "labels[" ident "]" : term
 syntax "labels[" &"." ident "]" : term
 syntax "⸨pc⸩" : term

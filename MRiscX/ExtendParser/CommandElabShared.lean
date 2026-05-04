@@ -113,10 +113,11 @@ def mkInstrSpecFromEntry
       let holes := fieldsOfInputPieces pieces
       let ctorName := ctorName.getId.eraseMacroScopes
       let instrSpec : InstrSpec := {
+          src := entry.raw
           instrName := ctorName,
           ref := entry.raw.reprint.getD (toString entry.raw),
           pieces := pieces,
-          sem := sem.raw.reprint.getD (toString sem.raw),
+          sem := sem,
           hoareDesc := spec
       }
       ensureNoDuplicateFieldNames ctorName holes

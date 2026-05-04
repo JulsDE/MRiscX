@@ -64,6 +64,30 @@ where
   | _stx@`(x[$r:num_or_ident]) => do
       let reg ← numOrIdentAsRegisterTerm r
       `(term| MState.getRegisterAt ($stateTerm:term) $reg)
+  | _stx@`(mem[$t:term]) => do
+      let et ← replaceInstrSetKeywords t stateTerm
+      return ←`(term | $(mkIdent `MState.getMemoryAt) ($stateTerm) ($(⟨et⟩)))
+  | _stx@`(mem_ub[$t:term]) => do
+      let et ← replaceInstrSetKeywords t stateTerm
+      return ←`(term | $(mkIdent `MState.loadByte_unsigned) ($stateTerm) ($(⟨et⟩)))
+  | _stx@`(mem_sb[$t:term]) => do
+      let et ← replaceInstrSetKeywords t stateTerm
+      return ←`(term | $(mkIdent `MState.loadByte_signed) ($stateTerm) ($(⟨et⟩)))
+  | _stx@`(mem_uh[$t:term]) => do
+      let et ← replaceInstrSetKeywords t stateTerm
+      return ←`(term | $(mkIdent `MState.loadHalfword_unsigned) ($stateTerm) ($(⟨et⟩)))
+  | _stx@`(mem_sh[$t:term]) => do
+      let et ← replaceInstrSetKeywords t stateTerm
+      return ←`(term | $(mkIdent `MState.loadHalfword_signed) ($stateTerm) ($(⟨et⟩)))
+  | _stx@`(mem_uw[$t:term]) => do
+      let et ← replaceInstrSetKeywords t stateTerm
+      return ←`(term | $(mkIdent `MState.loadWord_unsigned) ($stateTerm) ($(⟨et⟩)))
+  | _stx@`(mem_sw[$t:term]) => do
+      let et ← replaceInstrSetKeywords t stateTerm
+      return ←`(term | $(mkIdent `MState.loadWord_signed) ($stateTerm) ($(⟨et⟩)))
+  | _stx@`(mem_d[$t:term]) => do
+      let et ← replaceInstrSetKeywords t stateTerm
+      return ←`(term | $(mkIdent `MState.loadDouble) ($stateTerm) ($(⟨et⟩)))
   | _stx@`(labels[$s:ident]) => do
       let lblTerm ← checkIfVariableToTerm s false
       `(term| MState.getLabelAt ($stateTerm:term) $lblTerm:term)

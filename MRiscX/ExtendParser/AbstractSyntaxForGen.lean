@@ -22,10 +22,11 @@ inductive Piece where
 deriving Repr, Inhabited, ToExpr
 
 structure InstrSpec where
+  src      : Syntax
   ref      : String
   instrName : Name
   pieces   : Array Piece
-  sem      : String
+  sem      : TSyntax `term
   hoareDesc: TSyntax `instr_set_spec
 deriving Repr, Inhabited --, ToExpr
 

@@ -50,6 +50,7 @@ theorem sum_getLsbD_eq_cpopNatRec : ∀ (w : Nat) (v : BitVec w),
     sorry
 
 
+
 theorem sum_eq_cpop : ∀ (u : UInt64) ,
     BitVec.ofNat 64 (∑ x : Fin 64, u.toBitVec[x].toNat) = u.toBitVec.cpop := by
   -- very slow, thats why i commented it. Searching for a lighter proof
@@ -78,11 +79,68 @@ mkAll RV64 Instr execute
   }
   LoadAddress:
   {
-    syntax : la (a:register), (m:immediate),
-    semantics: fun ms => (MState.addRegisterAt ms a m).incPc,
-    specification:  ⦃P ⟦x[a] ← m; pc++⟧ ∧ ¬⸨terminated⸩⦄
+    syntax : la (rd:register), (m:immediate),
+    semantics: fun ms => (MState.addRegisterAt ms rd m).incPc,
+    specification:  ⦃P ⟦x[rd] ← m; pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  SubImmediate:
+  {
+    syntax: subi (rd:register), (rs:register), (imm:immediate),
+    semantics: fun ms => (MState.addRegisterAt ms rd ((MState.getRegisterAt ms rs) - imm)).incPc,
+    specification: ⦃P ⟦x[rd] ← x[rs] - imm; pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  AddImmediate:
+  {
+    syntax: addi (rd:register), (rs:register), (imm:immediate),
+    semantics: fun ms => (MState.addRegisterAt ms rd ((MState.getRegisterAt ms rs) + imm)).incPc,
+    specification: ⦃P ⟦x[rd] ← x[rs] + imm; pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  Add:
+  {
+    syntax: add (rd:register), (rs1:register), (rs2:register),
+    semantics: fun ms => (MState.addRegisterAt ms rd ((MState.getRegisterAt ms rs1) +
+                          (MState.getRegisterAt ms rs2))).incPc,
+    specification: ⦃P ⟦x[rd] ← x[rs1] + x[rs2]; pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  LoadByteSigned:
+  {
+    syntax: lb (rd:register), (rs:register), -- rd = container of value, rs holds address
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadByte_signed ms rd)),
+    specification: ⦃P ⟦x[rd] ← (mem_sb[rs]); pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  LoadByteUnsigned:
+  {
+    syntax: lbu (rd:register), (rs:register), -- rd = container of value, rs holds address
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadByte_unsigned ms rd)),
+    specification: ⦃P ⟦x[rd] ← (mem_ub[rs]); pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  LoadWordUnsigned:
+  {
+    syntax: lwu (rd:register), (rs:register), -- rd = container of value, rs holds address
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadWord_unsigned ms rd)),
+    specification: ⦃P ⟦x[rd] ← (mem_uw[rs]); pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  LoadWordSigned:
+  {
+    syntax: lw (rd:register), (rs:register), -- rd = container of value, rs holds address
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadWord_signed ms rd)),
+    specification: ⦃P ⟦x[rd] ← (mem_sw[rs]); pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
   Jump:
   {
@@ -92,6 +150,7 @@ mkAll RV64 Instr execute
                     pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
+
   rotr32:
   { syntax : rotr32 (dst:register) (r:register) (amt:immediate),
     semantics: fun ms => (ms.addRegisterAt dst (sext32 (rotr32 (lo32 (ms.getRegisterAt r))
@@ -121,7 +180,7 @@ mkAll RV64 Instr execute
   }
   JumpEqZero:
   {
-    syntax : beqz (r:register) (lbl:label),
+    syntax : beqz (r:register), (lbl:label),
     semantics: fun ms =>  if (MState.getRegisterAt ms r == 0) then
                             MState.jump ms lbl
                           else
@@ -132,6 +191,22 @@ mkAll RV64 Instr execute
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
                     ||
                     ⦃P ⟦pc++⟧ ∧ x[r] ≠ 0 ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  JumpEq:
+  {
+    syntax : beq (r1:register), (r2:register), (lbl:label),
+    semantics: fun ms =>  if (MState.getRegisterAt ms r1 == MState.getRegisterAt ms r2) then
+                            MState.jump ms lbl
+                          else
+                            MState.incPc ms
+                          ,
+    specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ x[r1] = x[r2] ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+                    ||
+                    ⦃P ⟦pc++⟧ ∧ x[r1] ≠ x[r2] ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
@@ -159,16 +234,42 @@ def MState.runNSteps (ms : MState Instr) (n : Nat) :=
 instance instRunnable : Runnable (MState Instr) where
   runOneStep := MState.runOneStep
   runNSteps := MState.runNSteps
+
+
 #check mriscx
         first :
                 li x3, 1
                 li x 33, 1
                 li t0, 1
         end
+
 def c := mriscx
         f: li x1, 1
         end
 
+def c_hamming_weight :=
+  mriscx
+    init:
+      addi a0, x0, 0
+      la a1, 0x123
+      addi a2, x0, 3
+      addi a3, x0, 10
+
+    loop:
+      beqz a2, finish
+
+      lwu t0, a1
+      cpop t2, t0
+      add a0, a0, t2
+      subi a2, a2, 1
+      addi a1, a1, 1
+
+    finish:
+      beq a0, a3, correct
+      j stop
+
+
+  end
 
 @[simp]
 theorem MachineStateI_getPc_eq_mstate_getPc (ms : MState Instr) :
