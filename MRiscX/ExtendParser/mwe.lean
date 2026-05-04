@@ -112,33 +112,33 @@ mkAll RV64 Instr execute
   }
   LoadByteSigned:
   {
-    syntax: lb (rd:register), (rs:register), -- rd = container of value, rs holds address
+    syntax: lb (rd:register), (off:immediate)((rs:register)), -- rd = container of value, rs holds address
     semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadByte_signed ms rd)),
-    specification: ⦃P ⟦x[rd] ← (mem_sb[rs]); pc++⟧ ∧ ¬⸨terminated⸩⦄
+    specification: ⦃P ⟦x[rd] ← (mem_sb[rs + off]); pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
   LoadByteUnsigned:
   {
-    syntax: lbu (rd:register), (rs:register), -- rd = container of value, rs holds address
+    syntax: lbu (rd:register), (off:immediate)((rs:register)), -- rd = container of value, rs holds address
     semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadByte_unsigned ms rd)),
-    specification: ⦃P ⟦x[rd] ← (mem_ub[rs]); pc++⟧ ∧ ¬⸨terminated⸩⦄
+    specification: ⦃P ⟦x[rd] ← (mem_ub[rs + off]); pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
   LoadWordUnsigned:
   {
-    syntax: lwu (rd:register), (rs:register), -- rd = container of value, rs holds address
+    syntax: lwu (rd:register), (off:immediate)((rs:register)), -- rd = container of value, rs holds address
     semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadWord_unsigned ms rd)),
-    specification: ⦃P ⟦x[rd] ← (mem_uw[rs]); pc++⟧ ∧ ¬⸨terminated⸩⦄
+    specification: ⦃P ⟦x[rd] ← (mem_uw[rs + off]); pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
   LoadWordSigned:
   {
-    syntax: lw (rd:register), (rs:register), -- rd = container of value, rs holds address
+    syntax: lw (rd:register), (off:immediate)((rs:register)), -- rd = container of value, rs holds address
     semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadWord_signed ms rd)),
-    specification: ⦃P ⟦x[rd] ← (mem_sw[rs]); pc++⟧ ∧ ¬⸨terminated⸩⦄
+    specification: ⦃P ⟦x[rd] ← (mem_sw[rs + off]); pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
@@ -249,6 +249,8 @@ def c := mriscx
 
 def c_hamming_weight :=
   mriscx
+    -- words to be checked = 3
+    -- threshold = 10
     init:
       addi a0, x0, 0
       la a1, 0x123
@@ -258,18 +260,21 @@ def c_hamming_weight :=
     loop:
       beqz a2, finish
 
-      lwu t0, a1
+      lwu t0, 0(a1)
       cpop t2, t0
       add a0, a0, t2
       subi a2, a2, 1
-      addi a1, a1, 1
+      addi a1, a1, 4
 
     finish:
       beq a0, a3, correct
       j stop
-
-
   end
+
+def ms := {code := c_hamming_weight, registers := EmptyRegisters, memory := EmptyMemory , pc := 0,
+            terminated := false: MState Instr}
+#eval (ms.runNSteps 200).terminated
+#eval (ms.runNSteps 200).registers
 
 @[simp]
 theorem MachineStateI_getPc_eq_mstate_getPc (ms : MState Instr) :

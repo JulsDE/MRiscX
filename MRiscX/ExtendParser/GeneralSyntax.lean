@@ -174,7 +174,7 @@ declare_syntax_cat instr_set_hole
 syntax register : instr_set_hole
 syntax immediate : instr_set_hole
 syntax label : instr_set_hole
-syntax "(" ident ":" stx ")" : instr_set_hole
+syntax &"(" ident ":" stx ")" : instr_set_hole
 
 declare_syntax_cat instr_set_piece
 syntax instr_set_hole : instr_set_piece
@@ -185,6 +185,8 @@ syntax char  : instr_set_piece
 syntax ","   : instr_set_piece
 syntax ";"   : instr_set_piece
 syntax ":"   : instr_set_piece
+syntax "("   : instr_set_piece
+syntax ")"   : instr_set_piece
 syntax "."   : instr_set_piece
 syntax "+"   : instr_set_piece
 syntax "-"   : instr_set_piece
