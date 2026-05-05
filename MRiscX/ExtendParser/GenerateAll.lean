@@ -108,6 +108,8 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
       elabCommand exeCmd
   -- elaboration
   liftIO <| activeArchRef.set (some arch)
+  withRef archName do
+    elabCommand (← mkCodeElaboratorCmd ref arch)
   -- delaboration
   for cmd in (← MRiscX.ExtendParser.GenerateDelaborator.mkDelaboratorCmds ref arch) do
     withRef archName do

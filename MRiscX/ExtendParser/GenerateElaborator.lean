@@ -254,6 +254,12 @@ private def qualifyCtorName (typeName ctorName : Name) : Name :=
   | _ =>
       c
 
+private def identTagFromName (n : Name) : String :=
+  let raw := toString n.eraseMacroScopes
+  let chars := raw.toList.map fun c =>
+    if c.isAlphanum then c else '_'
+  String.ofList chars
+
 private def mkInstrExprForCtor (arch : ArchSpec) (spec : InstrSpec) (holeTexts : Array String) : TermElabM Expr := do
   let mut holeIdx := 0
   let mut args : Array Expr := #[]
@@ -360,3 +366,53 @@ def elabMriscxGenerated : TermElab := fun stx expectedType? => do
           pure e
   | _ =>
       throwUnsupportedSyntax
+
+def mkCodeElaboratorCmd (ref : Syntax) (arch : ArchSpec) : CommandElabM (TSyntax `command) := do
+  let elabName := s!"elabMriscxGenerated_{identTagFromName arch.name}"
+  let instrTypeName := toString arch.typeName.eraseMacroScopes
+  let cmdText := MRiscX.ExtendParser.CommandElabShared.joinLines
+    [ "@[term_elab mriscxTerm]"
+    , s!"def {elabName} : Lean.Elab.Term.TermElab := fun stx expectedType? => do"
+    , "  match stx with"
+    , "  | `(term| $syn:mriscx_syntax) => do"
+    , "      let mkUInt64LitExpr (n : UInt64) : Lean.Expr :="
+    , "        Lean.mkApp3"
+    , "          (Lean.mkConst ``OfNat.ofNat [Lean.levelZero])"
+    , "          (Lean.mkConst ``UInt64)"
+    , "          (Lean.mkRawNatLit n.toNat)"
+    , "          (Lean.mkApp (Lean.mkConst ``UInt64.instOfNat) (Lean.mkRawNatLit n.toNat))"
+    , "      let e ←"
+    , "        match syn with"
+    , "        | `(mriscx_syntax| mriscx"
+    , "            $lbls:mriscx_label*"
+    , "            end) => do"
+    , "            let mut labeledInstrs : Array (String × Array Lean.Expr) := #[]"
+    , "            for lblStx in lbls do"
+    , "              match lblStx with"
+    , "              | `(mriscx_label| $lblName:ident : $instrs:mriscx_Instr*) => do"
+    , "                  let mut instrExprs : Array Lean.Expr := #[]"
+    , "                  for instrStx in instrs do"
+    , "                    instrExprs := instrExprs.push (← getInstrExpr instrStx)"
+    , "                  labeledInstrs := labeledInstrs.push (lblName.getId.eraseMacroScopes.toString, instrExprs)"
+    , "              | _ =>"
+    , "                  throwError \"expected MRiscX label block\""
+    , s!"            let instrTy := Lean.mkConst ``{instrTypeName} []"
+    , s!"            let defaultInstr ← Lean.Elab.Term.elabTerm (← `(term| (default : {instrTypeName}))) (some instrTy)"
+    , "            let mut instrMap := Lean.mkAppN (Lean.mkConst ``TMap.empty []) #[Lean.mkConst ``UInt64 [], instrTy, defaultInstr]"
+    , "            let mut labelMap := Lean.mkAppN (Lean.mkConst ``PMap.empty []) #[Lean.mkConst ``String [], Lean.mkConst ``UInt64 []]"
+    , "            let mut pc : UInt64 := 0"
+    , "            for (lbl, instrs) in labeledInstrs do"
+    , "              labelMap ← Lean.Meta.mkAppM ``PMap.put #[Lean.mkStrLit lbl, mkUInt64LitExpr pc, labelMap]"
+    , "              for instrExpr in instrs do"
+    , "                instrMap ← Lean.Meta.mkAppM ``TMap.put #[mkUInt64LitExpr pc, instrExpr, instrMap]"
+    , "                pc := pc + 1"
+    , "            pure (Lean.mkAppN (Lean.mkConst ``Code.mk []) #[instrTy, labelMap, instrMap])"
+    , "        | _ =>"
+    , "            throwError \"expected `mriscx ... end` syntax\""
+    , "      match expectedType? with"
+    , "      | some expectedType => Lean.Elab.Term.ensureHasType expectedType e"
+    , "      | none => pure e"
+    , "  | _ =>"
+    , "      throwError \"expected `mriscx ... end` term\""
+    ]
+  MRiscX.ExtendParser.CommandElabShared.parseCommandStr ref cmdText "<mkCodeElaborator>"
