@@ -128,7 +128,7 @@ mkAll RV64 Instr execute
   LoadByteUnsigned:
   {
     syntax: lbu (rd:register), (off:immediate)((rs:register)), -- rd = container of value, rs holds address
-    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadByte_unsigned ms rd)),
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadByte_unsigned ms (rs + off))),
     specification: ⦃P ⟦x[rd] ← (mem_ub[rs + off]); pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
@@ -421,6 +421,15 @@ theorem MState.getLabel_unpack (ms : MState Instr) (label : String) :
   unfold MState.getLabelAt
   rfl
 
+@[simp]
+theorem MState.idk (ms : MState Instr) (r : RegisterName) :
+    { memory := ms.memory, registers := ms.registers, pc := ms.pc, code := ms.code,
+        terminated := ms.terminated : MState Instr}.addRegisterAt r = ms.addRegisterAt r
+
+      := by
+      unfold MState.addRegisterAt
+      simp
+
 
 theorem ms_addRegiseter_pc_eq_pc : ∀ (ms : MState Instr) (r : RegisterName) (v : UInt64),
     (MState.addRegisterAt ms r v).pc = ms.pc := by
@@ -439,6 +448,50 @@ L : Set UInt64
     (fun st => P st ∧ ¬st.terminated = true) pc {pc + 1} L (Instr.LoadAddress dst addr)
 
 -/
+
+theorem spec_lbu :
+  specification_LoadByteUnsigned := by
+  unfold specification_LoadByteUnsigned
+  intros P pc rd off rs h_inter h_neq ms curr getPc
+  rintro ⟨P_true, h_terminated⟩
+  exists ms.runOneStep
+  unfold weak
+  simp at *
+  constructor
+  . exists 1
+    simp
+    constructor
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr]
+      exact getPc
+    . intros n' h
+      aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        simp [h_terminated, curr]
+        unfold MState.addRegisterAt MState.getMemAddrFromReg
+        unfold MState.addRegisterAt MState.getMemAddrFromReg at P_true
+        simp at *
+        by_cases h : rd.nr = 0
+        . simp [h] at P_true
+          simp [h]
+          rw [←h_terminated]
+          exact P_true
+        .
+          simp [h] at P_true
+          simp [h]
+          rw [←h_terminated]
+          unfold MState.loadByte_unsigned MState.loadByte_raw
+          unfold MState.loadByte_unsigned MState.loadByte_raw at P_true
+          simp at *
+          exact P_true
+      . unfold MState.runOneStep execute
+        simp [h_terminated, curr]
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr]
+      exact getPc
+
 
 theorem spec_beq_true:
   specification_JumpEq_true := by
@@ -536,22 +589,25 @@ theorem spec_copyRegister:
       . constructor
         . unfold MState.runOneStep execute
           rw [h_terminated, curr]
-          simp [h_neq]
-          exact h_getPc
+          simp [h_getPc]
         . intros n' hn'
           aesop
   . constructor
     . constructor
       . unfold MState.runOneStep execute
         rw [h_terminated, curr]
-        simp [h_neq]
-        exact P_true
+        unfold MState.addRegisterAt MState.getRegisterAt
+        unfold MState.addRegisterAt MState.getRegisterAt at P_true
+        simp at *
+        by_cases h : r1.nr = 0
+        . simp [h] at *
+          exact P_true
+        . simp [h] at *
+          exact P_true
       . unfold MState.runOneStep execute
-        rw [h_terminated, curr]
-        simp [h_neq]
-        exact h_terminated
+        simp [h_terminated, curr]
     . unfold MState.runOneStep execute
-      simp [h_terminated, curr, h_neq]
+      simp [h_terminated, curr]
       exact h_getPc
 
 theorem spec_cpop :
@@ -602,7 +658,224 @@ theorem spec_cpop :
       simp [h_terminated, curr]
       exact getPc
 
-theorem
+theorem spec_slli :
+  specification_ShiftLeftImmediate := by
+  unfold specification_ShiftLeftImmediate
+  intros P pc rd rs i h_inter h_neq s curr getPc
+  rintro ⟨pre, h_terminated⟩
+  exists s.runOneStep
+  unfold weak
+  simp at *
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      . simp
+      . constructor
+        . unfold MState.runOneStep execute
+          rw [h_terminated, curr]
+          simp
+          exact getPc
+        . intros n' hn'
+          aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp
+        unfold MState.getRegisterAt at pre
+        unfold MState.addRegisterAt at pre
+        unfold MState.addRegisterAt
+        simp at pre
+        by_cases h : rd.nr = 0
+        . rw [h] at pre
+          simp at pre
+          simp [h]
+          exact pre
+        . simp [h] at pre
+          simp [h]
+          unfold MState.getRegisterAt
+          simp
+          exact pre
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_terminated]
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr]
+      exact getPc
+
+theorem spec_srli :
+  specification_ShiftRightImmediate := by
+  unfold specification_ShiftRightImmediate
+  intros P pc rd rs i h_inter h_neq s curr getPc
+  rintro ⟨pre, h_terminated⟩
+  exists s.runOneStep
+  unfold weak
+  simp at *
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      . simp
+      . constructor
+        . unfold MState.runOneStep execute
+          rw [h_terminated, curr]
+          simp
+          exact getPc
+        . intros n' hn'
+          aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp
+        unfold MState.getRegisterAt at pre
+        unfold MState.addRegisterAt at pre
+        unfold MState.addRegisterAt
+        simp at pre
+        by_cases h : rd.nr = 0
+        . rw [h] at pre
+          simp at pre
+          simp [h]
+          exact pre
+        . simp [h] at pre
+          simp [h]
+          unfold MState.getRegisterAt
+          simp
+          exact pre
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_terminated]
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr]
+      exact getPc
+
+theorem spec_add :
+  specification_Add := by
+  unfold specification_Add
+  intros P pc rd rs1 rs2 h_inter h_neq s curr getPc
+  rintro ⟨pre, h_terminated⟩
+  exists s.runOneStep
+  unfold weak
+  simp at *
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      . simp
+      . constructor
+        . unfold MState.runOneStep execute
+          rw [h_terminated, curr]
+          simp
+          exact getPc
+        . intros n' hn'
+          aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp
+        unfold MState.getRegisterAt at pre
+        unfold MState.addRegisterAt at pre
+        unfold MState.addRegisterAt
+        simp at pre
+        by_cases h : rd.nr = 0
+        . rw [h] at pre
+          simp at pre
+          simp [h]
+          exact pre
+        . simp [h] at pre
+          simp [h]
+          unfold MState.getRegisterAt
+          simp
+          exact pre
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_terminated]
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr]
+      exact getPc
+
+theorem spec_bne_true:
+  specification_JumpNeq_true := by
+  unfold specification_JumpNeq_true
+  intros P pc r1 r2 label newPc h_inter h_notEmpty ms curr h_getPc
+  rintro ⟨P_true, h_label, h_neq, h_terminated⟩
+  exists ms.runOneStep
+  unfold weak
+  unfold MState.getLabelAt MState.getCode at h_label
+  simp at *
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      . simp
+      . constructor
+        . unfold MState.runOneStep execute
+          rw [h_terminated, curr]
+          simp [h_neq]
+          unfold MState.jump
+          simp [h_label]
+        . intros n' hn'
+          aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_neq]
+        simp [h_label]
+        exact P_true
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_neq]
+        unfold MState.jump
+        simp [h_label]
+        exact h_terminated
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr, h_neq]
+      simp [h_label]
+      unfold MState.setPc
+      simp
+
+theorem spec_bne_false:
+  specification_JumpNeq_false := by
+  unfold specification_JumpNeq_false
+  intros P pc r1 r2 label h_inter h_notEmpty ms curr h_getPc
+  rintro ⟨P_true, h_eq, h_terminated⟩
+  exists ms.runOneStep
+  unfold weak
+  simp at *
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      . simp
+      . constructor
+        . unfold MState.runOneStep execute
+          rw [h_terminated, curr]
+          simp [h_eq]
+          exact h_getPc
+        . intros n' hn'
+          aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_eq]
+        exact P_true
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_eq]
+        exact h_terminated
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr, h_eq]
+      exact h_getPc
+
 
 
 theorem spec_beqz_true :
@@ -649,123 +922,9 @@ theorem spec_beqz_true :
 
 
 
-example : specification_Sha256Sig0 := by
-  unfold specification_Sha256Sig0
-  intros P pc rs1 rd h_inter h_neq s curr getPc
-  rintro ⟨pre, h_terminated⟩
-  simp at curr
-  simp at getPc
-  simp at h_terminated
-  exists s.runOneStep
-  simp
-  constructor
-  unfold weak
-  exists 1
-  simp
-  constructor
-  . unfold MState.runOneStep execute
-    rw [h_terminated, curr]
-    simp
-    have : (s.applySig0 rd rs1).incPc.pc = pc + 1 := by
-      . unfold MState.applySig0 MState.addRegisterAt
-        by_cases h: rd.nr == 0 <;> (simp [h] ; unfold MState.incPc ; rw [h_terminated] ; simp ; exact getPc)
-    rw  [this]
-  . intros n' hn'
-    intros hneq
-    rw [hneq] at hn'
-    contradiction
-  . constructor
-    constructor
-    . unfold MState.runOneStep execute
-      rw [h_terminated, curr]
-      simp
-      unfold MState.applySig0
-      have : (s.addRegisterAt rd (sext32 (σ₀ (lo32 (s.getRegisterAt rs1))))).incPc
-                = (s.incPc.addRegisterAt rd (sext32 (σ₀ (lo32 (s.incPc.getRegisterAt rs1))))) := by
-          unfold MState.addRegisterAt MState.incPc
-          rw [h_terminated]
-          by_cases d: rd.nr = 0 <;> simp [d]
-          exact h_terminated
-          unfold MState.getRegisterAt
-          simp
-      rw [this]
-      exact pre
-    . unfold MState.runOneStep execute
-      rw [h_terminated, curr]
-      simp
-      unfold MState.applySig0 MState.addRegisterAt
-      by_cases h: rd.nr == 0 <;> (simp [h] ; unfold MState.incPc ; rw [h_terminated])
-    . unfold MState.runOneStep execute
-      rw [h_terminated, curr]
-      simp
-      unfold MState.applySig0 MState.addRegisterAt
-      by_cases h : rd.nr == 0 <;> (simp [h] ; unfold MState.incPc ; simp ; exact getPc )
-
-
 
 theorem spec_j :
   specification_Jump := by
   unfold specification_Jump hoare_triple_up_1
   intros P pc lbl newPc h_inter h_L_w s curr get_pc pre
   sorry
-
-theorem spec_la  :
-    specification_LoadAddress := by
-  unfold specification_LoadAddress hoare_triple_up_1
-  intros P pc dst val h j ms l n
-  rintro ⟨i, o⟩
-  simp at o
-  rw [MachineStateI_currInstr_eq_mstate_currInstr] at l
-  rw [MachineStateI_getPc_eq_mstate_getPc] at n
-  exists ms.runOneStep
-  unfold weak
-  constructor
-  . exists 1
-    constructor
-    . simp
-    . constructor
-      .
-        rw [Runnable_runNStep_eq_mstate_runNStep, runNSteps_1_eq_runOneStep]
-      . constructor
-        . rw [MachineStateI_getPc_eq_mstate_getPc]
-          unfold MState.runOneStep execute
-          simp
-          rw [o, l]
-          simp
-          unfold MState.incPc
-          simp
-          rw [ms_addRegiseter_pc_eq_pc]
-          exact n
-        . rintro n' ⟨left, right⟩
-          simp at right
-          rw [right] at left
-          contradiction
-  . constructor
-    . simp
-      constructor
-      . unfold MState.runOneStep execute
-        rw [l]
-        simp
-        have : (ms.addRegisterAt dst val).incPc = ms.incPc.addRegisterAt dst val := by
-          unfold MState.addRegisterAt MState.incPc
-          rw [o]
-          by_cases d: dst.nr = 0 <;> simp [d]
-          exact o
-        rw [this]
-        rw [o]
-        simp at *
-        exact i
-      . unfold MState.runOneStep execute
-        rw [l]
-        simp
-        unfold MState.addRegisterAt
-        by_cases d: dst.nr = 0 <;> (simp [d] ; unfold MState.incPc ; rw [o] ; simp)
-    . rw [MachineStateI_getPc_eq_mstate_getPc]
-      unfold MState.runOneStep execute
-      rw [l]
-      simp
-      unfold MState.incPc
-      simp [ms_addRegiseter_pc_eq_pc]
-      rw [o]
-      simp
-      exact n
