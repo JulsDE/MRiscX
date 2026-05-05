@@ -51,13 +51,6 @@ theorem sum_getLsbD_eq_cpopNatRec : ∀ (w : Nat) (v : BitVec w),
 
 
 
-def a : UInt64 := 1
-#eval a.shiftLeft 1
-#eval a.shiftRight 1
-#eval a >>> 1
-#eval a <<< 1
-#eval a.toBitVec.sshiftRight 1
-
 theorem sum_eq_cpop : ∀ (u : UInt64) ,
     BitVec.ofNat 64 (∑ x : Fin 64, u.toBitVec[x].toNat) = u.toBitVec.cpop := by
   -- very slow, thats why i commented it. Searching for a lighter proof
@@ -106,7 +99,7 @@ mkAll RV64 Instr execute
     semantics: fun ms => (MState.addRegisterAt ms rd ((MState.getRegisterAt ms rs) - imm)).incPc,
     specification: ⦃P ⟦x[rd] ← x[rs] - imm; pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
-                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
   AddImmediate:
   {
@@ -114,7 +107,7 @@ mkAll RV64 Instr execute
     semantics: fun ms => (MState.addRegisterAt ms rd ((MState.getRegisterAt ms rs) + imm)).incPc,
     specification: ⦃P ⟦x[rd] ← x[rs] + imm; pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
-                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
   Add:
   {
@@ -136,7 +129,7 @@ mkAll RV64 Instr execute
   LoadByteSigned:
   {
     syntax: lb (rd:register), (off:immediate)((rs:register)), -- rd = container of value, rs holds address
-    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadByte_signed ms rd)),
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadByte_signed ms (rs + off))),
     specification: ⦃P ⟦x[rd] ← (mem_sb[rs + off]); pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
@@ -144,7 +137,7 @@ mkAll RV64 Instr execute
   LoadWordUnsigned:
   {
     syntax: lwu (rd:register), (off:immediate)((rs:register)), -- rd = container of value, rs holds address
-    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadWord_unsigned ms rd)),
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadWord_unsigned ms (rs + off))),
     specification: ⦃P ⟦x[rd] ← (mem_uw[rs + off]); pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
@@ -152,7 +145,7 @@ mkAll RV64 Instr execute
   LoadWordSigned:
   {
     syntax: lw (rd:register), (off:immediate)((rs:register)), -- rd = container of value, rs holds address
-    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadWord_signed ms rd)),
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd (MState.loadWord_signed ms (rs + off))),
     specification: ⦃P ⟦x[rd] ← (mem_sw[rs + off]); pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
@@ -421,14 +414,6 @@ theorem MState.getLabel_unpack (ms : MState Instr) (label : String) :
   unfold MState.getLabelAt
   rfl
 
-@[simp]
-theorem MState.idk (ms : MState Instr) (r : RegisterName) :
-    { memory := ms.memory, registers := ms.registers, pc := ms.pc, code := ms.code,
-        terminated := ms.terminated : MState Instr}.addRegisterAt r = ms.addRegisterAt r
-
-      := by
-      unfold MState.addRegisterAt
-      simp
 
 
 theorem ms_addRegiseter_pc_eq_pc : ∀ (ms : MState Instr) (r : RegisterName) (v : UInt64),
