@@ -276,3 +276,8 @@ def MState.runNSteps (ms : MState Instr) (n : Nat) :=
 instance instRunnable : Runnable (MState Instr) where
   runOneStep := MState.runOneStep
   runNSteps := MState.runNSteps
+
+#check mriscx
+        first:
+          li x2, 1
+        end

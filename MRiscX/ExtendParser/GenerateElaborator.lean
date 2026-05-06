@@ -2,6 +2,8 @@ import MRiscX.AbstractSyntax.MState
 import MRiscX.ExtendParser.AbstractSyntaxForGen
 import MRiscX.ExtendParser.CommandElabShared
 import MRiscX.ExtendParser.GeneralSyntax
+import MRiscX.ExtendParser.GenerateInstrSetHoareRewrite
+import MRiscX.Hoare.HoareCore
 import Lean
 
 open Lean
@@ -364,6 +366,28 @@ def elabMriscxGenerated : TermElab := fun stx expectedType? => do
           Lean.Elab.Term.ensureHasType t e
       | none =>
           pure e
+  | _ =>
+      throwUnsupportedSyntax
+
+
+@[term_elab mriscxHoareTerm]
+def elabMriscxHoareGenerated : TermElab := fun stx _expectedType? => do
+  match stx with
+  | `(term| $syn:mriscx_syntax
+      ⦃ $P:term ⦄ $l:term ↦ ⟨ $L_w:term | $L_b:term ⟩ ⦃ $Q:term ⦄) => do
+      let translatedP : TSyntax `term ← `(term| ⧼$P:term⧽)
+      let translatedQ : TSyntax `term ← `(term| ⧼$Q:term⧽)
+      let translatedPTxt := translatedP.raw.reprint.getD (toString translatedP.raw)
+      let translatedQTxt := translatedQ.raw.reprint.getD (toString translatedQ.raw)
+      let typedPTxt := s!"(({translatedPTxt}) : Assertion (MState Instr))"
+      let typedQTxt := s!"(({translatedQTxt}) : Assertion (MState Instr))"
+      let codeTxt := syn.raw.reprint.getD (toString syn.raw)
+      let lTxt := l.raw.reprint.getD (toString l.raw)
+      let lWTxt := L_w.raw.reprint.getD (toString L_w.raw)
+      let lBTxt := L_b.raw.reprint.getD (toString L_b.raw)
+      let hoareTxt := s!"hoare_triple_up (MState Instr) Instr (Code Instr) RegisterName UInt64
+                          ProgramCounter {typedPTxt} {typedQTxt} {lTxt} {lWTxt} {lBTxt} ({codeTxt})"
+      Lean.Elab.Term.elabTerm (← parseTermStx hoareTxt) none
   | _ =>
       throwUnsupportedSyntax
 

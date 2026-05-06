@@ -8,12 +8,95 @@ open Lean
 open Lean Meta
 open Lean Elab Term
 
+private def registerNrOfBareName? (s : String) : Option Nat :=
+  match s with
+  | "x0" => some 0
+  | "x1" => some 1
+  | "x2" => some 2
+  | "x3" => some 3
+  | "x4" => some 4
+  | "x5" => some 5
+  | "x6" => some 6
+  | "x7" => some 7
+  | "x8" => some 8
+  | "x9" => some 9
+  | "x10" => some 10
+  | "x11" => some 11
+  | "x12" => some 12
+  | "x13" => some 13
+  | "x14" => some 14
+  | "x15" => some 15
+  | "x16" => some 16
+  | "x17" => some 17
+  | "x18" => some 18
+  | "x19" => some 19
+  | "x20" => some 20
+  | "x21" => some 21
+  | "x22" => some 22
+  | "x23" => some 23
+  | "x24" => some 24
+  | "x25" => some 25
+  | "x26" => some 26
+  | "x27" => some 27
+  | "x28" => some 28
+  | "x29" => some 29
+  | "x30" => some 30
+  | "x31" => some 31
+  | _ => none
+
+private def registerNrOfAbiName? (s : String) : Option Nat :=
+  match s with
+  | "zero" => some 0
+  | "ra" => some 1
+  | "sp" => some 2
+  | "gp" => some 3
+  | "tp" => some 4
+  | "t0" => some 5
+  | "t1" => some 6
+  | "t2" => some 7
+  | "s0" => some 8
+  | "fp" => some 8
+  | "s1" => some 9
+  | "a0" => some 10
+  | "a1" => some 11
+  | "a2" => some 12
+  | "a3" => some 13
+  | "a4" => some 14
+  | "a5" => some 15
+  | "a6" => some 16
+  | "a7" => some 17
+  | "s2" => some 18
+  | "s3" => some 19
+  | "s4" => some 20
+  | "s5" => some 21
+  | "s6" => some 22
+  | "s7" => some 23
+  | "s8" => some 24
+  | "s9" => some 25
+  | "s10" => some 26
+  | "s11" => some 27
+  | "t3" => some 28
+  | "t4" => some 29
+  | "t5" => some 30
+  | "t6" => some 31
+  | _ => none
+
+private def registerNrOfName? (s : String) : Option Nat :=
+  match registerNrOfBareName? s with
+  | some n => some n
+  | none => registerNrOfAbiName? s
+
 private def numOrIdentAsTerm (s : TSyntax `num_or_ident) : TermElabM (TSyntax `term) := do
   match s with
   | `(num_or_ident| $n:num) =>
       `(term| $n:num)
-  | `(num_or_ident| $i:ident) =>
-      `(term| $i:ident)
+  | `(num_or_ident| $i:ident) => do
+      match registerNrOfName? i.getId.eraseMacroScopes.toString with
+      | some n =>
+          let idx : TSyntax `num := Syntax.mkNumLit s!"{n}"
+          `(term| $idx:num)
+      | none =>
+          `(term| $i:ident)
   | _ =>
       throwError "unsupported num_or_ident in instruction-set hoare assignment"
 
@@ -44,8 +127,13 @@ private def numOrIdentAsRegisterTerm (s : TSyntax `num_or_ident) : TermElabM (TS
           let idx : TSyntax `term ← `(term| $i:ident)
           mkRegisterNameFromIdx idx
       else
-        let idx : TSyntax `term ← `(term| $i:ident)
-        mkRegisterNameFromIdx idx
+        match registerNrOfName? i.getId.eraseMacroScopes.toString with
+        | some n =>
+            let idx : TSyntax `term ← `(term| $(Syntax.mkNumLit s!"{n}"):num)
+            mkRegisterNameFromIdx idx
+        | none =>
+            let idx : TSyntax `term ← `(term| $i:ident)
+            mkRegisterNameFromIdx idx
   | _ =>
       throwError "unsupported num_or_ident in instruction-set hoare term"
 

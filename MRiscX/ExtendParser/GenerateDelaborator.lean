@@ -98,9 +98,9 @@ partial def termToInstrMapWith
     (t : TSyntax `term) :
     UnexpandM SyntaxInstrMap := do
   match t with
-  | `(term| TMap.empty $d) =>
-      let defaultInstr ← termToInstr d
-      pure (TMap.empty defaultInstr)
+  | `(term| TMap.empty $_) =>
+      -- The default entry is irrelevant for reconstruction; only explicit keys matter.
+      pure (TMap.empty (default : TSyntax `mriscx_Instr))
   | `(term| TMap.put $k $v $m) =>
       let some key := parseUInt64Key? k
         | throw ()
@@ -355,6 +355,23 @@ def mkDelaboratorCmds
     [ s!"@[app_unexpander Code.mk]"
     , s!"def {codeUnexpanderFn} : Lean.PrettyPrinter.Unexpander"
     , "  | `(term| $_ $labelMapTerm $instrMapTerm) => do"
+    , "      let some labels := MRiscX.ExtendParser.GenerateDelaborator.termToLabelMap labelMapTerm | throw ()"
+    , s!"      let instructionMap ← MRiscX.ExtendParser.GenerateDelaborator.termToInstrMapWith {termToInstrFn} instrMapTerm"
+    , "      let syntaxArray := MRiscX.ExtendParser.GenerateDelaborator.createLabelInstructionArray instructionMap labels"
+    , "      if syntaxArray.size > 0 then"
+    , "        let mut syntaxes := #[]"
+    , "        for labelWithCode in syntaxArray do"
+    , "          let mut instrSyntaxes := #[]"
+    , "          for instr in labelWithCode.2 do"
+    , "            instrSyntaxes := instrSyntaxes.push (←`(mriscx_Instr| $instr))"
+    , "          let labelName := Lean.mkIdent labelWithCode.1.toName"
+    , "          syntaxes := syntaxes.push (←`(mriscx_label| $labelName:ident : $instrSyntaxes*))"
+    , "        `(mriscx_syntax| mriscx"
+    , "          $syntaxes*"
+    , "          end)"
+    , "      else"
+    , "        throw ()"
+    , "  | `(term| $_ $_ $labelMapTerm $instrMapTerm) => do"
     , "      let some labels := MRiscX.ExtendParser.GenerateDelaborator.termToLabelMap labelMapTerm | throw ()"
     , s!"      let instructionMap ← MRiscX.ExtendParser.GenerateDelaborator.termToInstrMapWith {termToInstrFn} instrMapTerm"
     , "      let syntaxArray := MRiscX.ExtendParser.GenerateDelaborator.createLabelInstructionArray instructionMap labels"

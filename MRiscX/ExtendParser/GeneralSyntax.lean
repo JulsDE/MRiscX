@@ -117,6 +117,11 @@ syntax "mriscx" withPosition(linebreak)
   mriscx_label+
   ppDedent("end") : mriscx_syntax
 
+syntax (name := mriscxHoareTerm)
+  mriscx_syntax withPosition(linebreak ppDedent(ppLine))
+  "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄" : term
+
+
 syntax (name := mriscxTerm) mriscx_syntax : term
 
 
@@ -137,10 +142,10 @@ declare_syntax_cat instr_set_hoare_assignment
 declare_syntax_cat instr_set_hoare_assignment_chain
 declare_syntax_cat instr_set_hoare_assignment_term
 
-syntax "x[" num_or_ident "]" "←" term : instr_set_hoare_assignment
-syntax "x[" num_or_ident "]" "<-" term : instr_set_hoare_assignment
-syntax "x[" register "]" "←" term : instr_set_hoare_assignment
-syntax "x[" register "]" "<-" term : instr_set_hoare_assignment
+syntax (priority := high) "x[" register "]" "←" term : instr_set_hoare_assignment
+syntax (priority := high) "x[" register "]" "<-" term : instr_set_hoare_assignment
+syntax (priority := low) "x[" num_or_ident "]" "←" term : instr_set_hoare_assignment
+syntax (priority := low) "x[" num_or_ident "]" "<-" term : instr_set_hoare_assignment
 syntax "mem[" term &"]" "←" term : instr_set_hoare_assignment
 syntax "mem[" term &"]" "<-" term : instr_set_hoare_assignment
 syntax ident "++" : instr_set_hoare_assignment
@@ -155,8 +160,8 @@ syntax "⟦" instr_set_hoare_assignment_chain "⟧" : instr_set_hoare_assignment
 
 syntax "⟦⟧" : term
 syntax "⟦" instr_set_hoare_assignment_chain "⟧" : term
-syntax "x[" register "]" : term
-syntax "x[" num_or_ident "]" : term
+syntax (priority := high) "x[" register "]" : term
+syntax (priority := low) "x[" num_or_ident "]" : term
 syntax "mem[" term "]" : term
 syntax "mem_ub[" term "]" : term
 syntax "mem_sb[" term "]" : term
