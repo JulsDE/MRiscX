@@ -117,6 +117,10 @@ syntax "mriscx" withPosition(linebreak)
   mriscx_label+
   ppDedent("end") : mriscx_syntax
 
+syntax (name := mriscxIdentHoareTerm)
+  ident withPosition(linebreak ppDedent(ppLine))
+  "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄" : term
+
 syntax (name := mriscxHoareTerm)
   mriscx_syntax withPosition(linebreak ppDedent(ppLine))
   "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄" : term

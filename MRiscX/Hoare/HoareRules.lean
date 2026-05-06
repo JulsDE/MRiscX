@@ -1,5 +1,8 @@
-import MRiscX.Hoare.HoareTheory
+-- import MRiscX.Hoare.HoareTheory
 -- import MRiscX.Delab.DelabHoare
+import MRiscX.Hoare.HoareCore
+import MRiscX.ExtendParser.ISADef
+
 import Mathlib.Data.Set.BooleanAlgebra
 
 /-
@@ -19,11 +22,29 @@ These statements must be valid in order for the conditions for applying the assu
 TODO: prove of S_LOOP
 -/
 
+variable (α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType : Type)
+variable [Runnable α]
+variable [MachineStateI α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType]
+
+theorem generic_hoare_notation_works :
+    ∀ (code : CodeType) (P Q : Assertion α)
+      (l : ProgramCounterType) (L_w L_b L : Set ProgramCounterType),
+      L_w ∩ L_b = ∅ →
+      code
+      ⦃P⦄ l ↦ ⟨L_w | L_b \ L⟩⦃Q⦄ →
+      code
+      ⦃P⦄ l ↦ ⟨L_w | L_b \ L⟩⦃Q⦄ := by
+  intro f code P Q l L_w L_b L h
+  exact h
+
 /--
 Allows to weaken the Hoare triple by removing a set
 `L` from `L_B` without any restrictions
 -/
-theorem BL_SUBSET: ∀ (code : Code) (P Q : Assertion) (l: UInt64) (L_w L_b L : Set UInt64),
+
+
+theorem BL_SUBSET:
+    ∀ (code : CodeType) (P Q : Assertion α) (l: ProgramCounterType) (L_w L_b L : Set ProgramCounterType),
   L_w ∩ L_b = ∅ → -- TODO This or L ⊄ L_w
   code
   ⦃P⦄ l ↦ ⟨L_w | L_b⟩⦃Q⦄ →
@@ -187,14 +208,15 @@ of the first triple is equal to the precondition of the second triple.
 This rule lets you apply S_SEQ with any form of `L_{B''}` but asks for
 a proof of `L_{B''} = L_B ∩ L_{B'}`
 -/
-theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64) (L_w L_b L_w' L_b' : Set UInt64),
+theorem S_SEQ {L_b'': Set ProgramCounterType}: ∀(P R Q : Assertion α) (c : CodeType)
+                (l : ProgramCounterType) (L_w L_b L_w' L_b' : Set ProgramCounterType),
   L_w ∩ L_b = ∅ →
   L_w ≠ ∅ →
   L_w' ∩ L_b' = ∅ →
   (L_w' ⊆ L_b ∧ L_w ∩ L_w' = ∅) →
   c
   ⦃P⦄ l ↦ ⟨L_w | L_b⟩ ⦃R⦄ →
-  (∀ l':UInt64, l' ∈ L_w →
+  (∀ l':ProgramCounterType, l' ∈ L_w →
   c
   ⦃R⦄ l' ↦ ⟨L_w' | L_b'⟩ ⦃Q⦄) →
   L_b'' = L_b ∩ L_b' →
@@ -207,12 +229,15 @@ theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64
   specialize HFirst TInter TEmpty s HCode H_pc pre
   rcases HFirst with ⟨s', ⟨HFirstWeak, HFirstPost, HFirstPc⟩⟩
   unfold weak at HFirstWeak
-  specialize HFirstWeak HCode
+  -- specialize HFirstWeak HCode
   rcases HFirstWeak with ⟨m, ⟨HFW1, HFW2, HFW3, HFW4⟩⟩
-  have HCode' : s'.code = c := by
+  have HCode' : MachineStateI.getCode InstrType RegisterNameType RegisterValType ProgramCounterType s' = c:= by
     rw [<- HCode, <- HFW2]
+
     simp
-  specialize HSecond s'.pc HFW3 TInter' h_empty' s' HCode' rfl HFirstPost
+  specialize HSecond (MachineStateI.getPc InstrType CodeType RegisterNameType RegisterValType s')
+          HFW3 TInter' h_empty' s'
+          --  HCode' rfl HFirstPost
   unfold weak at HSecond
   rcases HSecond with ⟨s'', ⟨HSecondWeak, HSecondPost, HSecondPc⟩⟩
   specialize HSecondWeak HCode'
@@ -238,6 +263,7 @@ theorem S_SEQ {L_b'': Set UInt64}: ∀(P R Q : Assertion) (c : Code) (l : UInt64
       simp
       intros _
       exact HSecondPc
+  sorry
 
 
 /--
@@ -322,7 +348,6 @@ theorem S_COND: ∀ (c : Code) (P C Q : Assertion) (l : UInt64)
     specialize h_RunCondFalse h_pc H
     exact h_RunCondFalse
   exact pre
-
 
 /--
 A rule to verify the formal correctness of a loop.

@@ -391,6 +391,31 @@ def elabMriscxHoareGenerated : TermElab := fun stx _expectedType? => do
   | _ =>
       throwUnsupportedSyntax
 
+@[term_elab mriscxIdentHoareTerm]
+def elabMriscxIdentHoareTerm : TermElab := fun stx _expectedType? => do
+  match stx with
+ | `(term| $i:ident
+      ⦃ $P:term ⦄ $l:term ↦ ⟨ $L_w:term | $L_b:term ⟩ ⦃ $Q:term ⦄) => do
+      logInfo "S!"
+      let translatedP : TSyntax `term ← `(term| ⧼$P:term⧽)
+      let translatedQ : TSyntax `term ← `(term| ⧼$Q:term⧽)
+      let translatedPTxt := translatedP.raw.reprint.getD (toString translatedP.raw)
+      let translatedQTxt := translatedQ.raw.reprint.getD (toString translatedQ.raw)
+      logInfo s!"asdf {translatedPTxt}, {translatedQTxt}"
+      let typedPTxt := s!"(({translatedPTxt}) : Assertion (MState Instr))"
+      let typedQTxt := s!"(({translatedQTxt}) : Assertion (MState Instr))"
+      let codeTxt := i.raw.reprint.getD (toString i.raw)
+      let lTxt := l.raw.reprint.getD (toString l.raw)
+      let lWTxt := L_w.raw.reprint.getD (toString L_w.raw)
+      let lBTxt := L_b.raw.reprint.getD (toString L_b.raw)
+      let hoareTxt := s!"hoare_triple_up (MState Instr) Instr (Code Instr) RegisterName UInt64
+                          ProgramCounter {typedPTxt} {typedQTxt} {lTxt} {lWTxt} {lBTxt} ({codeTxt})"
+      logInfo s!"{hoareTxt}"
+      Lean.Elab.Term.elabTerm (← parseTermStx hoareTxt) none
+  | _ =>
+      throwUnsupportedSyntax
+
+
 def mkCodeElaboratorCmd (ref : Syntax) (arch : ArchSpec) : CommandElabM (TSyntax `command) := do
   let elabName := s!"elabMriscxGenerated_{identTagFromName arch.name}"
   let instrTypeName := toString arch.typeName.eraseMacroScopes

@@ -1,5 +1,61 @@
 import MRiscX.ExtendParser.Specifications
 
+#check Assertion
+
+theorem S_SEQ {L_b'': Set ProgramCounter}: ∀(P R Q : Assertion (MState Instr)) (c : (Code Instr))
+      (l : ProgramCounter) (L_w L_b L_w' L_b' : Set ProgramCounter),
+  L_w ∩ L_b = ∅ →
+  L_w ≠ ∅ →
+  L_w' ∩ L_b' = ∅ →
+  (L_w' ⊆ L_b ∧ L_w ∩ L_w' = ∅) →
+  c
+  ⦃P⦄ l ↦ ⟨L_w | L_b⟩ ⦃R⦄ →
+  (∀ l':UInt64, l' ∈ L_w →
+  c
+  ⦃R⦄ l' ↦ ⟨L_w' | L_b'⟩ ⦃Q⦄) →
+  L_b'' = L_b ∩ L_b' →
+  c
+  ⦃P⦄ l ↦ ⟨L_w' | L_b''⟩ ⦃Q⦄
+  := by
+  intros P R Q c l L_w L_b L_w' L_b' TInter TEmpty TInter' T
+  unfold hoare_triple_up
+  intros HFirst HSecond def_L_b'' _ h_empty' s HCode H_pc pre
+  specialize HFirst TInter TEmpty s HCode H_pc pre
+  rcases HFirst with ⟨s', ⟨HFirstWeak, HFirstPost, HFirstPc⟩⟩
+  unfold weak at HFirstWeak
+  specialize HFirstWeak HCode
+  rcases HFirstWeak with ⟨m, ⟨HFW1, HFW2, HFW3, HFW4⟩⟩
+  have HCode' : s'.code = c := by
+    rw [<- HCode, <- HFW2]
+    simp
+  specialize HSecond s'.pc HFW3 TInter' h_empty' s' HCode' rfl HFirstPost
+  unfold weak at HSecond
+  rcases HSecond with ⟨s'', ⟨HSecondWeak, HSecondPost, HSecondPc⟩⟩
+  specialize HSecondWeak HCode'
+  rcases HSecondWeak with ⟨m', ⟨_, HSW2, HSW3, HSW4⟩⟩
+  exists s''
+  constructor <;> try assumption
+  . unfold weak
+    intros HCode
+    exists (m + m')
+    constructor <;> try assumption
+    . exact Nat.add_gt_zero _ _ HFW1
+    . constructor <;> try assumption
+      . rw [<- HFW2] at HSW2
+        simp at HSW2
+        exact HSW2
+      . constructor <;> try assumption
+        . intros m'' Hm''
+          rw [def_L_b'']
+          apply MState.run_n_plus_m_intersect <;> assumption
+  . constructor <;> try assumption
+    .
+      rw [def_L_b'']
+      simp
+      intros _
+      exact HSecondPc
+
+
 #check mriscx
         first:
       end
@@ -94,3 +150,21 @@ theorem hamming_weight_correct': hoare_triple_up (MState Instr) Instr (Code Inst
       sorry
 
 #check hoare_triple_up Instr (Code Instr) RegisterName
+
+-- section GenericHoareNotationExample
+
+-- variable (α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType : Type)
+-- variable [Runnable α]
+-- variable [MachineStateI α InstrType CodeType RegisterNameType RegisterValType ProgramCounterType]
+
+-- theorem generic_hoare_notation_works :
+--     ∀ (code : CodeType) (P Q : Assertion α)
+--       (l : ProgramCounterType) (L_w L_b L : Set ProgramCounterType),
+--       code
+--       ⦃P⦄ l ↦ ⟨L_w | L_b \ L⟩⦃Q⦄ →
+--       code
+--       ⦃P⦄ l ↦ ⟨L_w | L_b \ L⟩⦃Q⦄ := by
+--   intro code P Q l L_w L_b L h
+--   exact h
+
+-- end GenericHoareNotationExample
