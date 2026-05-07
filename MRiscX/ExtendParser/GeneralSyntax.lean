@@ -125,6 +125,8 @@ syntax (name := mriscxHoareTerm)
   mriscx_syntax withPosition(linebreak ppDedent(ppLine))
   "⦃" term "⦄" term "↦" "⟨" term "|" term "⟩" "⦃" term "⦄" : term
 
+syntax (name := instrSetAssertionTerm) "⦃" term "⦄" : term
+
 
 syntax (name := mriscxTerm) mriscx_syntax : term
 

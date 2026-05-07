@@ -278,3 +278,6 @@ private partial def elabInstrSetHoareTerm (stx : Term) : TermElabM Term := do
 elab "⧼" t:term "⧽" : term => do
   let newT ← elabInstrSetHoareTerm t
   return (← Lean.Elab.Term.elabTerm (← `(term| $newT:term)) none)
+
+elab (name := elabInstrSetAssertionTerm) "⦃" t:term "⦄" : term => do
+  Lean.Elab.Term.elabTerm (← `(term| ⧼$t:term⧽)) none
