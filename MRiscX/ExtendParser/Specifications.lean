@@ -127,7 +127,7 @@ theorem spec_beq_false:
 theorem spec_copyRegister:
   specification_CopyRegister := by
   unfold specification_CopyRegister
-  intros P pc r1 r2 h_inter h_notEmpty ms curr h_getPc
+  intros P pc rd rs h_inter h_notEmpty ms curr h_getPc
   rintro ⟨P_true, h_terminated⟩
   exists ms.runOneStep
   unfold weak
@@ -151,7 +151,7 @@ theorem spec_copyRegister:
         unfold MState.addRegisterAt MState.getRegisterAt
         unfold MState.addRegisterAt MState.getRegisterAt at P_true
         simp at *
-        by_cases h : r1.nr = 0
+        by_cases h : rd.nr = 0
         . simp [h] at *
           exact P_true
         . simp [h] at *

@@ -203,12 +203,7 @@ theorem asdf :
 
   sorry
 
-def ad : Byte := 12
-#check ⦃⸨pc⸩ = 2⦄
-#check fun (st:MState Instr) => st.pc = 2
 
-#eval ad.cpop.zeroExtend 64
-#check UInt64.ofBitVec
 
 theorem hamming_weight_correct (a length : UInt64):
   mriscx
@@ -234,15 +229,94 @@ theorem hamming_weight_correct (a length : UInt64):
   := by
   intros h_inter h_empty ms getcode getPc
   rintro ⟨no_overflow, h_a0, h_a1, h_terminated⟩
-  apply S_SEQ (P := ⦃a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length ∧ ¬⸨terminated⸩⦄)
-              (R := ⦃a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length ∧
-                      x[a5] = length ∧ x[a3] = x[a5] + x[a1] ∧ ¬⸨terminated⸩⦄)
+  -- cut between init and loop
+  apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
+              (R := ⦃a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
+                      x[a5] = a ∧ x[a3] = x[a5] + x[a1] ∧ ¬⸨terminated⸩⦄)
               (L_w := {4})
               (L_b := {n : ProgramCounter | n > 4 ∨ n = 0}) <;> try assumption
   . simp
   . simp
   . simp
   .
+    apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
+                (R := ⦃a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
+                      x[a5] = a ∧ ¬⸨terminated⸩⦄)
+              (L_w := {3})
+              (L_b := {n : ProgramCounter | n > 3 ∨ n = 0})
+              (L_b' := {n : ProgramCounter | n ≠ 4}) <;> try assumption
+    . simp
+    . simp
+    . simp
+    . simp
+    .
+      apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
+                (R := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
+                      x[a5] = a) ∧ ¬⸨terminated⸩⦄)
+              (L_w := {2})
+              (L_w' := {3})
+              (L_b := {n : ProgramCounter | n > 2 ∨ n = 0})
+              (L_b' := {n : ProgramCounter | n ≠ 3}) <;> try assumption
+      . simp
+      . simp
+      . simp
+      . simp
+      .
+        apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
+                (R := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length ∧
+                      x[a5] = a) ∧ ¬⸨terminated⸩⦄)
+              (L_w := {1})
+              (L_w' := {2})
+              (L_b := {n : ProgramCounter | n ≠ 1})
+              (L_b' := {n : ProgramCounter | n ≠ 2}) <;> try assumption
+        . simp
+        . simp
+        . simp
+        . simp
+        . intros h_inter h_empty ms getcode getPc
+          rintro ⟨⟨no_overflow, h_a0, h_a1⟩, h_terminated⟩
+          simp at getcode
+          apply spec_copyRegister
+            (P := (⦃a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length ∧
+                      x[a5] = a⦄))
+             0 (RegisterName.ofAbi!_zero "a5") (RegisterName.ofAbi!_zero "a0")
+            h_inter h_empty ms
+          .
+
+
+          /-
+  ∃ s',
+      weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {0 + 1} {n | n ≠ 0 + 1} ∧
+        (fun st =>
+              (a.toNat + length.toNat < UInt64.size ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } = a ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } = a) ∧
+                ¬st.terminated = true)
+            s' ∧
+          MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 0 + 1}
+  with the goal
+    ∃ s',
+      weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {1} {n | n ≠ 1} ∧
+        (fun st =>
+              (a.toNat + length.toNat < UInt64.size ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } = a ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
+                st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } = a ∧ ¬st.terminated = true)
+            s' ∧
+          MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 1}
+
+
+          -/
+
+      .
+      .
+  . sorry
+  . simp
+    intros pc w
+    grind
+  . repeat (constructor <;> try assumption)
+
   -- sorry
 
 theorem hamming_weight_correct': hoare_triple_up (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter
