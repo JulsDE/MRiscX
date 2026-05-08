@@ -56,7 +56,6 @@ namespace RegisterNr
         "t1",
         "t2",
         "s0",
-        "fp",
         "s1",
         "a0",
         "a1",
@@ -81,9 +80,8 @@ namespace RegisterNr
         "t5",
         "t6"
       ]
-
   def isAbiName (str : String) :=
-    if RegisterNr.abiNames.contains str then
+    if RegisterNr.abiNames.contains str || str == "fp" then
       true
     else
       false
@@ -114,9 +112,10 @@ namespace RegisterNr
     ofNat := RegisterNr.ofNat n
 
   def ofAbi? (str : String) : Option RegisterNr :=
-    if !isAbiName str then none
-    else
+    if str == "fp" then some (RegisterNr.ofNat 8)
+    else if isAbiName str then
       some (RegisterNr.ofNat (RegisterNr.abiNames.idxOf str))
+    else none
 
   def ofAbi! (str : String) (d : RegisterNr) : RegisterNr :=
     match ofAbi? str with
@@ -189,9 +188,26 @@ instance: LawfulBEq RegisterName where
     apply register_name_equality
     exact h
 
+@[simp]
+theorem RegisterName.register_eq_on_nr : ∀ (nr1 nr2 : RegisterNr) (str1 str2 : String),
+  nr1 = nr2 →
+  ({nr := nr1, name := str1} : RegisterName) = {nr := nr2, name := str2} := by
+  intros nr1 nr2 str1 str2 h
+  apply register_name_equality
+  simp [h]
+
+@[simp]
+theorem RegisterName.register_eq_on_nr' : ∀ (nr : RegisterNr) (str1 str2 : String),
+  ({nr := nr, name := str1} : RegisterName) = {nr := nr, name := str2} := by
+  intros nr str1 str2
+  apply register_name_equality
+  simp
+
+
 
 instance: ToString RegisterName where
    toString n := n.name
+
 
 
 /--

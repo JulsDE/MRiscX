@@ -92,6 +92,26 @@ theorem S_LOOP {α : Type} [Preorder α] [LT α] [WellFoundedLT α] :
     exact h_nonempty
   sorry
 
+instance : Preorder UInt64 where
+  le := (· ≤ ·)
+  lt := (· < ·)
+  le_refl := by simp
+  le_trans := by apply UInt64.le_trans
+  lt_iff_le_not_ge := by
+    intros a b
+    constructor
+    . intros h
+      simp
+      constructor
+      . apply UInt64.le_of_lt h
+      . exact h
+    . simp
+
+
+instance : WellFoundedLT UInt64 where
+  wf := by
+    simpa using (measure (fun x : UInt64 => x.toNat)).wf
+
   -- let P : α → Prop :=
   --   fun v =>
   --     ∀ s : MState Instr,
@@ -189,6 +209,7 @@ def ms := {code := c_hamming_weight, registers := EmptyRegisters, memory := Empt
 #eval (ms.runNSteps 200).registers
 
 
+
 theorem asdf :
   mriscx
     init:
@@ -204,6 +225,60 @@ theorem asdf :
   sorry
 
 
+
+
+
+
+open Lean Elab Tactic in
+elab "prepare_second" : tactic => do
+  evalTactic (←`(tactic| intros $(mkIdent `l') $(mkIdent `h_l')))
+  let id_hl' := mkIdent `h_l'
+  let id_hpc := mkIdent `h_pc
+  let id_code := mkIdent `h_code'
+  evalTactic (← `(tactic| simp at $id_hl':ident))
+  evalTactic (←`(tactic| intros $(mkIdent `h_inter) $(mkIdent `h_empty) $(mkIdent `ms)
+                          $(mkIdent `h_code') $(mkIdent `h_pc) $(mkIdent `pre)))
+  evalTactic (←`(tactic| try simp at $id_hpc:ident))
+  evalTactic (←`(tactic| try simp at $id_code:ident))
+
+
+open Lean Elab Tactic in
+elab "solve_curr" : tactic => do
+  evalTactic (←`(tactic| simp))
+  evalTactic (←`(tactic| try unfold MState.getCurrInstr))
+  evalTactic (←`(tactic| try unfold MState.getCode at $(mkIdent `h_code'):ident))
+  evalTactic (←`(tactic| rw [$(mkIdent `h_pc):ident]))
+  evalTactic (←`(tactic| try rw [$(mkIdent `h_l'):ident]))
+  evalTactic (←`(tactic| rw [$(mkIdent `h_code'):ident]))
+  evalTactic (←`(tactic| try unfold RegisterName.ofAbi!_zero ))
+  evalTactic (←`(tactic| try unfold RegisterName.ofAbi? ))
+  evalTactic (←`(tactic| try unfold RegisterNr.ofAbi? ))
+  evalTactic (←`(tactic| try unfold RegisterNr.isAbiName ))
+  evalTactic (←`(tactic| try unfold RegisterNr.abiNames))
+  evalTactic (←`(tactic| simp))
+
+open Lean Elab Tactic in
+elab "unfold_ofAbi!" : tactic => do
+  evalTactic (←`(tactic| unfold RegisterName.ofAbi!_zero RegisterName.ofAbi? RegisterNr.ofAbi? RegisterNr.isAbiName RegisterNr.abiNames RegisterNr.ofNat MRISCX_REG_SIZE))
+  evalTactic (←`(tactic| simp))
+
+open Lean Elab Tactic in
+elab "unfold_ofAbi!" &" at " i:ident : tactic => do
+  evalTactic (←`(tactic| unfold RegisterName.ofAbi!_zero RegisterName.ofAbi? RegisterNr.ofAbi? RegisterNr.isAbiName RegisterNr.abiNames RegisterNr.ofNat MRISCX_REG_SIZE at $i:ident))
+  evalTactic (←`(tactic| simp))
+
+open Lean Elab Tactic in
+elab "unfold_rn_ofUint" : tactic => do
+  evalTactic (←`(tactic| unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE RegisterNr.ofNat MRISCX_REG_SIZE))
+  evalTactic (←`(tactic| simp))
+
+open Lean Elab Tactic in
+elab "unfold_rn_ofnat" &" at " i:ident : tactic => do
+  evalTactic (←`(tactic| unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE RegisterNr.ofNat MRISCX_REG_SIZE at $i:ident ))
+
+
+#check fun st : MState Instr => UInt64.ofNat ((∑ i : Fin length , (((st.getMemoryAt (a + UInt64.ofFin i)).cpop).toNat)))
+#check fun st : MState Instr => ∀ i, 0 ≤ i ∧ i < length → x[a0] = x[a0] + (((st.getMemoryAt (a + i)).cpop).toNat)
 
 theorem hamming_weight_correct (a length : UInt64):
   mriscx
@@ -224,31 +299,30 @@ theorem hamming_weight_correct (a length : UInt64):
   end
   ⦃a.toNat + length.toNat < UInt64.size ∧ length > 0 ∧ x[a0] = a ∧ x[a1] = length ∧ ¬⸨terminated⸩⦄
   0 ↦ ⟨{9} | {n : ProgramCounter | n > 9 ∨ n = 0}⟩
-  ⦃∀ i: UInt64, 0 <= i ∧ i < length → x[a3] = (UInt64.ofBitVec (mem[a + i].cpop.zeroExtend 64))
+  ⦃∀ i: UInt64, 0 <= i ∧ i < length → x[a0] = UInt64.ofNat ((∑ i : Fin UInt64.size , (((mem[UInt64.ofFin i])).cpop).toNat))
       ∧ ¬⸨terminated⸩⦄
   := by
   intros h_inter h_empty ms getcode getPc
   rintro ⟨no_overflow, h_a0, h_a1, h_terminated⟩
   -- cut between init and loop
   apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
-              (R := ⦃a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
-                      x[a5] = a ∧ x[a3] = x[a5] + x[a1] ∧ ¬⸨terminated⸩⦄)
+              (R := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
+                      x[a5] = a ∧ x[a3] = x[a5] + x[a1]) ∧ ¬⸨terminated⸩⦄)
               (L_w := {4})
-              (L_b := {n : ProgramCounter | n > 4 ∨ n = 0}) <;> try assumption
+              (L_b := {n : ProgramCounter | n > 4 ∨ n = 0})
+              (L_b' := {n | n ≠ 9} \ {n : ProgramCounter | n < 9 ∨ n ≥ 4})
+              <;> try assumption
+  . simp
   . simp
   . simp
   . simp
   .
-    apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
-                (R := ⦃a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
-                      x[a5] = a ∧ ¬⸨terminated⸩⦄)
+    (apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
+                (R := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
+                      x[a5] = a) ∧ ¬⸨terminated⸩⦄)
               (L_w := {3})
               (L_b := {n : ProgramCounter | n > 3 ∨ n = 0})
-              (L_b' := {n : ProgramCounter | n ≠ 4}) <;> try assumption
-    . simp
-    . simp
-    . simp
-    . simp
+              (L_b' := {n : ProgramCounter | n ≠ 4}) <;> try assumption) ; simp ; simp ; simp ; simp
     .
       apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
                 (R := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
@@ -281,33 +355,144 @@ theorem hamming_weight_correct (a length : UInt64):
                       x[a5] = a⦄))
              0 (RegisterName.ofAbi!_zero "a5") (RegisterName.ofAbi!_zero "a0")
             h_inter h_empty ms
-          .
+          . simp
+            unfold MState.getCurrInstr
+            simp at getPc
+            unfold MState.getCode at getcode
+            rw [getPc, getcode]
+            unfold RegisterName.ofAbi!_zero RegisterName.ofAbi? RegisterNr.ofAbi? RegisterNr.isAbiName RegisterNr.abiNames
+            simp
+          . simp [getPc]
+          . repeat (constructor <;> try assumption)
+            unfold RegisterName.ofAbi!_zero RegisterName.ofAbi? RegisterNr.ofAbi? RegisterNr.isAbiName RegisterNr.abiNames
+            unfold MState.getRegisterAt MState.addRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE
+            simp
+            unfold RegisterNr.ofNat MRISCX_REG_SIZE
+            unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at h_a0
+            simp at h_a0
+            have hw : { nr := 10, name := toString 10 : RegisterName} = { nr := 10, name := "a0" } := by
+              rw [RegisterName.register_eq_on_nr']
+
+            have : (TMap.get ms.registers { nr := 10, name := "a0" } = a) := by
+                    rw [←hw]
+                    exact h_a0
+            have hj : { nr := 15, name := "a5" : RegisterName} = { nr := 15, name := toString 15 } := by
+                    rw [RegisterName.register_eq_on_nr']
+            simp
+            rw [hj]
+            simp [this, h_a0]
+            exact t_update_eq
+              (k := { nr := 15, name := toString 15 : RegisterName})
+              (v := a)
+              (t := ms.registers)
+        . prepare_second
+          rcases pre with ⟨⟨p1, p2, p3⟩, h_terminated⟩
+          apply spec_li _ 1 (RegisterName.ofAbi!_zero "a0") 0 h_inter h_empty ms
+          . solve_curr
+          . simp [h_pc, h_l']
+          . repeat (constructor <;> try assumption)
+
+        . ext a
+          simp
+          grind
+      . prepare_second
+        rcases pre with ⟨⟨p1, p2, p3, p4⟩, h_terminated⟩
+        apply spec_beqz_false _ 2 (RegisterName.ofAbi!_zero "a1") "finish" h_inter h_empty ms
+        . solve_curr
+        . simp [h_pc, h_l']
+        . repeat (constructor <;> try assumption)
+          unfold MState.getRegisterAt
+          unfold RegisterName.ofAbi!_zero RegisterName.ofAbi? RegisterNr.ofAbi? RegisterNr.isAbiName RegisterNr.abiNames RegisterNr.ofNat MRISCX_REG_SIZE
+          simp
+          have : { nr := 11, name := toString 11 : RegisterName} = { nr := 11, name := "a1" }
+              := by
+              rw [RegisterName.register_eq_on_nr']
+          rw [←this]
+          unfold MState.getRegisterAt at p3
+          simp at p3
+          unfold  RegisterNr.ofUInt64 MRISCX_REG_SIZE  at p3
+          simp at *
+          intros neq
+          have hlen : length = 0 := by
+            rw [←p3]
+            exact neq
+          contradiction
+      . ext a ; simp ; grind
+    . prepare_second
+      rcases pre with ⟨⟨p1, p2, p3, p4⟩, h_terminated⟩
+      apply spec_add _ 3  (RegisterName.ofAbi!_zero "a3")
+                          (RegisterName.ofAbi!_zero "a5")
+                          (RegisterName.ofAbi!_zero "a1")
+                          h_inter h_empty
+      . solve_curr
+      . simp [h_pc, h_l']
+      . repeat (constructor <;> try assumption)
+        unfold_ofAbi!
+        unfold MState.getRegisterAt MState.addRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE
+        simp
+        have h1 : { nr := 11, name := "a1" : RegisterName} = { nr := 11, name := toString (11:UInt64)} := by
+          rw [RegisterName.register_eq_on_nr']
+        have h2 : { nr := 13, name := "a3" : RegisterName} = { nr := 13, name := toString (13:UInt64)} := by
+          rw [RegisterName.register_eq_on_nr']
+        have h3 : { nr := 15, name := "a5" : RegisterName} = { nr := 15, name := toString (15:UInt64)} := by
+          rw [RegisterName.register_eq_on_nr']
+        rw [h1, h2, h3, t_update_eq]
+    . ext a ; simp ; grind
+  .
+    intros l' hl'
+    rw [hl']
+    intros h_inter h_empty ms h_code' h_pc pre
+    apply S_LOOP
+      (C := ⦃x[a5] ≠ x[a3]⦄)
+      (I := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat, ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+              ∧ x[a3] = a + length
+              ∧ x[a5] < a + length
+              ∧ x[a5] ≥ a
+              ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
+      (V := ⦃x[a5]⦄)
+      (l := 4)
+      (L_w := {9})
+      (L_b := {n | n ≠ 9} \ {n : ProgramCounter | n < 9 ∨ n ≥ 4})
+    . simp
+    . simp
+    . intros x h_inter h_empty ms h_code' h_pc pre
+      (apply S_SEQ (P := _ )
+                (R := ⦃(a.toNat + length.toNat < UInt64.size
+                        ∧ x[a0] = x[a0] + (UInt64.ofBitVec (mem[x[a5]].cpop.zeroExtend 64)) ∧ x[a1] = length
+                        ∧ x[a4] = mem_ub[x[a5]])
+                        ∧ ¬⸨terminated⸩⦄)
+              (L_w := {3})
+              (L_b := {n : ProgramCounter | n > 3 ∨ n = 0})
+              (L_b' := {n : ProgramCounter | n ≠ 4}) <;> try assumption)
+
+    sorry
+    prepare_second<
+
+
+
+
 
 
           /-
+
+
   ∃ s',
-      weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {0 + 1} {n | n ≠ 0 + 1} ∧
-        (fun st =>
-              (a.toNat + length.toNat < UInt64.size ∧
-                  st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } = a ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } = a) ∧
-                ¬st.terminated = true)
-            s' ∧
-          MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 0 + 1}
-  with the goal
-    ∃ s',
-      weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {1} {n | n ≠ 1} ∧
-        (fun st =>
-              (a.toNat + length.toNat < UInt64.size ∧
-                  st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } = a ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
-                st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } = a ∧ ¬st.terminated = true)
-            s' ∧
-          MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 1}
+    weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ?s s' {9} {n | n > 9 ∨ n ≤ 4} ∧
+      ?Q s' ∧ MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n > 9 ∨ n ≤ 4}
+with the goal
+  ∃ s',
+    weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {9} {n | n > 9 ∨ n = 0} ∧
+      (fun st =>
+            ∀ (i : UInt64),
+              0 ≤ i ∧ i < length →
+                st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
+                    { toBitVec := BitVec.zeroExtend 64 (BitVec.cpop (st.getMemoryAt (a + i))) } ∧
+                  ¬st.terminated = true)
+          s' ∧
+        MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n > 9 ∨ n = 0}
 
 
-          -/
+     -/
 
       .
       .

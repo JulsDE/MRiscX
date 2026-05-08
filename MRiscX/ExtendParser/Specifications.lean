@@ -1,5 +1,8 @@
 import MRiscX.ExtendParser.MStateTheory
 
+theorem spec_li :
+  specification_LoadImmediate := by
+  sorry
 
 theorem spec_lbu :
   specification_LoadByteUnsigned := by
@@ -471,3 +474,38 @@ theorem spec_beqz_true :
       rw [h_terminated, curr]
       simp [hreg]
       apply runOneStep_jump_succ' <;> assumption
+
+theorem spec_beqz_false :
+  specification_JumpEqZero_false := by
+  unfold specification_JumpEqZero_false
+  intros P pc r label h_inter h_notEmpty ms curr h_getPc
+  rintro ⟨P_true, h_neq, h_terminated⟩
+  exists ms.runOneStep
+  unfold weak
+  simp at *
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      . simp
+      . constructor
+        . unfold MState.runOneStep execute
+          rw [h_terminated, curr]
+          simp [h_neq]
+          exact h_getPc
+        . intros n' hn'
+          aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_neq]
+        exact P_true
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_neq]
+        exact h_terminated
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr, h_neq]
+      exact h_getPc
