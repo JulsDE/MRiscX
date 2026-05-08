@@ -210,22 +210,7 @@ def ms := {code := c_hamming_weight, registers := EmptyRegisters, memory := Empt
 
 
 
-theorem asdf :
-  mriscx
-    init:
-      li x2, 1
-      li x3, 2
-  end
-  ⦃¬⸨terminated⸩⦄
-  0 ↦ ⟨{1} | {n : ProgramCounter | n  ≠ 1}⟩
-  ⦃x[x2] = 1 ∧ ¬⸨terminated⸩⦄
-  := by
-  intros h_inter h_empty ms h_code h_pc t_terminated
-
-  sorry
-
-
-
+#check (2#8).cpop
 
 
 
@@ -269,17 +254,22 @@ elab "unfold_ofAbi!" &" at " i:ident : tactic => do
 
 open Lean Elab Tactic in
 elab "unfold_rn_ofUint" : tactic => do
-  evalTactic (←`(tactic| unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE RegisterNr.ofNat MRISCX_REG_SIZE))
-  evalTactic (←`(tactic| simp))
+  evalTactic (←`(tactic| unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE))
+
+open Lean Elab Tactic in
+elab "unfold_rn_ofUint" &"at" i:ident : tactic => do
+  evalTactic (←`(tactic| unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE at $i:ident))
+
+open Lean Elab Tactic in
+elab "unfold_rn_ofnat" : tactic => do
+  evalTactic (←`(tactic| unfold RegisterNr.ofNat MRISCX_REG_SIZE))
+
 
 open Lean Elab Tactic in
 elab "unfold_rn_ofnat" &" at " i:ident : tactic => do
-  evalTactic (←`(tactic| unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE RegisterNr.ofNat MRISCX_REG_SIZE at $i:ident ))
+  evalTactic (←`(tactic| unfold RegisterNr.ofNat MRISCX_REG_SIZE at $i:ident ))
 
-
-#check fun st : MState Instr => UInt64.ofNat ((∑ i : Fin length , (((st.getMemoryAt (a + UInt64.ofFin i)).cpop).toNat)))
-#check fun st : MState Instr => ∀ i, 0 ≤ i ∧ i < length → x[a0] = x[a0] + (((st.getMemoryAt (a + i)).cpop).toNat)
-
+set_option diagnostics true
 theorem hamming_weight_correct (a length : UInt64):
   mriscx
     init:
@@ -453,20 +443,178 @@ theorem hamming_weight_correct (a length : UInt64):
       (l := 4)
       (L_w := {9})
       (L_b := {n | n ≠ 9} \ {n : ProgramCounter | n < 9 ∨ n ≥ 4})
+      (code :=  mriscx
+                  init:
+                      mv a5, a0;
+                      li a0, 0;
+                      beqz a1, finish;
+                      add a3, a5, a1;
+
+                  loop:
+                      lbu a4, 0(a5);
+                      cpop t0, a4;
+                      add a0, a0, t0;
+                      addi a5, a5, 1;
+                      bne a5, a3, loop;
+
+                  finish: end)
     . simp
     . simp
     . intros x h_inter h_empty ms h_code' h_pc pre
-      (apply S_SEQ (P := _ )
+      apply S_SEQ (P := ⦃(x[a5] ≠ x[a3]
+                        ∧ x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat, ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+                        ∧ x[a3] = a + length
+                        ∧ x[a5] < a + length
+                        ∧ x[a5] ≥ a
+                        ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄ )
                 (R := ⦃(a.toNat + length.toNat < UInt64.size
-                        ∧ x[a0] = x[a0] + (UInt64.ofBitVec (mem[x[a5]].cpop.zeroExtend 64)) ∧ x[a1] = length
+                        ∧ x[a1] = length
+                        ∧ x[a0] = x[a0] + (UInt64.ofBitVec (mem[x[a5]].cpop.zeroExtend 64))
+                        ∧ x[a4] = mem_ub[x[a5]]
+                        ∧ x[t0] = UInt64.ofBitVec ((mem_ub[x[a5]].toBitVec).cpop.zeroExtend 64)
+                        ∧ x[a5] = x[a5] + 1)
+                        ∧ ¬⸨terminated⸩⦄)
+              (L_w := {8})
+              (L_b := {n : ProgramCounter | n > 8 ∨ n ≤ 4})
+              (L_b' := {n : ProgramCounter | n ≠ 4} \ {9}) <;> try assumption
+      . simp
+      . simp
+      . ext a ; simp ; grind
+      .
+        rw [Set.subset_def]
+        simp
+      . apply S_SEQ (P := _ )
+                (R := ⦃(a.toNat + length.toNat < UInt64.size
+                        ∧ x[a1] = length
+                        ∧ x[a0] = x[a0] + (UInt64.ofBitVec (mem[x[a5]].cpop.zeroExtend 64))
+                        ∧ x[a4] = mem_ub[x[a5]]
+                        ∧ x[t0] = UInt64.ofBitVec ((mem_ub[x[a5]].toBitVec).cpop.zeroExtend 64))
+                        ∧ ¬⸨terminated⸩⦄)
+              (L_w := {7})
+              (L_w' := {8})
+              (L_b := {n : ProgramCounter | n > 7 ∨ n ≤ 4})
+              (L_b' := {n : ProgramCounter | n ≠ 8}) <;> try assumption
+        . simp
+        . simp
+        . simp
+        . simp
+        . apply S_SEQ (P := _ )
+                (R := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat,
+                              ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+                        ∧ x[a3] = a + length
+                        ∧ x[a5] < a + length
+                        ∧ x[a5] ≥ a
+                        ∧ x[a1] = length
+                        ∧ x[a4] = mem_ub[x[a5]]
+                        ∧ x[t0] = UInt64.ofBitVec ((mem_ub[x[a5]].toBitVec).cpop.zeroExtend 64))
+                        ∧ ¬⸨terminated⸩⦄)
+              (L_w := {6})
+              (L_w' := {7})
+              (L_b := {n : ProgramCounter | n > 6 ∨ n ≤ 4})
+              (L_b' := {n : ProgramCounter | n ≠ 7}) <;> try assumption
+          . simp
+          . simp
+          . simp
+          . simp
+          . apply S_SEQ (P := _ )
+                (R := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat,
+                              ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+                        ∧ x[a3] = a + length
+                        ∧ x[a5] < a + length
+                        ∧ x[a5] ≥ a
+                        ∧ x[a1] = length
                         ∧ x[a4] = mem_ub[x[a5]])
                         ∧ ¬⸨terminated⸩⦄)
-              (L_w := {3})
-              (L_b := {n : ProgramCounter | n > 3 ∨ n = 0})
-              (L_b' := {n : ProgramCounter | n ≠ 4}) <;> try assumption)
+              (L_w := {5})
+              (L_w' := {6})
+              (L_b := {n : ProgramCounter | n > 5 ∨ n ≤ 4})
+              (L_b' := {n : ProgramCounter | n ≠ 6}) <;> try assumption
+            . simp
+            . simp
+            . simp
+            . simp
+            . sorry
+            .
+              prepare_second
+              -- rcases pre with ⟨⟨p1, ⟨p2, p3⟩⟩, h_terminated⟩
+              apply spec_cpop _ 5 (RegisterName.ofAbi!_zero "t0") (RegisterName.ofAbi!_zero "a4")
+                h_inter h_empty ms
+              . solve_curr
+              . simp [h_l', h_pc]
+              .
+                repeat (constructor <;> try assumption)
+                rcases pre with ⟨⟨p1, ⟨p2, p3, p4, p5, p6⟩⟩, h_terminated⟩
+
+                unfold_ofAbi!
+                unfold MState.getRegisterAt MState.addRegisterAt
+                simp only [Bool.false_eq_true, ↓reduceIte]
+                have h10 : (RegisterNr.ofUInt64 10 == 0) = false := by
+                    decide
+                -- rw [←h10]
+                simp only [h10]
+                simp only [Bool.false_eq_true, ↓reduceIte]
+                simp
+                rw [t_update_neq]
+                unfold MState.getRegisterAt at p1
+                simp [h10] at p1
+                exact p1
+                . apply RegisterName.register_neq_on_nr
+                  decide
+                . constructor
+                  .
+                    rcases pre with ⟨⟨p1, ⟨p2, p3, p4, p5, p6⟩⟩, h_terminated⟩
+                    unfold MState.addRegisterAt MState.getRegisterAt
+                    unfold_ofAbi!
+                    unfold_rn_ofUint
+                    simp
+                    unfold MState.getRegisterAt at p2
+                    unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE at p2
+                    simp at p2
+                    rw [p2]
+                  .
+                    rcases pre with ⟨⟨p1, ⟨p2, p3, p4, p5, p6⟩⟩, h_terminated⟩
+                    have h2: { nr := 14, name := "a4" : RegisterName}
+                              = { nr := 14, name := toString (14:UInt64)} := by
+                              rw [RegisterName.register_eq_on_nr']
+
+
+                    unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p6
+                    simp at p6
+                    rw [←h2] at p6
+                    unfold_ofAbi!
+                    unfold_rn_ofUint
+                    unfold MState.addRegisterAt MState.getRegisterAt
+                    simp
+                    have h1 : { nr := 5, name := "t0" : RegisterName}
+                              = { nr := 5, name := toString (5:UInt64)}
+                            := by
+                            rw [RegisterName.register_eq_on_nr']
+                    rw [←h1, t_update_eq]
+
+                    unfold MState.loadByte_unsigned MState.loadByte_raw
+                    simp
+                    .
+                      constructor
+                      .  assumption
+                      . constructor
+                        . assumption
+                        . constructor
+                          . assumption
+                          . constructor
+                            . rw [←h2, p6]
+                              unfold MState.loadByte_unsigned MState.loadByte_raw
+                              simp [p6]
+                            . apply asdf
+                              simp [p6]
+                              rfl
+                . rcases pre with ⟨_, h_terminated⟩
+                  exact h_terminated
+            . ext a ; simp ; grind
+          .
+
+
 
     sorry
-    prepare_second<
 
 
 

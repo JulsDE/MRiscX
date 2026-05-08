@@ -197,6 +197,16 @@ theorem RegisterName.register_eq_on_nr : ∀ (nr1 nr2 : RegisterNr) (str1 str2 :
   simp [h]
 
 @[simp]
+theorem RegisterName.register_neq_on_nr : ∀ (nr1 nr2 : RegisterNr) (str1 str2 : String),
+  nr1 ≠ nr2 →
+  ({nr := nr1, name := str1} : RegisterName) ≠ {nr := nr2, name := str2} := by
+  intros nr1 nr2 str1 str2 h
+  simp
+  intros neq
+  rw [neq] at h
+  contradiction
+
+@[simp]
 theorem RegisterName.register_eq_on_nr' : ∀ (nr : RegisterNr) (str1 str2 : String),
   ({nr := nr, name := str1} : RegisterName) = {nr := nr, name := str2} := by
   intros nr str1 str2
