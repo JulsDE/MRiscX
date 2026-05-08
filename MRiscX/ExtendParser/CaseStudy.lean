@@ -484,9 +484,12 @@ theorem hamming_weight_correct (a length : UInt64):
         rw [Set.subset_def]
         simp
       . apply S_SEQ (P := _ )
-                (R := ⦃(a.toNat + length.toNat < UInt64.size
+                (R := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin ((x[a5] + 1) - a).toNat,
+                              ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+                        ∧ x[a3] = a + length
+                        ∧ x[a5] < a + length
+                        ∧ x[a5] ≥ a
                         ∧ x[a1] = length
-                        ∧ x[a0] = x[a0] + (UInt64.ofBitVec (mem[x[a5]].cpop.zeroExtend 64))
                         ∧ x[a4] = mem_ub[x[a5]]
                         ∧ x[t0] = UInt64.ofBitVec ((mem_ub[x[a5]].toBitVec).cpop.zeroExtend 64))
                         ∧ ¬⸨terminated⸩⦄)
@@ -610,7 +613,43 @@ theorem hamming_weight_correct (a length : UInt64):
                 . rcases pre with ⟨_, h_terminated⟩
                   exact h_terminated
             . ext a ; simp ; grind
-          .
+          . prepare_second
+            apply spec_add _ 6 (RegisterName.ofAbi!_zero "a0")
+                (RegisterName.ofAbi!_zero "a0") (RegisterName.ofAbi!_zero "t0")
+                h_inter h_empty ms
+            . solve_curr
+            . simp [h_l', h_pc]
+            .
+              rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7⟩, h_terminated⟩
+              repeat (constructor <;> try assumption)
+              unfold RegisterName.ofAbi!_zero RegisterName.ofAbi? RegisterNr.ofAbi?
+                RegisterNr.isAbiName RegisterNr.abiNames RegisterNr.ofNat MRISCX_REG_SIZE
+              simp
+              -- unfold_ofAbi!
+              unfold MState.getRegisterAt MState.addRegisterAt
+              unfold_rn_ofUint
+              unfold MState.getMemoryAt --MState.loadByte_unsigned MState.loadByte_raw
+              simp
+              have h1 : {nr := 10, name := "a0" : RegisterName} =
+                {nr := 10, name := toString (10:UInt64)} := by
+                rw [RegisterName.register_eq_on_nr']
+              have h2 : {nr := 5, name := "t0" : RegisterName} =
+                {nr := 5, name := toString (5:UInt64)} := by
+                rw [RegisterName.register_eq_on_nr']
+              rw [h1, h2]
+              simp only [t_update_eq]
+
+
+              unfold MState.getRegisterAt at p7
+              unfold MState.getRegisterAt at p1
+              unfold_rn_ofUint at p7
+              unfold_rn_ofUint at p1
+              simp at p7
+              simp at p1
+              rw [p7, p1]
+
+
+              rw [t_update_neq]
 
 
 
