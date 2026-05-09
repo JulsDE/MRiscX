@@ -354,6 +354,55 @@ theorem spec_add :
       simp [h_terminated, curr]
       exact getPc
 
+
+theorem spec_addi :
+  specification_AddImmediate := by
+  unfold specification_AddImmediate
+  intros P pc rd rs1 rs2 h_inter h_neq s curr getPc
+  rintro ⟨pre, h_terminated⟩
+  exists s.runOneStep
+  unfold weak
+  simp at *
+  constructor
+  . exists 1
+    constructor
+    . simp
+    . constructor
+      . simp
+      . constructor
+        . unfold MState.runOneStep execute
+          rw [h_terminated, curr]
+          simp
+          exact getPc
+        . intros n' hn'
+          aesop
+  . constructor
+    . constructor
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp
+        unfold MState.getRegisterAt at pre
+        unfold MState.addRegisterAt at pre
+        unfold MState.addRegisterAt
+        simp at pre
+        by_cases h : rd.nr = 0
+        . rw [h] at pre
+          simp at pre
+          simp [h]
+          exact pre
+        . simp [h] at pre
+          simp [h]
+          unfold MState.getRegisterAt
+          simp
+          exact pre
+      . unfold MState.runOneStep execute
+        rw [h_terminated, curr]
+        simp [h_terminated]
+    . unfold MState.runOneStep execute
+      simp [h_terminated, curr]
+      exact getPc
+
+
 theorem spec_bne_true:
   specification_JumpNeq_true := by
   unfold specification_JumpNeq_true

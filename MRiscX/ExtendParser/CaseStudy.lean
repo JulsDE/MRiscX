@@ -282,8 +282,18 @@ elab "simp_getRegisterAt" : tactic => do
   evalTactic (←`(tactic| unfold_rn_ofUint))
   evalTactic (←`(tactic| simp))
 
+/-
+    li a0, 0
 
-
+I: ∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
+                                            ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat)
+    loop:
+      lbu a4, 0(a5)
+      cpop t0, a4
+      add a0, a0, t0
+      addi a5, a5, 1
+      bne a5, a3, loop
+-/
 
 set_option diagnostics true
 theorem hamming_weight_correct (a length : UInt64):
@@ -450,13 +460,14 @@ theorem hamming_weight_correct (a length : UInt64):
     intros h_inter h_empty ms h_code' h_pc pre
     apply S_LOOP
       (C := ⦃x[a5] ≠ x[a3]⦄)
-      (I := ⦃∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
+      (I := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat,
                                             ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
               ∧ x[a3] = a + length
               ∧ x[a5] < a + length
               ∧ x[a5] ≥ a
-              ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
-      (V := ⦃x[a5]⦄)
+              ∧ x[a1] = length)
+              ∧ ¬⸨terminated⸩⦄)
+      (V := ⦃a + length - x[a5]⦄)
       (l := 4)
       (L_w := {9})
       (L_b := {n | n ≠ 9} \ {n : ProgramCounter | n < 9 ∨ n ≥ 4})
@@ -488,8 +499,8 @@ theorem hamming_weight_correct (a length : UInt64):
                         ∧ x[a5] ≥ a
                         ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄ )
                 (R := ⦃(a.toNat + length.toNat < UInt64.size
-                        ∧ (∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
-                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
+                        ∧ x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat,
+                                            ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
                         ∧ x[a3] = a + length
                         ∧ x[a5] < a + length
                         ∧ x[a5] ≥ a
@@ -509,8 +520,8 @@ theorem hamming_weight_correct (a length : UInt64):
       . apply S_SEQ (P := _ )
                 (R := ⦃(x[a5] ≠ x[a3]
                         ∧ a.toNat +length.toNat < UInt64.size
-                        ∧ (∀ i, i ≤ x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
-                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
+                        ∧ x[a0] = UInt64.ofNat (∑ j : Fin ((x[a5] + 1) - a).toNat,
+                                            ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
                         ∧ x[a3] = a + length
                         ∧ x[a5] < a + length
                         ∧ x[a5] ≥ a
@@ -529,8 +540,8 @@ theorem hamming_weight_correct (a length : UInt64):
         . apply S_SEQ (P := _ )
                 (R := ⦃(x[a5] ≠ x[a3]
                         ∧ a.toNat + length.toNat < UInt64.size
-                        ∧ (∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
-                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
+                        ∧ x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat,
+                                            ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
                         ∧ x[a3] = a + length
                         ∧ x[a5] < a + length
                         ∧ x[a5] ≥ a
@@ -549,8 +560,8 @@ theorem hamming_weight_correct (a length : UInt64):
           . apply S_SEQ (P := _ )
                 (R := ⦃(x[a5] ≠ x[a3]
                         ∧ a.toNat +length.toNat < UInt64.size
-                        ∧ (∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
-                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
+                        ∧ x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat,
+                                            ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
                         ∧ x[a3] = a + length
                         ∧ x[a5] < a + length
                         ∧ x[a5] ≥ a
@@ -626,83 +637,90 @@ theorem hamming_weight_correct (a length : UInt64):
                   apply asdf
                   unfold MState.getRegisterAt at p8
                   unfold_rn_ofUint at p8
-                  simp at p8
-                  rw [p8]
-                  rfl
-                  -- constructor
-                  .  assumption
-                  . constructor
-                    . assumption
-                    . constructor
-                      . assumption
-                      . constructor
-                        . rw [←h2, p6]
-                          unfold MState.loadByte_unsigned MState.loadByte_raw
-                          simp [p6]
-                        . apply asdf
-                          simp [p6]
-                          rfl
-                have jh : { nr := 5, name := "t0" : RegisterName} =
-                            { nr := 5, name := toString (5:UInt64)} := by
-                  rw [RegisterName.register_eq_on_nr']
-                rw [jh]
-                rw [t_update_eq]
-
-                unfold MState.getRegisterAt at p1
-                simp [h10] at p1
-                exact p1
-                . apply RegisterName.register_neq_on_nr
-                  decide
-                . constructor
-                  .
-                    rcases pre with ⟨⟨p1, ⟨p2, p3, p4, p5, p6⟩⟩, h_terminated⟩
-                    unfold MState.addRegisterAt MState.getRegisterAt
-                    unfold_ofAbi!
-                    unfold_rn_ofUint
-                    simp
-                    unfold MState.getRegisterAt at p2
-                    unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE at p2
-                    simp at p2
-                    rw [p2]
-                  .
-                    rcases pre with ⟨⟨p1, ⟨p2, p3, p4, p5, p6⟩⟩, h_terminated⟩
-                    have h2: { nr := 14, name := "a4" : RegisterName}
-                              = { nr := 14, name := toString (14:UInt64)} := by
+                  simp at *
+                  have h1 : { nr := 14, name := "a4" : RegisterName} =
+                             { nr := 14, name := toString (14:UInt64) } := by
                               rw [RegisterName.register_eq_on_nr']
-
-
-                    unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p6
-                    simp at p6
-                    rw [←h2] at p6
-                    unfold_ofAbi!
-                    unfold_rn_ofUint
-                    unfold MState.addRegisterAt MState.getRegisterAt
-                    simp
-                    have h1 : { nr := 5, name := "t0" : RegisterName}
-                              = { nr := 5, name := toString (5:UInt64)}
-                            := by
-                            rw [RegisterName.register_eq_on_nr']
-                    rw [←h1, t_update_eq]
-
-                    unfold MState.loadByte_unsigned MState.loadByte_raw
-                    simp
-                    .
-                      constructor
-                      .  assumption
-                      . constructor
-                        . assumption
-                        . constructor
-                          . assumption
-                          . constructor
-                            . rw [←h2, p6]
-                              unfold MState.loadByte_unsigned MState.loadByte_raw
-                              simp [p6]
-                            . apply asdf
-                              simp [p6]
-                              rfl
-                . rcases pre with ⟨_, h_terminated⟩
+                  rw [h1, p8]
+                  rfl
+                .
+                  rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7, p8⟩, h_terminated⟩
                   exact h_terminated
+                  -- constructor
             . ext a ; simp ; grind
+            --       .  assumption
+            --       . constructor
+            --         . assumption
+            --         . constructor
+            --           . assumption
+            --           . constructor
+            --             . rw [←h2, p6]
+            --               unfold MState.loadByte_unsigned MState.loadByte_raw
+            --               simp [p6]
+            --             . apply asdf
+            --               simp [p6]
+            --               rfl
+            --     have jh : { nr := 5, name := "t0" : RegisterName} =
+            --                 { nr := 5, name := toString (5:UInt64)} := by
+            --       rw [RegisterName.register_eq_on_nr']
+            --     rw [jh]
+            --     rw [t_update_eq]
+
+            --     unfold MState.getRegisterAt at p1
+            --     simp [h10] at p1
+            --     exact p1
+            --     . apply RegisterName.register_neq_on_nr
+            --       decide
+            --     . constructor
+            --       .
+            --         rcases pre with ⟨⟨p1, ⟨p2, p3, p4, p5, p6⟩⟩, h_terminated⟩
+            --         unfold MState.addRegisterAt MState.getRegisterAt
+            --         unfold_ofAbi!
+            --         unfold_rn_ofUint
+            --         simp
+            --         unfold MState.getRegisterAt at p2
+            --         unfold RegisterNr.ofUInt64 MRISCX_REG_SIZE at p2
+            --         simp at p2
+            --         rw [p2]
+            --       .
+            --         rcases pre with ⟨⟨p1, ⟨p2, p3, p4, p5, p6⟩⟩, h_terminated⟩
+            --         have h2: { nr := 14, name := "a4" : RegisterName}
+            --                   = { nr := 14, name := toString (14:UInt64)} := by
+            --                   rw [RegisterName.register_eq_on_nr']
+
+
+            --         unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p6
+            --         simp at p6
+            --         rw [←h2] at p6
+            --         unfold_ofAbi!
+            --         unfold_rn_ofUint
+            --         unfold MState.addRegisterAt MState.getRegisterAt
+            --         simp
+            --         have h1 : { nr := 5, name := "t0" : RegisterName}
+            --                   = { nr := 5, name := toString (5:UInt64)}
+            --                 := by
+            --                 rw [RegisterName.register_eq_on_nr']
+            --         rw [←h1, t_update_eq]
+
+            --         unfold MState.loadByte_unsigned MState.loadByte_raw
+            --         simp
+            --         .
+            --           constructor
+            --           .  assumption
+            --           . constructor
+            --             . assumption
+            --             . constructor
+            --               . assumption
+            --               . constructor
+            --                 . rw [←h2, p6]
+            --                   unfold MState.loadByte_unsigned MState.loadByte_raw
+            --                   simp [p6]
+            --                 . apply asdf
+            --                   simp [p6]
+            --                   rfl
+            --     . rcases pre with ⟨_, h_terminated⟩
+            --       exact h_terminated
+            -- . ext a ; simp ; grind
           . prepare_second
             apply spec_add _ 6 (RegisterName.ofAbi!_zero "a0")
                 (RegisterName.ofAbi!_zero "a0") (RegisterName.ofAbi!_zero "t0")
@@ -710,36 +728,89 @@ theorem hamming_weight_correct (a length : UInt64):
             . solve_curr
             . simp [h_l', h_pc]
             .
-              rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7⟩, h_terminated⟩
+              rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7, p8, p9⟩, h_terminated⟩
               repeat (constructor <;> try assumption)
               unfold RegisterName.ofAbi!_zero RegisterName.ofAbi? RegisterNr.ofAbi?
                 RegisterNr.isAbiName RegisterNr.abiNames RegisterNr.ofNat MRISCX_REG_SIZE
-              simp
-              -- unfold_ofAbi!
               unfold MState.getRegisterAt MState.addRegisterAt
+              unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p9
+              simp at p9
+
+
               unfold_rn_ofUint
-              unfold MState.getMemoryAt --MState.loadByte_unsigned MState.loadByte_raw
+              -- unfold_ofAbi!
+              have h1 : { nr := 10, name := "a0" : RegisterName }
+                          = { nr := 10, name := toString (10:UInt64)} := by
+                          rw [RegisterName.register_eq_on_nr']
+              have h2 : { nr := 5, name := "t0" : RegisterName }
+                          = { nr := 5, name := toString (5:UInt64)} := by
+                          rw [RegisterName.register_eq_on_nr']
+              simp [h1, t_update_eq]
+              unfold MState.getRegisterAt MState.getMemoryAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p3
+              simp at p3
+              rw [p3]
+              unfold MState.getMemoryAt
               simp
-              have h1 : {nr := 10, name := "a0" : RegisterName} =
-                {nr := 10, name := toString (10:UInt64)} := by
-                rw [RegisterName.register_eq_on_nr']
-              have h2 : {nr := 5, name := "t0" : RegisterName} =
-                {nr := 5, name := toString (5:UInt64)} := by
-                rw [RegisterName.register_eq_on_nr']
-              rw [h1, h2]
-              simp only [t_update_eq]
+              rw [h2, p9]
+              unfold MState.loadByte_unsigned MState.loadByte_raw
+              simp
+              unfold Finset.sum Fin.val
+              simp
+              sorry
+              . repeat (constructor ; assumption)
+                unfold MState.getRegisterAt MState.addRegisterAt MState.loadByte_unsigned MState.loadByte_raw
+                unfold_rn_ofUint
+                unfold_ofAbi!
+                unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p9
+                simp at p9
+                rw [p9]
+                unfold MState.loadByte_unsigned MState.loadByte_raw
+                simp
+          . ext a ; simp ; grind
+        .
+          prepare_second
+          apply spec_addi _ 7 (RegisterName.ofAbi!_zero "a5") (RegisterName.ofAbi!_zero "a5") 1
+                h_inter h_empty ms
+          . solve_curr
+          . simp [h_l', h_pc]
+          . sorry
+        . ext a ; simp ; grind
 
 
-              unfold MState.getRegisterAt at p7
-              unfold MState.getRegisterAt at p1
-              unfold_rn_ofUint at p7
-              unfold_rn_ofUint at p1
-              simp at p7
-              simp at p1
-              rw [p7, p1]
+              -- rw [←BitVec.cpop_eq_sum]
+              -- cases UInt64.lt_or_eq_of_le ih with
+              -- | inl v =>
+              --   specialize p3 i v
+              --   rw [p3, p9]
 
 
-              rw [t_update_neq]
+
+
+
+
+              -- unfold_rn_ofUint
+              -- unfold MState.getMemoryAt --MState.loadByte_unsigned MState.loadByte_raw
+              -- simp
+              -- have h1 : {nr := 10, name := "a0" : RegisterName} =
+              --   {nr := 10, name := toString (10:UInt64)} := by
+              --   rw [RegisterName.register_eq_on_nr']
+              -- have h2 : {nr := 5, name := "t0" : RegisterName} =
+              --   {nr := 5, name := toString (5:UInt64)} := by
+              --   rw [RegisterName.register_eq_on_nr']
+              -- rw [h1, h2]
+              -- simp only [t_update_eq]
+
+
+              -- unfold MState.getRegisterAt at p7
+              -- unfold MState.getRegisterAt at p1
+              -- unfold_rn_ofUint at p7
+              -- unfold_rn_ofUint at p1
+              -- simp at p7
+              -- simp at p1
+              -- rw [p7, p1]
+
+
+              -- rw [t_update_neq]
 
 
 
