@@ -406,7 +406,7 @@ theorem spec_addi :
 theorem spec_bne_true:
   specification_JumpNeq_true := by
   unfold specification_JumpNeq_true
-  intros P pc r1 r2 label newPc h_inter h_notEmpty ms curr h_getPc
+  intros P pc r1 r2 label _ h_inter h_notEmpty ms curr h_getPc
   rintro ⟨P_true, h_label, h_neq, h_terminated⟩
   exists ms.runOneStep
   unfold weak
