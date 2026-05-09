@@ -269,6 +269,22 @@ open Lean Elab Tactic in
 elab "unfold_rn_ofnat" &" at " i:ident : tactic => do
   evalTactic (←`(tactic| unfold RegisterNr.ofNat MRISCX_REG_SIZE at $i:ident ))
 
+open Lean Elab Tactic in
+elab "simp_getRegisterAt" &" at " i:ident : tactic => do
+  evalTactic (←`(tactic| unfold MState.getRegisterAt at $i:ident ))
+  evalTactic (←`(tactic| unfold_rn_ofUint at $i:ident ))
+  evalTactic (←`(tactic| simp at $i:ident))
+
+
+open Lean Elab Tactic in
+elab "simp_getRegisterAt" : tactic => do
+  evalTactic (←`(tactic| unfold MState.getRegisterAt))
+  evalTactic (←`(tactic| unfold_rn_ofUint))
+  evalTactic (←`(tactic| simp))
+
+
+
+
 set_option diagnostics true
 theorem hamming_weight_correct (a length : UInt64):
   mriscx
@@ -434,7 +450,8 @@ theorem hamming_weight_correct (a length : UInt64):
     intros h_inter h_empty ms h_code' h_pc pre
     apply S_LOOP
       (C := ⦃x[a5] ≠ x[a3]⦄)
-      (I := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat, ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+      (I := ⦃∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
+                                            ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
               ∧ x[a3] = a + length
               ∧ x[a5] < a + length
               ∧ x[a5] ≥ a
@@ -462,17 +479,23 @@ theorem hamming_weight_correct (a length : UInt64):
     . simp
     . intros x h_inter h_empty ms h_code' h_pc pre
       apply S_SEQ (P := ⦃(x[a5] ≠ x[a3]
-                        ∧ x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat, ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+                        ∧ a.toNat + length.toNat < UInt64.size
+                        ∧( ∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
+                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
+
                         ∧ x[a3] = a + length
                         ∧ x[a5] < a + length
                         ∧ x[a5] ≥ a
                         ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄ )
                 (R := ⦃(a.toNat + length.toNat < UInt64.size
+                        ∧ (∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
+                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
+                        ∧ x[a3] = a + length
+                        ∧ x[a5] < a + length
+                        ∧ x[a5] ≥ a
                         ∧ x[a1] = length
-                        ∧ x[a0] = x[a0] + (UInt64.ofBitVec (mem[x[a5]].cpop.zeroExtend 64))
                         ∧ x[a4] = mem_ub[x[a5]]
-                        ∧ x[t0] = UInt64.ofBitVec ((mem_ub[x[a5]].toBitVec).cpop.zeroExtend 64)
-                        ∧ x[a5] = x[a5] + 1)
+                        ∧ x[t0] = UInt64.ofBitVec ((mem_ub[x[a5]].toBitVec).cpop.zeroExtend 64))
                         ∧ ¬⸨terminated⸩⦄)
               (L_w := {8})
               (L_b := {n : ProgramCounter | n > 8 ∨ n ≤ 4})
@@ -484,8 +507,10 @@ theorem hamming_weight_correct (a length : UInt64):
         rw [Set.subset_def]
         simp
       . apply S_SEQ (P := _ )
-                (R := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin ((x[a5] + 1) - a).toNat,
-                              ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+                (R := ⦃(x[a5] ≠ x[a3]
+                        ∧ a.toNat +length.toNat < UInt64.size
+                        ∧ (∀ i, i ≤ x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
+                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
                         ∧ x[a3] = a + length
                         ∧ x[a5] < a + length
                         ∧ x[a5] ≥ a
@@ -502,8 +527,10 @@ theorem hamming_weight_correct (a length : UInt64):
         . simp
         . simp
         . apply S_SEQ (P := _ )
-                (R := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat,
-                              ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+                (R := ⦃(x[a5] ≠ x[a3]
+                        ∧ a.toNat + length.toNat < UInt64.size
+                        ∧ (∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
+                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
                         ∧ x[a3] = a + length
                         ∧ x[a5] < a + length
                         ∧ x[a5] ≥ a
@@ -520,8 +547,10 @@ theorem hamming_weight_correct (a length : UInt64):
           . simp
           . simp
           . apply S_SEQ (P := _ )
-                (R := ⦃(x[a0] = UInt64.ofNat (∑ j : Fin (x[a5] - a).toNat,
-                              ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))
+                (R := ⦃(x[a5] ≠ x[a3]
+                        ∧ a.toNat +length.toNat < UInt64.size
+                        ∧ (∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
+                         ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
                         ∧ x[a3] = a + length
                         ∧ x[a5] < a + length
                         ∧ x[a5] ≥ a
@@ -538,6 +567,7 @@ theorem hamming_weight_correct (a length : UInt64):
             . simp
             . sorry
             .
+              -- CPOP
               prepare_second
               -- rcases pre with ⟨⟨p1, ⟨p2, p3⟩⟩, h_terminated⟩
               apply spec_cpop _ 5 (RegisterName.ofAbi!_zero "t0") (RegisterName.ofAbi!_zero "a4")
@@ -546,18 +576,78 @@ theorem hamming_weight_correct (a length : UInt64):
               . simp [h_l', h_pc]
               .
                 repeat (constructor <;> try assumption)
-                rcases pre with ⟨⟨p1, ⟨p2, p3, p4, p5, p6⟩⟩, h_terminated⟩
-
+                rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7, p8⟩, h_terminated⟩
                 unfold_ofAbi!
                 unfold MState.getRegisterAt MState.addRegisterAt
                 simp only [Bool.false_eq_true, ↓reduceIte]
                 have h10 : (RegisterNr.ofUInt64 10 == 0) = false := by
                     decide
                 -- rw [←h10]
-                simp only [h10]
-                simp only [Bool.false_eq_true, ↓reduceIte]
+                unfold_rn_ofUint
                 simp
-                rw [t_update_neq]
+                intros neq
+                unfold MState.getRegisterAt at p4
+                unfold_rn_ofUint at p4
+                simp at p4
+
+                rw [p4] at neq
+                simp_getRegisterAt at p5
+                rw [neq] at p5
+                apply UInt64.lt_irrefl
+                exact p5
+                rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7, p8⟩, h_terminated⟩
+
+                constructor
+                exact p2
+                constructor
+                exact p3
+                constructor
+                assumption
+                constructor
+                assumption
+                constructor
+                assumption
+                constructor
+                assumption
+                constructor
+                assumption
+                unfold MState.getRegisterAt MState.addRegisterAt
+                unfold_rn_ofUint
+                unfold_ofAbi!
+                have h1 : { nr := 5, name := "t0" : RegisterName}
+                              = { nr := 5, name := toString (5:UInt64)}
+                        := by
+                        rw [RegisterName.register_eq_on_nr']
+                rw [←h1, t_update_eq]
+
+                unfold MState.loadByte_unsigned MState.loadByte_raw
+                simp
+                .
+                  apply asdf
+                  unfold MState.getRegisterAt at p8
+                  unfold_rn_ofUint at p8
+                  simp at p8
+                  rw [p8]
+                  rfl
+                  -- constructor
+                  .  assumption
+                  . constructor
+                    . assumption
+                    . constructor
+                      . assumption
+                      . constructor
+                        . rw [←h2, p6]
+                          unfold MState.loadByte_unsigned MState.loadByte_raw
+                          simp [p6]
+                        . apply asdf
+                          simp [p6]
+                          rfl
+                have jh : { nr := 5, name := "t0" : RegisterName} =
+                            { nr := 5, name := toString (5:UInt64)} := by
+                  rw [RegisterName.register_eq_on_nr']
+                rw [jh]
+                rw [t_update_eq]
+
                 unfold MState.getRegisterAt at p1
                 simp [h10] at p1
                 exact p1

@@ -33,6 +33,14 @@ theorem Runnable_runNStep_eq_mstate_runNStep (ms : MState Instr) :
   simp
 
 @[simp]
+theorem MState.unfold_getRegisterAt : ∀ (ms : MState Instr) (r : RegisterName),
+  r.nr ≠ 0 →
+  ms.getRegisterAt r = TMap.get ms.registers r := by
+  intros ms r h
+  unfold MState.getRegisterAt
+  simp [h]
+
+@[simp]
 theorem runNSteps_1_eq_runOneStep (ms : MState Instr) :
   ms.runNSteps 1 = ms.runOneStep := by
   unfold MState.runNSteps MState.runNSteps
