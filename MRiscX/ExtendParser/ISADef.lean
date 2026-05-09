@@ -3,6 +3,7 @@ import MRiscX.ExtendParser.GenerateConcreteSyntax
 import MRiscX.ExtendParser.GenerateElaborator
 -- import MRiscX.ExtendParser.GenerateInstrSpecification
 import MRiscX.Hoare.HoareCore
+-- import MRiscX.Delab.DelabHoare
 import Mathlib.Algebra.Polynomial.BigOperators
 import Mathlib.Data.BitVec
 import Mathlib.Algebra.Polynomial.BigOperators
@@ -173,7 +174,7 @@ mkAll RV64 Instr execute
     semantics: fun ms => (MState.jump ms lbl),
     specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
-                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩ ∧ ⸨pc⸩ = newPc⦄
   }
  CountSetBits:
   {
@@ -195,7 +196,7 @@ mkAll RV64 Instr execute
                           ,
     specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ x[r] = 0 ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
-                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩ ∧ ⸨pc⸩ = newPc⦄
                     ||
                     ⦃P ⟦pc++⟧ ∧ x[r] ≠ 0 ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
@@ -211,7 +212,7 @@ mkAll RV64 Instr execute
                           ,
     specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ x[r1] = x[r2] ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
-                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩ ∧ ⸨pc⸩ = newPc⦄
                     ||
                     ⦃P ⟦pc++⟧ ∧ x[r1] ≠ x[r2] ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
@@ -227,7 +228,7 @@ mkAll RV64 Instr execute
                           ,
     specification:  ⦃P ⟦pc ← newPc⟧ ∧ labels[lbl] = some newPc ∧ x[r1] ≠ x[r2] ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{newPc} | {n : ProgramCounter | n ≠ newPc}⟩
-                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩ ∧ ⸨pc⸩ = newPc⦄
                     ||
                     ⦃P ⟦pc++⟧ ∧ x[r1] = x[r2] ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩

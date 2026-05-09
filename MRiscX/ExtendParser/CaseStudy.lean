@@ -383,20 +383,20 @@ theorem JHHAHAHAHHAHAHAS (ms : MState Instr) (a length x: UInt64):
 (∃ s',
     weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
       (fun st =>
-            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
-              ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
+            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 (15:UInt64), name := toString (15 : UInt64) } < x ∧
+              ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString (10 : UInt64) } =
                       UInt64.ofNat
                         (∑
                           j ∈
                             @Finset.univ
-                              (Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } - a).toNat)
+                              (Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15 : UInt64) } - a).toNat)
                               (Fin.fintype
-                                (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } - a).toNat),
+                                (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15 : UInt64)} - a).toNat),
                           (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
-                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
-                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString (13: UInt64) } = a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } < a + length ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } ≥ a ∧
+                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString (11: UInt64) } = length) ∧
                   ¬st.terminated = true) ∧
                 st.pc = 4)
           s' ∧
@@ -405,20 +405,20 @@ theorem JHHAHAHAHHAHAHAS (ms : MState Instr) (a length x: UInt64):
 (∃ s',
     weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
       (fun st =>
-            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
-              (st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
+            (a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } < x ∧
+              st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString (10: UInt64) } =
                       UInt64.ofNat
                         (∑
                           j ∈
                             @Finset.univ
-                              (Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } - a).toNat)
+                              (Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } - a).toNat)
                               (Fin.fintype
-                                (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } - a).toNat),
+                                (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } - a).toNat),
                           (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
-                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
-                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString (13: UInt64)} = a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } < a + length ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } ≥ a ∧
+                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString (11: UInt64) } = length) ∧
                   ¬st.terminated = true ∧ st.pc = 4)
           s' ∧
         MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n : ProgramCounter | n ≠ 4})
@@ -505,7 +505,7 @@ theorem hamming_weight_correct (a length : UInt64):
   end
   ⦃a.toNat + length.toNat < UInt64.size ∧ length > 0 ∧ x[a0] = a ∧ x[a1] = length ∧ ¬⸨terminated⸩⦄
   0 ↦ ⟨{9} | {n : ProgramCounter | n > 9 ∨ n = 0}⟩
-  ⦃x[a0] = UInt64.ofNat ((∑ i : Fin length , (((mem[UInt64.ofFin i])).cpop).toNat))
+  ⦃x[a0] = UInt64.ofNat ((∑ i : Fin length.toNat , (((mem[UInt64.ofFin i])).cpop).toNat))
       ∧ ¬⸨terminated⸩⦄
   := by
   intros h_inter h_empty ms getcode getPc
@@ -979,40 +979,73 @@ theorem hamming_weight_correct (a length : UInt64):
         . intros h_inter h_empty ms h_code' h_pc pre
 
           rw [JHHAHAHAHHAHAHAS ms a length x]
+          -- simp only [and_assoc]
+          -- have : ∀ (P : Prop) (ms : MState Instr),
+          --   (fun st : MState Instr => (((P) ∧ ¬ st.terminated = true ) ∧ st.pc = 4)) ms =
+          --     (fun st : MState Instr => ((P) ∧ ¬ st.terminated = true ∧ st.pc = 4)) ms := by sorry
+          -- rw [and_assoc]
+          -- rw [this]
+          -- simp
           apply spec_bne_true
-            _
+            (fun st => a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15:UInt64) } < x ∧
+              ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString (10:UInt64) } =
+                    UInt64.ofNat
+                    (∑
+                          j ∈
+                            @Finset.univ
+                              (Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15 : UInt64) } - a).toNat)
+                              (Fin.fintype
+                                (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15 : UInt64)} - a).toNat),
+                          (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString (13:UInt64) } = a + length ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15:UInt64) } < a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15:UInt64) } ≥ a ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString (11:UInt64) } = length)))
             8 (RegisterName.ofAbi!_zero "a5") (RegisterName.ofAbi!_zero "a3") "loop" 4
             h_inter h_empty ms
+          .
+            simp
+            unfold_ofAbi!
+            unfold MState.getCurrInstr
+            simp at h_code'
+            unfold MState.getCode at h_code'
+            rw [h_l'] at h_pc
+            simp at h_pc
+            rw [h_code', h_pc]
+            unfold RegisterNr.ofNat MRISCX_REG_SIZE
+            simp
+          . simp [h_l', h_pc]
+          . repeat (constructor <;> try assumption)
+
+
 
 
 /-
-   ∃ s',
-    weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
-      (fun st =>
-            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
-              ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
-                      UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
-                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
-                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
-                  ¬st.terminated = true) ∧
-                st.pc = 4)
-          s' ∧
-        MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 4}
-in the target expression
   ∃ s',
     weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
       (fun st =>
-            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
-              ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
-                      UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
-                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
-                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
-                  ¬st.terminated = true) ∧
-                st.pc = 4)
+            (a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
+                st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
+                    UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
+              ¬st.terminated = true)
+          s' ∧
+        MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 4}
+with the goal
+  ∃ s',
+    weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
+      (fun st =>
+            (a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
+                st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
+                    UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
+              ¬st.terminated = true ∧ st.pc = 4)
           s' ∧
         MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 4}
 
