@@ -93,11 +93,29 @@ mkAll RV64 Instr execute
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
+  And:
+  {
+    syntax: and (rd:register), (rs1:register), (rs2:register),
+    semantics: fun ms => MState.incPc (MState.addRegisterAt ms rd
+                  ((MState.getRegisterAt ms rs1) &&& (MState.getRegisterAt ms rs2))),
+    specification: ⦃P ⟦x[rd] ← x[rs1] &&& x[rs2] ; pc++⟧ ∧ ¬⸨terminated⸩⦄
+                        pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
   SubImmediate:
   {
     syntax: subi (rd:register), (rs:register), (imm:immediate),
     semantics: fun ms => (MState.addRegisterAt ms rd ((MState.getRegisterAt ms rs) - imm)).incPc,
     specification: ⦃P ⟦x[rd] ← x[rs] - imm; pc++⟧ ∧ ¬⸨terminated⸩⦄
+                    pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
+                   ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
+  }
+  Sub:
+  {
+    syntax: sub (rd:register), (rs1:register), (rs2:register),
+    semantics: fun ms => (MState.addRegisterAt ms rd
+                ((MState.getRegisterAt ms rs1) - (MState.getRegisterAt ms rs2))).incPc,
+    specification: ⦃P ⟦x[rd] ← x[rs1] - x[rs2]; pc++⟧ ∧ ¬⸨terminated⸩⦄
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                    ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
@@ -234,6 +252,7 @@ mkAll RV64 Instr execute
                     pc ↦ ⟨{pc + 1} | {n : ProgramCounter | n ≠ pc + 1}⟩
                     ⦃P ⟦⟧ ∧ ¬⸨terminated⸩⦄
   }
+
 
 
 /-

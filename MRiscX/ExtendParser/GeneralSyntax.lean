@@ -132,16 +132,9 @@ syntax (name := mriscxTerm) mriscx_syntax : term
 
 
 
-
-
-
-syntax num : num_or_ident
-syntax ident : num_or_ident
-
 syntax &"x" num_or_ident : register
 syntax "x0" : register
 
-syntax num_or_ident : immediate
 syntax ident : label
 
 declare_syntax_cat instr_set_hoare_assignment

@@ -61,15 +61,12 @@ Monad is required. For this reason, we return a TermElabM Expr, which has to be
 lifted afterwards.
 -/
 partial def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
-  if s.isOfKind `choice then
-    try
-      return (← parseMriscxNumOrIdent (s.getArg 0))
-    catch _ =>
-      return (← parseMriscxNumOrIdent (s.getArg 1))
   match s with
   | `(num_or_ident | $a:num) =>
+      logInfo s! "{s}"
       return mkUIntOfNat a.getNat
   | `(num_or_ident | $a:ident) => do
+      logInfo s! "{s}"
       if let some decl := (← getLCtx).findFromUserName? a.getId then
         if ← isDefEq decl.type (mkConst ``UInt64) then
           return decl.toExpr
@@ -80,6 +77,8 @@ partial def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
   | `(immediate | $a:num_or_ident) =>
       parseMriscxNumOrIdent a
   | _ =>
+      logInfo s! "{s.getKind}"
+      logInfo s! "{s}"
       let txt := trimAsciiStr (s.reprint.getD (toString s))
       match txt.toNat? with
       | some n =>
@@ -91,7 +90,7 @@ partial def parseMriscxNumOrIdent (s : Syntax) : TermElabM Expr := do
             else
               throwError "Expected type UInt64 for identifier"
           else
-            throwError s!"Unexpected syntax {s}"
+            throwError s!"Unexpected syntax adsf{s}"
 
 
 /--

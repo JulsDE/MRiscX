@@ -383,7 +383,7 @@ theorem JHHAHAHAHHAHAHAS (ms : MState Instr) (a length x: UInt64):
 (∃ s',
     weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
       (fun st =>
-            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 (15:UInt64), name := toString (15 : UInt64) } < x ∧
+            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 (15:UInt64), name := toString (15 : UInt64)} < x ∧
               ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString (10 : UInt64) } =
                       UInt64.ofNat
                         (∑
@@ -484,8 +484,9 @@ I: ∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
       addi a5, a5, 1
       bne a5, a3, loop
 -/
-
-set_option diagnostics true
+-- a0 -> addresse
+-- a1 -> length
+set_option diagnostics false
 theorem hamming_weight_correct (a length : UInt64):
   mriscx
     init:
@@ -503,9 +504,10 @@ theorem hamming_weight_correct (a length : UInt64):
 
     finish:
   end
-  ⦃a.toNat + length.toNat < UInt64.size ∧ length > 0 ∧ x[a0] = a ∧ x[a1] = length ∧ ¬⸨terminated⸩⦄
+  ⦃a.toNat + length.toNat < UInt64.size ∧ length > 0 ∧ length < 2^56
+      ∧ x[a0] = a ∧ x[a1] = length ∧ ¬⸨terminated⸩⦄
   0 ↦ ⟨{9} | {n : ProgramCounter | n > 9 ∨ n = 0}⟩
-  ⦃x[a0] = UInt64.ofNat ((∑ i : Fin length.toNat , (((mem[UInt64.ofFin i])).cpop).toNat))
+  ⦃x[a0] = UInt64.ofNat ((∑ i : Fin length.toNat, (((mem[a + UInt64.ofNat i.toNat])).cpop).toNat))
       ∧ ¬⸨terminated⸩⦄
   := by
   intros h_inter h_empty ms getcode getPc
@@ -531,8 +533,11 @@ theorem hamming_weight_correct (a length : UInt64):
               (L_b' := {n : ProgramCounter | n ≠ 4}) <;> try assumption) ; simp ; simp ; simp ; simp
     .
       apply S_SEQ (P := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = a ∧ x[a1] = length) ∧ ¬⸨terminated⸩⦄)
-                (R := ⦃(a.toNat + length.toNat < UInt64.size ∧ x[a0] = 0 ∧ x[a1] = length ∧
-                      x[a5] = a) ∧ ¬⸨terminated⸩⦄)
+                (R := ⦃(a.toNat + length.toNat < UInt64.size
+                      ∧ x[a0] = 0
+                      ∧ x[a1] = length
+                      ∧ x[a5] = a)
+                      ∧ ¬⸨terminated⸩⦄)
               (L_w := {2})
               (L_w' := {3})
               (L_b := {n : ProgramCounter | n > 2 ∨ n = 0})
@@ -937,9 +942,9 @@ theorem hamming_weight_correct (a length : UInt64):
                 unfold MState.getRegisterAt MState.addRegisterAt MState.loadByte_unsigned MState.loadByte_raw
                 unfold_rn_ofUint
                 unfold_ofAbi!
-                unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p9
-                simp at p9
-                rw [p9]
+                unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p8
+                simp at p8
+                rw [p8]
                 unfold MState.loadByte_unsigned MState.loadByte_raw
                 simp
           . ext a ; simp ; grind
@@ -1015,80 +1020,7 @@ theorem hamming_weight_correct (a length : UInt64):
             unfold RegisterNr.ofNat MRISCX_REG_SIZE
             simp
           . simp [h_l', h_pc]
-          . repeat (constructor <;> try assumption)
-
-
-
-
-/-
-  ∃ s',
-    weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
-      (fun st =>
-            (a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
-                st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
-                    UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
-                  st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
-                        st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
-              ¬st.terminated = true)
-          s' ∧
-        MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 4}
-with the goal
-  ∃ s',
-    weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
-      (fun st =>
-            (a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
-                st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
-                    UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
-                  st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
-                        st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
-              ¬st.terminated = true ∧ st.pc = 4)
-          s' ∧
-        MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 4}
-
--/
-
-              -- rw [←BitVec.cpop_eq_sum]
-              -- cases UInt64.lt_or_eq_of_le ih with
-              -- | inl v =>
-              --   specialize p3 i v
-              --   rw [p3, p9]
-
-
-
-
-
-
-              -- unfold_rn_ofUint
-              -- unfold MState.getMemoryAt --MState.loadByte_unsigned MState.loadByte_raw
-              -- simp
-              -- have h1 : {nr := 10, name := "a0" : RegisterName} =
-              --   {nr := 10, name := toString (10:UInt64)} := by
-              --   rw [RegisterName.register_eq_on_nr']
-              -- have h2 : {nr := 5, name := "t0" : RegisterName} =
-              --   {nr := 5, name := toString (5:UInt64)} := by
-              --   rw [RegisterName.register_eq_on_nr']
-              -- rw [h1, h2]
-              -- simp only [t_update_eq]
-
-
-              -- unfold MState.getRegisterAt at p7
-              -- unfold MState.getRegisterAt at p1
-              -- unfold_rn_ofUint at p7
-              -- unfold_rn_ofUint at p1
-              -- simp at p7
-              -- simp at p1
-              -- rw [p7, p1]
-
-
-              -- rw [t_update_neq]
-
-
-
-    sorry
+          . sorry
 
 
 
@@ -1116,13 +1048,9 @@ with the goal
 
      -/
 
-      .
-      .
   . sorry
-  . simp
-    intros pc w
-    grind
-  . repeat (constructor <;> try assumption)
+  . rcases h_terminated with ⟨h_a0', h_a1', h_term⟩
+    exact ⟨⟨no_overflow, h_a0', h_a1'⟩, by simpa using h_term⟩
 
   -- sorry
 

@@ -356,6 +356,122 @@ elab "simp_getRegisterAt" : tactic => do
   evalTactic (←`(tactic| unfold_rn_ofUint))
   evalTactic (←`(tactic| simp))
 
+@[simp]
+theorem MState.getRegisterAt_incPc (ms : MState Instr) (r : RegisterName) :
+    ms.incPc.getRegisterAt r = ms.getRegisterAt r := by
+  unfold MState.incPc MState.getRegisterAt
+  simp
+
+theorem MState.getRegisterAt_addRegisterAt_ne
+    (ms : MState Instr) (rd r : RegisterName) (v : UInt64)
+    (h : rd.nr ≠ r.nr) :
+    (ms.addRegisterAt rd v).getRegisterAt r = ms.getRegisterAt r := by
+  unfold MState.addRegisterAt MState.getRegisterAt
+  by_cases hrd : rd.nr = 0
+  · simp [hrd]
+  · by_cases hr : r.nr = 0
+    · simp [hr]
+    · simp [hrd, hr]
+      apply t_update_neq
+      apply RegisterName.register_neq_on_nr
+      exact h
+
+
+#check MachineStateI (MState Instr) Instr (Code Instr) RegisterName UInt64
+
+theorem JHHAHAHAHHAHAHAS (ms : MState Instr) (a length x: UInt64):
+(∃ s',
+    weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
+      (fun st =>
+            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 (15:UInt64), name := toString (15 : UInt64) } < x ∧
+              ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString (10 : UInt64) } =
+                      UInt64.ofNat
+                        (∑
+                          j ∈
+                            @Finset.univ
+                              (Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15 : UInt64) } - a).toNat)
+                              (Fin.fintype
+                                (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15 : UInt64)} - a).toNat),
+                          (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString (13: UInt64) } = a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } < a + length ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } ≥ a ∧
+                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString (11: UInt64) } = length) ∧
+                  ¬st.terminated = true) ∧
+                st.pc = 4)
+          s' ∧
+        MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n : ProgramCounter | n ≠ 4})
+=
+(∃ s',
+    weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
+      (fun st =>
+            a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } < x ∧
+              (st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString (10: UInt64) } =
+                      UInt64.ofNat
+                        (∑
+                          j ∈
+                            @Finset.univ
+                              (Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } - a).toNat)
+                              (Fin.fintype
+                                (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } - a).toNat),
+                          (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString (13: UInt64)} = a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } < a + length ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15: UInt64) } ≥ a ∧
+                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString (11: UInt64) } = length) ∧
+                  ¬st.terminated = true ∧ st.pc = 4)
+          s' ∧
+        MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n : ProgramCounter | n ≠ 4})
+    := by
+
+  sorry
+
+
+
+
+
+
+@[simp]
+theorem MState.getMemoryAt_incPc (ms : MState Instr) (addr : MemoryAddress) :
+    ms.incPc.getMemoryAt addr = ms.getMemoryAt addr := by
+  unfold MState.incPc MState.getMemoryAt
+  simp
+
+@[simp]
+theorem MState.getMemoryAt_addRegisterAt
+    (ms : MState Instr) (rd : RegisterName) (v : UInt64) (addr : MemoryAddress) :
+    (ms.addRegisterAt rd v).getMemoryAt addr = ms.getMemoryAt addr := by
+  unfold MState.addRegisterAt MState.getMemoryAt
+  by_cases hrd : rd.nr = 0 <;> simp [hrd]
+
+@[simp]
+theorem MState.loadByte_unsigned_incPc (ms : MState Instr) (addr : MemoryAddress) :
+    ms.incPc.loadByte_unsigned addr = ms.loadByte_unsigned addr := by
+  unfold MState.incPc MState.loadByte_unsigned MState.loadByte_raw
+  simp
+
+@[simp]
+theorem MState.loadByte_unsigned_addRegisterAt
+    (ms : MState Instr) (rd : RegisterName) (v : UInt64) (addr : MemoryAddress) :
+    (ms.addRegisterAt rd v).loadByte_unsigned addr = ms.loadByte_unsigned addr := by
+  unfold MState.addRegisterAt MState.loadByte_unsigned MState.loadByte_raw
+  by_cases hrd : rd.nr = 0 <;> simp [hrd]
+
+theorem MState.getRegisterAt_incPc_addRegisterAt_ne
+    (ms : MState Instr) (rd r : RegisterName) (v : UInt64)
+    (h : rd.nr ≠ r.nr) :
+    (ms.incPc.addRegisterAt rd v).getRegisterAt r = ms.getRegisterAt r := by
+  rw [MState.getRegisterAt_addRegisterAt_ne]
+  · simp only [MState.getRegisterAt_incPc]
+  · exact h
+
+theorem MState.loadByte_unsigned_incPc_addRegisterAt
+    (ms : MState Instr) (rd : RegisterName) (v : UInt64) (addr : MemoryAddress) :
+    (ms.incPc.addRegisterAt rd v).loadByte_unsigned addr =
+      ms.loadByte_unsigned addr := by
+  rw [MState.loadByte_unsigned_addRegisterAt]
+  simp only [MState.loadByte_unsigned_incPc]
+
 /-
     li a0, 0
 
@@ -389,7 +505,7 @@ theorem hamming_weight_correct (a length : UInt64):
   end
   ⦃a.toNat + length.toNat < UInt64.size ∧ length > 0 ∧ x[a0] = a ∧ x[a1] = length ∧ ¬⸨terminated⸩⦄
   0 ↦ ⟨{9} | {n : ProgramCounter | n > 9 ∨ n = 0}⟩
-  ⦃∀ i: UInt64, 0 <= i ∧ i < length → x[a0] = UInt64.ofNat ((∑ i : Fin UInt64.size , (((mem[UInt64.ofFin i])).cpop).toNat))
+  ⦃x[a0] = UInt64.ofNat ((∑ i : Fin length.toNat , (((mem[UInt64.ofFin i])).cpop).toNat))
       ∧ ¬⸨terminated⸩⦄
   := by
   intros h_inter h_empty ms getcode getPc
@@ -655,68 +771,58 @@ theorem hamming_weight_correct (a length : UInt64):
               . solve_curr
               . simp [h_l', h_pc]
               .
-                repeat (constructor <;> try assumption)
                 rcases pre with ⟨⟨p2, p3, p4, p5, p6, p7, p8⟩, h_terminated⟩
-                unfold_ofAbi!
-                unfold MState.getRegisterAt MState.addRegisterAt
-                simp only [Bool.false_eq_true, ↓reduceIte]
-                have h10 : (RegisterNr.ofUInt64 10 == 0) = false := by
-                    decide
-                -- rw [←h10]
-                unfold_rn_ofUint
+                refine ⟨?_, h_terminated⟩
+                refine ⟨p2, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+                · rw [MState.getRegisterAt_addRegisterAt_ne]
+                  · simp only [MState.getRegisterAt_incPc]
+                    exact p3
+                  · decide
+                · rw [MState.getRegisterAt_addRegisterAt_ne]
+                  . simp only [MState.getRegisterAt_incPc]
+                    exact p4
+                  . decide
+                · rw [MState.getRegisterAt_addRegisterAt_ne]
+                  . simp only [MState.getRegisterAt_incPc]
+                    exact p5
+                  . decide
+                · rw [MState.getRegisterAt_addRegisterAt_ne]
+                  . simp only [MState.getRegisterAt_incPc]
+                    exact p6
+                  . decide
+                · rw [MState.getRegisterAt_addRegisterAt_ne]
+                  . simp only [MState.getRegisterAt_incPc]
+                    exact p7
+                  . decide
+                · rw [MState.getRegisterAt_incPc_addRegisterAt_ne]
+                  · rw [MState.loadByte_unsigned_incPc_addRegisterAt]
+                    rw [MState.getRegisterAt_incPc_addRegisterAt_ne]
+                    · exact p8
+                    · decide
+                  · decide
+                ·
+                  unfold MState.getRegisterAt MState.addRegisterAt
+                  unfold_rn_ofUint
+                  unfold_ofAbi!
+                  have h1 : { nr := 5, name := "t0" : RegisterName}
+                                = { nr := 5, name := toString (5:UInt64)}
+                          := by
+                          rw [RegisterName.register_eq_on_nr']
+                  rw [←h1, t_update_eq]
 
-                simp
-                intros neq
-                unfold MState.getRegisterAt at p4
-                unfold_rn_ofUint at p4
-                simp at p4
-
-                rw [p4] at neq
-                simp_getRegisterAt at p5
-                rw [neq] at p5
-                apply UInt64.lt_irrefl
-                exact p5
-                rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7, p8⟩, h_terminated⟩
-
-                constructor
-                exact p2
-                constructor
-                exact p3
-                constructor
-                assumption
-                constructor
-                assumption
-                constructor
-                assumption
-                constructor
-                assumption
-                constructor
-                assumption
-                unfold MState.getRegisterAt MState.addRegisterAt
-                unfold_rn_ofUint
-                unfold_ofAbi!
-                have h1 : { nr := 5, name := "t0" : RegisterName}
-                              = { nr := 5, name := toString (5:UInt64)}
-                        := by
-                        rw [RegisterName.register_eq_on_nr']
-                rw [←h1, t_update_eq]
-
-                unfold MState.loadByte_unsigned MState.loadByte_raw
-                simp
-                .
-                  apply asdf
-                  unfold MState.getRegisterAt at p8
-                  unfold_rn_ofUint at p8
-                  simp at *
-                  have h1 : { nr := 14, name := "a4" : RegisterName} =
-                             { nr := 14, name := toString (14:UInt64) } := by
-                              rw [RegisterName.register_eq_on_nr']
-                  rw [h1, p8]
-                  rfl
-                .
-                  rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7, p8⟩, h_terminated⟩
-                  exact h_terminated
-                  -- constructor
+                  unfold MState.loadByte_unsigned MState.loadByte_raw
+                  simp
+                  .
+                    apply asdf
+                    unfold MState.getRegisterAt at p8
+                    unfold_rn_ofUint at p8
+                    simp at *
+                    have h1 : { nr := 14, name := "a4" : RegisterName} =
+                               { nr := 14, name := toString (14:UInt64) } := by
+                                rw [RegisterName.register_eq_on_nr']
+                    rw [h1, p8]
+                    rfl
+                    -- constructor
             . ext a ; simp ; grind
             --       .  assumption
             --       . constructor
@@ -798,13 +904,13 @@ theorem hamming_weight_correct (a length : UInt64):
             . solve_curr
             . simp [h_l', h_pc]
             .
-              rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7, p8, p9⟩, h_terminated⟩
+              rcases pre with ⟨⟨p1, p2, p3, p4, p5, p6, p7, p8⟩, h_terminated⟩
               repeat (constructor <;> try assumption)
               unfold RegisterName.ofAbi!_zero RegisterName.ofAbi? RegisterNr.ofAbi?
                 RegisterNr.isAbiName RegisterNr.abiNames RegisterNr.ofNat MRISCX_REG_SIZE
               unfold MState.getRegisterAt MState.addRegisterAt
-              unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p9
-              simp at p9
+              unfold MState.getRegisterAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p8
+              simp at p8
 
 
               unfold_rn_ofUint
@@ -816,12 +922,12 @@ theorem hamming_weight_correct (a length : UInt64):
                           = { nr := 5, name := toString (5:UInt64)} := by
                           rw [RegisterName.register_eq_on_nr']
               simp [h1, t_update_eq]
-              unfold MState.getRegisterAt MState.getMemoryAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p3
-              simp at p3
-              rw [p3]
+              unfold MState.getRegisterAt MState.getMemoryAt RegisterNr.ofUInt64 MRISCX_REG_SIZE at p2
+              simp at p2
+              rw [p2]
               unfold MState.getMemoryAt
               simp
-              rw [h2, p9]
+              rw [h2, p8]
               unfold MState.loadByte_unsigned MState.loadByte_raw
               simp
               unfold Finset.sum Fin.val
@@ -848,34 +954,54 @@ theorem hamming_weight_correct (a length : UInt64):
       . prepare_second
         -- apply BL_SUBSET
         apply BL_TO_WL
-          (P := ⦃
-                (a.toNat + length.toNat < UInt64.size
-                ∧( ∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
-                  ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
-
-                ∧ x[a3] = a + length
-                ∧ x[a5] < a + length
-                ∧ x[a5] ≥ a
-                ∧ x[a1] = length) ∧ ¬⸨terminated⸩
-                ⦄)
+          (P := (fun st =>
+      (a.toNat + length.toNat < UInt64.size ∧
+          st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
+              UInt64.ofNat (∑ j:(Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } - a).toNat), (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j))).toNat) ∧
+            st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
+              st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
+                st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 14, name := toString 14 } =
+                        st.loadByte_unsigned (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 }) ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 5, name := toString 5 } =
+                        {
+                          toBitVec :=
+                            BitVec.zeroExtend 64
+                              (st.loadByte_unsigned
+                                    (st.getRegisterAt
+                                      { nr := RegisterNr.ofUInt64 15, name := toString 15 })).toBitVec.cpop }) ∧
+        ¬st.terminated = true))
           <;> try assumption
         . simp
         . simp
         . simp
         . intros h_inter h_empty ms h_code' h_pc pre
 
+          rw [JHHAHAHAHHAHAHAS ms a length x]
+          -- simp only [and_assoc]
+          -- have : ∀ (P : Prop) (ms : MState Instr),
+          --   (fun st : MState Instr => (((P) ∧ ¬ st.terminated = true ) ∧ st.pc = 4)) ms =
+          --     (fun st : MState Instr => ((P) ∧ ¬ st.terminated = true ∧ st.pc = 4)) ms := by sorry
+          -- rw [and_assoc]
+          -- rw [this]
+          -- simp
           apply spec_bne_true
-                (⦃
-                (a.toNat + length.toNat < UInt64.size
-                ∧( ∀ i, i < x[a5] - a → (x[a0] = UInt64.ofNat (∑ j : Fin (i).toNat,
-                  ((mem[a + (UInt64.ofNat j.toNat)]).cpop.toNat))))
-
-                ∧ x[a3] = a + length
-                ∧ x[a5] < a + length
-                ∧ x[a5] ≥ a
-                ∧ x[a1] = length) ∧ ¬⸨terminated⸩
-                ⦄)
-             8 (RegisterName.ofAbi!_zero "a5") (RegisterName.ofAbi!_zero "a3") "loop" 4
+            (fun st => a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15:UInt64) } < x ∧
+              ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString (10:UInt64) } =
+                    UInt64.ofNat
+                    (∑
+                          j ∈
+                            @Finset.univ
+                              (Fin (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15 : UInt64) } - a).toNat)
+                              (Fin.fintype
+                                (st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15 : UInt64)} - a).toNat),
+                          (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString (13:UInt64) } = a + length ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15:UInt64) } < a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString (15:UInt64) } ≥ a ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString (11:UInt64) } = length)))
+            8 (RegisterName.ofAbi!_zero "a5") (RegisterName.ofAbi!_zero "a3") "loop" 4
             h_inter h_empty ms
 
 
@@ -883,16 +1009,14 @@ theorem hamming_weight_correct (a length : UInt64):
 ∃ s',
     weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
       (fun st =>
-            ((a.toNat + length.toNat < UInt64.size ∧
-                  (∀ i < st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } - a,
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
-                        UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat)) ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
-                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
-                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
-                ¬st.terminated = true) ∧
-              ¬st.terminated = true)
+            (a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
+                st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
+                    UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
+              ¬st.terminated = true ∧ st.pc = 4)
           s' ∧
         MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 4}
 with the goal
@@ -900,16 +1024,17 @@ with the goal
     weak (MState Instr) Instr (Code Instr) RegisterName UInt64 ProgramCounter ms s' {4} {n | n ≠ 4} ∧
       (fun st =>
             a + length - st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < x ∧
-              ((st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
-                      UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
-                    st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
-                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
-                        st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
-                          st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
-                  ¬st.terminated = true) ∧
-                st.pc = 4)
+              (st.getRegisterAt { nr := RegisterNr.ofUInt64 10, name := toString 10 } =
+                    UInt64.ofNat (∑ j, (BitVec.cpop (st.getMemoryAt (a + UInt64.ofNat j.toNat))).toNat) ∧
+                  st.getRegisterAt { nr := RegisterNr.ofUInt64 13, name := toString 13 } = a + length ∧
+                    st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } < a + length ∧
+                      st.getRegisterAt { nr := RegisterNr.ofUInt64 15, name := toString 15 } ≥ a ∧
+                        st.getRegisterAt { nr := RegisterNr.ofUInt64 11, name := toString 11 } = length) ∧
+                ¬st.terminated = true ∧ st.pc = 4)
           s' ∧
         MachineStateI.getPc Instr (Code Instr) RegisterName UInt64 s' ∉ {n | n ≠ 4}
+
+
 -/
 
               -- rw [←BitVec.cpop_eq_sum]
