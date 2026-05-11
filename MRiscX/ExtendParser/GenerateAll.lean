@@ -80,14 +80,18 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
   }
   let ref := archName.raw
   let indCmd ← mkInductiveCmd ref arch
+  -- inductive instr type
+  withRef archName do
+    elabCommand indCmd
+  -- Execute command
+  for exeCmd in (← mkExecuteCmds ref arch) do
+    withRef archName do
+      elabCommand exeCmd
   -- concrete Syntax
   for instr in arch.specs do
     let syn ← mkSyntaxCmdForCtor instr
     withRef instr.src do
       elabCommand syn
-  -- inductive instr type
-  withRef archName do
-    elabCommand indCmd
   -- Instr to Expr
   withRef archName do
     elabCommand (← mkGetInstrExprCmd ref arch)
@@ -102,10 +106,6 @@ elab "mkAll " archName:ident typeName:ident execName:ident entries:instr_set_ent
   -- Specification registry map
   withRef archName do
     elabCommand (← mkSpecRegistryCmd ref arch)
-  -- Execute command
-  for exeCmd in (← mkExecuteCmds ref arch) do
-    withRef archName do
-      elabCommand exeCmd
   -- elaboration
   liftIO <| activeArchRef.set (some arch)
   withRef archName do

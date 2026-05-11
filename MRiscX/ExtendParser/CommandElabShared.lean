@@ -156,7 +156,11 @@ def mkInstrSpecFromEntry
     (entry : TSyntax `instr_set_entry) :
     CommandElabM InstrSpec := do
   match entry with
-  | `(instr_set_entry| $ctorName:ident : { syntax : $sig:instr_set_sig, semantics : $sem:term, specification : $spec:instr_set_spec }) => do
+  | `(instr_set_entry| $ctorName:ident : {
+                          syntax : $sig:instr_set_sig,
+                          semantics : $sem:term,
+                          specification : $spec:instr_set_spec
+    }) => do
       let pieces ← extractPieces sig
       let holes := fieldsOfInputPieces pieces
       let ctorName := ctorName.getId.eraseMacroScopes
