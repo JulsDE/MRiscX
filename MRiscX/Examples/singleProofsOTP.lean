@@ -197,7 +197,6 @@ theorem sw_otp : ∀ (p k c l : UInt64),
         intros i h_i
         cases UInt64.lt_or_eq_of_le h_i with
         | inl v =>
-          simp at v
           rw [t_update_neq]
           . rw [t_update_neq]
             . rw [t_update_neq]
@@ -219,7 +218,6 @@ theorem sw_otp : ∀ (p k c l : UInt64),
             rw [←h_x3]
             exact h_x3LtL
         | inr v =>
-          simp at v
           rw [h_x3] at h_x0 h_x1 h_x2
           rw [v]
           rw [←h_x0, ←h_x1, ←h_x2, ←h_x5, ←h_x6]

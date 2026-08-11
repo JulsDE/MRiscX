@@ -47,7 +47,7 @@ is the instruction Instr.Panic.
 IM := {uint64_1 ↦ instr_1, uint64_2 ↦ instr_2, ..., uint64_n ↦ instr_n}
 / default:  Instr.IPanic
 -/
-def InstructionMap := TMap InstructionIndex Instr
+@[reducible] def InstructionMap := TMap InstructionIndex Instr
 deriving Repr, Inhabited
 
 instance : ToString InstructionMap where
@@ -131,7 +131,7 @@ end Code
 Definiton of the registers
 R := {r_1 ↦ w_1, … , r_k ↦ w_k}
 -/
-def Registers := TMap Register UInt64
+@[reducible] def Registers := TMap Register UInt64
   deriving Repr
 
 /--
@@ -145,7 +145,7 @@ def EmptyRegisters : Registers := TMap.empty 0
 Definiton of the memory
 M := {m_1 ↦ w_1, … , m_k ↦ w_k}
 -/
-def Memory := TMap MemoryAddress UInt64
+@[reducible] def Memory := TMap MemoryAddress UInt64
   deriving Repr
 
 

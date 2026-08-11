@@ -299,7 +299,9 @@ example:
 
 /--
 Usage of auto_seq
--/
+> currntly not working, fix might come
+
+
 example:
     code
     ⦃¬⸨terminated⸩⦄
@@ -313,6 +315,7 @@ example:
     . apply_spec''
     . apply_spec''
   . apply_spec''
+
 
 
 /--
@@ -350,7 +353,7 @@ example (r₀ r₁ p : UInt64):
       assumption
       -- /:
   . apply_spec specification_LoadAddress (dst := 2) (pc := 2) (addr := 291)
-
+-/
 
 example:
   mriscx

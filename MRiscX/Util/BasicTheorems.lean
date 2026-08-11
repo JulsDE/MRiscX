@@ -247,6 +247,6 @@ instance : Preorder UInt64 where
     . simp
 
 
-instance : WellFoundedLT UInt64 where
-  wf := by
-    simpa using (measure (fun x : UInt64 => x.toNat)).wf
+-- instance : WellFoundedLT UInt64 where
+--   wf := by
+--     simpa using (measure (fun x : UInt64 => x.toNat)).wf
