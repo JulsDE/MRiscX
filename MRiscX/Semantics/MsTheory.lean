@@ -476,7 +476,7 @@ theorem run_n_plus_m_pc_not_in_set :
     specialize hL_b n'' hcond
     exact hL_b
   -- m < n'' < m + m' → n'' = m + n' for some 0 < n' < m'
-  · push_neg at h
+  · push Not at h
     -- n'' > m ⇒ ∃ n' such that n'' = m + n'
     let n' := n'' - m
     have h_pos : 0 < n' := by
@@ -512,7 +512,7 @@ theorem run_n_plus_m_diff_set :
     intro h_in
     exact hL_b (Set.mem_of_mem_inter_left h_in)
   -- m < n'' < m + m' → n'' = m + n' for some 0 < n' < m'
-  · push_neg at h
+  · push Not at h
     -- n'' > m ⇒ ∃ n' such that n'' = m + n'
     let n' := n'' - m
     have h_pos : 0 < n' := by
@@ -580,7 +580,7 @@ theorem run_n_plus_m_intersect : ∀ (s s' : MState) (m m' : Nat) (L_w L_b L_w' 
           exact h_pc_not_b
       intros h_in
       exact h_safe1_m (Set.mem_of_mem_inter_left h_in)
-  . push_neg at h
+  . push Not at h
     -- n'' > m ⇒ ∃ n' such that n'' = m + n'
     let n' := n'' - m
     have h_pos : 0 < n' := by

@@ -12,7 +12,7 @@ def mkUintOfNat (n:UInt64):= Expr.app (.const `OfNat.ofNat []) (mkNatLit n.toNat
 
 def mkUInt64Lit (n : UInt64) : Expr :=
   mkApp3
-    (mkConst ``OfNat.ofNat [levelZero])
+    (mkConst ``OfNat.ofNat [Lean.Level.zero])
     (mkConst ``UInt64)
     (mkRawNatLit n.toNat)
     (mkApp (mkConst ``UInt64.instOfNat) (mkRawNatLit n.toNat))

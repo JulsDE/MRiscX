@@ -297,9 +297,9 @@ example:
 
 
 
-/--
+/-
 Usage of auto_seq
-> currntly not working, fix might come
+> currently not working, fix might come
 
 
 example:

@@ -124,7 +124,7 @@ theorem help_I_pre''''' : ∀ (p k c l i x: UInt64),
   unfold I_pre' at h_I
   rcases h_I with ⟨h_pk, h_kc, h_noOverfl, h_klc, h_plk⟩
   simp
-  push_neg
+  push Not
   grind only
 
 

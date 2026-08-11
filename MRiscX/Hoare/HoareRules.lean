@@ -34,7 +34,7 @@ theorem BL_SUBSET: ∀ (code : Code) (P Q : Assertion) (l: UInt64) (L_w L_b L : 
   unfold hoare_triple_up
   intros H _ h_LwEmpty s HCode pre H_pc
   have L_b_sub : L_b \ L ⊆ L_b := by
-    apply Set.diff_subset
+    apply Set.sdiff_subset
   specialize H T h_LwEmpty s HCode pre H_pc
   rcases H with ⟨s', ⟨H1, H2, H3⟩⟩
   exists s'
@@ -70,7 +70,7 @@ theorem BL_TO_WL: ∀ (code : Code) (P Q : Assertion) (l : UInt64) (L_w L_b L : 
   · apply weak_L_w_with_L_from_L_b <;> try assumption
   . constructor <;> try assumption
     apply Set.notMem_subset (t := L_b) <;> try assumption
-    apply Set.diff_subset
+    apply Set.sdiff_subset
 
 
 
@@ -348,7 +348,7 @@ Requires:
 
 -/
 
- theorem S_LOOP {α : Type} [Preorder α] [LT α] [WellFoundedLT α] :
+ theorem S_LOOP {α : Type} [Preorder α] [WellFoundedLT α] :
     ∀ (Q C I : Assertion) (code : Code) (l : UInt64)
     (L_w L_b : Set UInt64) (V : MState → α),
   l ∉ L_w →

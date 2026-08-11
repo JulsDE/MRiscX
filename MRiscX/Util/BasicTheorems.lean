@@ -63,8 +63,7 @@ theorem Nat.add_gt_zero_gt_zero : ∀ (n m: ℕ) ,
   rw [Nat.add_comm]
   apply Nat.gt_of_not_le
   simp
-  intros _
-  intros neq
+  intros _ neq
   rw [neq] at h
   contradiction
 
@@ -131,8 +130,7 @@ theorem Nat.size_sub_lt_size: ∀ (x l s: Nat),
 
 theorem UInt64.gt_zero_neq_zero: ∀ (u:UInt64),
   u > 0 → u ≠ 0 := by
-  intros u h
-  intros neq
+  intros u h neq
   rw [neq] at h
   contradiction
 
@@ -221,8 +219,7 @@ theorem UInt64.add_sub_assoc : ∀ (p l x : UInt64),
 theorem UInt64.add_right_ne_of_lt : ∀ (n i l : UInt64),
   i < l →
   n + l ≠ n + i := by
-  intros n i l h_iLtl
-  intros neq
+  intros n i l h_iLtl neq
   rw [UInt64.add_cancel_left_iff] at neq
   rw [neq] at h_iLtl
   apply UInt64.lt_asymm
@@ -247,6 +244,5 @@ instance : Preorder UInt64 where
     . simp
 
 
--- instance : WellFoundedLT UInt64 where
---   wf := by
---     simpa using (measure (fun x : UInt64 => x.toNat)).wf
+instance : WellFoundedLT UInt64 where
+  wf := Subrelation.wf UInt64.lt_iff_toNat_lt.mp (measure (fun x : UInt64 => x.toNat)).wf

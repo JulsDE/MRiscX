@@ -77,56 +77,46 @@ def getExprOfInstrForRFromExpr (instr : Expr) (oldState : Expr) : MetaM Expr := 
     return mkAppN (.const `MState.addMemory [])
       #[(incPcExpr oldState), r, d]
   else
-    throwError s!"Error while building R, the Instruction is not implemented yet for this feature"
+    throwError "Error while building R, the Instruction is not implemented yet for this feature"
 
 
 
 
 def typeSetUInt64 : Expr :=
-  mkApp (.const `Set [levelZero]) (.const `UInt64 [])
+  mkApp (.const `Set [Level.zero]) (.const `UInt64 [])
 
 
 def mkSingletonOf (n : UInt64) : Expr :=
-  let instSing := mkAppN (.const ``Set.instSingletonSet [levelZero]) #[(.const `UInt64 [])]
-  let set := mkApp (.const `Set [levelZero]) (mkConst `UInt64)
-  mkAppN (.const ``Singleton.singleton [levelZero, levelZero])
+  let instSing := mkAppN (.const ``Set.instSingletonSet [Level.zero]) #[(.const `UInt64 [])]
+  let set := mkApp (.const `Set [Level.zero]) (mkConst `UInt64)
+  mkAppN (.const ``Singleton.singleton [Level.zero, Level.zero])
     #[(mkConst `UInt64), set, instSing, mkUInt64Lit n]
 
 
 def getNeSet (n : UInt64) : Expr :=
-  let lam := Expr.lam `n (.const `UInt64 []) (mkAppN (.const `Ne [levelOne])
+  let lam := Expr.lam `n (.const `UInt64 []) (mkAppN (.const `Ne [Level.one])
       #[(Expr.const `UInt64 []), (.bvar 0), mkUInt64Lit n])
     BinderInfo.default
-  mkAppN (.const `setOf [levelZero]) #[(mkConst `UInt64), lam]
+  mkAppN (.const `setOf [Level.zero]) #[(mkConst `UInt64), lam]
 
+def calcRExprDefault (Q : Expr) (lastInstrExpr : Expr) : MetaM Expr := do
+  unless Q.isLambda do
+    throwError s!"Expected postcondition {Q} to be a λ-expression"
+  let qBodyExpr := Q.bindingBody!
+  let hasScdLam := qBodyExpr.isApp && qBodyExpr.getAppFn.isLambda
 
+  let mstateInferredOld ←
+    if hasScdLam then
+      match qBodyExpr.getArg? 1 with
+      | some state => pure state
+      | none => throwError "Expected Q with 2 λ-expressions to have 2 arguments"
+    else
+      pure (.bvar 0)
 
-def calcRExprDefault (Q: Expr) (lastInstrExpr : Expr): MetaM Expr := do
-  let hasOneLam := Q.isLambda
-  if !hasOneLam then
-    throwError s!"Expected postcondition Q {Q} to be a λ-expression"
-  let hasScdLam := Q.bindingBody!.getAppFn.isLambda
-
-  let mstateInferredOld := ← match hasScdLam with
-                | true => do
-                  match Q.bindingBody!.getArg? 1 with
-                  | some state => do
-                    return state
-                  | none => throwError "Expected Q with 2 λ-expressions to have 2 arguments"
-                | false =>
-                  return (.bvar 0)
-
-  let qBody := ←match hasScdLam with
-              | true => do
-                return Q.bindingBody!.getAppFn
-              | false => do
-                return Q
-
+  let qBody := if hasScdLam then qBodyExpr.getAppFn else Q
   let assignmentToAdd ← getExprOfInstrForRFromExpr lastInstrExpr mstateInferredOld
 
-  return Expr.lam `st (.const `MState []) (mkApp qBody assignmentToAdd)
-    BinderInfo.default
-
+  return Expr.lam `st (.const `MState []) (mkApp qBody assignmentToAdd) BinderInfo.default
 
 
 elab "peel_last_instr" : tactic => do

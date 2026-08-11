@@ -14,11 +14,10 @@ theorem weak_with_less_BL_weakens : ∀ (s s' : MState) (L_w L_b L : Set UInt64)
   := by
   intros s s' L_w L_b L c
   unfold weak
-  intros H
-  intros HCode
+  intros H HCode
   specialize H HCode
   rcases H with ⟨n', ⟨H1, H2, H3, H4⟩⟩
-  grind only [= Set.mem_union, = Set.mem_diff]
+  grind only [= Set.mem_union, = Set.mem_sdiff]
   -- old proof:
   -- exists n'
   -- constructor <;> try assumption
@@ -42,11 +41,10 @@ theorem weak_L_w_with_L_from_L_b : ∀ (s s' : MState) (L_w L_b L : Set UInt64) 
   := by
   intros s s' L_w L_b L c T
   unfold weak
-  intros H
-  intros HCode
+  intros H HCode
   specialize H HCode
   rcases H with ⟨n', ⟨H1, H2, H3, H4⟩⟩
-  grind only [= Set.subset_def, = Set.mem_union, = Set.mem_diff]
+  grind only [= Set.subset_def, = Set.mem_union, = Set.mem_sdiff]
 
 
 
