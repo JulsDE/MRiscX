@@ -23,7 +23,7 @@ Add this project to your lakefile.toml like this
 name = "MRiscX"
 git = "git@github.com:JulsDE/MRiscX.git"
 rev = "main"
-version = "0.1.0-v4.29.0"
+version = "0.1.0-v4.33.0"
 ```
 Then, execute 
 ```bash
@@ -164,6 +164,8 @@ specification.
 
 
 ## Known issues
-In the current version, it is necessary to put the preconditions and postconditions in parentheses, with the exception of `¬⸨terminated⸩` (e.G. 
-⦃**(** x[0] = ∧ x[1] = 1 **)** ∧ ¬⸨terminated⸩⦄), in order to successfully apply the 
-specification. 
+- In the current version, it is necessary to put the preconditions and postconditions in 
+  parentheses, with the exception of `¬⸨terminated⸩` (e.G. 
+  ⦃**(** x[0] = ∧ x[1] = 1 **)** ∧ ¬⸨terminated⸩⦄), in order to successfully apply the 
+  specification. 
+- The `auto_seq` tactic currrently does **not** work. 
